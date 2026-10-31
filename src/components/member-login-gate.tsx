@@ -272,39 +272,38 @@ export function MemberLoginGate() {
                                 </p>
                             )}
 
-                            <Button
-                                type="submit"
-                                className="w-full"
-                                disabled={
-                                    busy ||
-                                    pin.length < 4 ||
-                                    (!hasMemberPin(target) && pinConfirm.length < 4)
-                                }
-                            >
-                                {busy
-                                    ? "登录中…"
-                                    : hasMemberPin(target)
-                                      ? "登录"
-                                      : "设置 PIN 并登录"}
-                            </Button>
-
-                            <div className="flex items-center justify-between gap-2">
-                                <button
+                            <div className="grid grid-cols-2 gap-2">
+                                <Button
                                     type="button"
+                                    variant="secondary"
                                     onClick={() => {
                                         setView("list");
                                         setPin("");
                                         setPinConfirm("");
                                         setError("");
                                     }}
-                                    className="text-[10px] font-medium text-accent hover:underline"
                                 >
                                     切换用户
-                                </button>
-                                <span className="text-[9px] text-muted">
-                                    PIN 哈希随成员信息保存在仓库
-                                </span>
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={
+                                        busy ||
+                                        pin.length < 4 ||
+                                        (!hasMemberPin(target) && pinConfirm.length < 4)
+                                    }
+                                >
+                                    {busy
+                                        ? "登录中…"
+                                        : hasMemberPin(target)
+                                          ? "登录"
+                                          : "设置 PIN 并登录"}
+                                </Button>
                             </div>
+
+                            <p className="text-center text-[9px] leading-relaxed text-muted">
+                                PIN 哈希随成员信息保存在仓库
+                            </p>
                         </form>
                     ) : (
                         <div className="mt-5">
