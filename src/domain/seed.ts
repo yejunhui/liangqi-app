@@ -5,6 +5,7 @@
 import type { Account, Book, Category, LedgerData } from "@/types";
 import { newId } from "@/utils/id";
 import { createDefaultMember } from "@/domain/members";
+import { createDefaultTagGroups, createDefaultTags } from "@/domain/tags";
 
 const CATEGORY_COLORS = {
     food: "#e07a5f",
@@ -155,8 +156,8 @@ export function createSeedData(now = Date.now()): LedgerData {
         accounts,
         categories,
         members: [createDefaultMember(now)],
-        tagGroups: [],
-        tags: [],
+        tagGroups: createDefaultTagGroups(now),
+        tags: createDefaultTags(now),
         budgets: [],
         recurringRules: [],
         attachments: [],
@@ -168,6 +169,7 @@ export function createSeedData(now = Date.now()): LedgerData {
         settings: {
             currency: "CNY",
             theme: "system",
+            defaultTagsSeeded: true,
         },
     };
 }

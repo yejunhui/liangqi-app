@@ -63,6 +63,7 @@ describe("multi-user merge", () => {
 
     it("unions shared configuration without dropping local additions", () => {
         const local = createSeedBook("共享账", NOW);
+        local.tags = [];
         local.tags.push({
             id: "tag_local",
             name: "本地标签",
@@ -70,6 +71,7 @@ describe("multi-user merge", () => {
             createdAt: NOW,
         });
         const remote = createSeedBook("共享账", NOW);
+        remote.tags = [];
         remote.tags.push({
             id: "tag_remote",
             name: "远程标签",

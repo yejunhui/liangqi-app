@@ -184,6 +184,8 @@ describe("backup validation", () => {
 
     it("round-trips tags, budgets and subcategories", () => {
         const data = buildData();
+        data.tags = [];
+        data.tagGroups = [];
         data.categories.push({
             id: "cat_breakfast",
             name: "早餐",

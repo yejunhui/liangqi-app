@@ -548,11 +548,18 @@ function parseSettings(raw: unknown): Settings {
     ) {
         throw new Error("键盘快捷键设置格式不正确");
     }
+    if (
+        raw.defaultTagsSeeded !== undefined &&
+        typeof raw.defaultTagsSeeded !== "boolean"
+    ) {
+        throw new Error("默认标签标记格式不正确");
+    }
     return {
         currency: raw.currency,
         theme,
         customCss: raw.customCss as string | undefined,
         keyboardShortcuts: raw.keyboardShortcuts as boolean | undefined,
+        defaultTagsSeeded: raw.defaultTagsSeeded as boolean | undefined,
     };
 }
 

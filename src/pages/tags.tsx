@@ -3,7 +3,7 @@
  */
 
 import { useMemo, useState } from "react";
-import { Pencil, Plus, Tag as TagIcon, Tags, Trash2 } from "lucide-react";
+import { Pencil, Plus, Sparkles, Tag as TagIcon, Tags, Trash2 } from "lucide-react";
 import type { Tag, TagGroup } from "@/types";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/button";
@@ -23,6 +23,7 @@ export function TagsPage() {
     const budgets = useLedgerStore((state) => state.budgets);
     const deleteTag = useLedgerStore((state) => state.deleteTag);
     const deleteTagGroup = useLedgerStore((state) => state.deleteTagGroup);
+    const addDefaultTags = useLedgerStore((state) => state.addDefaultTags);
 
     const [tagModalOpen, setTagModalOpen] = useState(false);
     const [groupModalOpen, setGroupModalOpen] = useState(false);
@@ -69,6 +70,20 @@ export function TagsPage() {
         setTagModalOpen(true);
     }
 
+    function handleDefaultTags() {
+        const result = addDefaultTags();
+        if (!result.ok) {
+            toast(result.error, "error");
+            return;
+        }
+        toast(
+            result.count
+                ? `已添加 ${result.count} 个日常标签/标签组`
+                : "日常标签已经存在",
+            result.count ? "success" : "info",
+        );
+    }
+
     function handleDeleteTag() {
         if (!deletingTag) {
             return;
@@ -104,7 +119,11 @@ export function TagsPage() {
                 title="标签"
                 description="标签可以跨分类标记账单：旅行、出差、装修、孩子。"
                 action={
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" onClick={handleDefaultTags}>
+                            <Sparkles className="size-4" />
+                            日常标签
+                        </Button>
                         <Button variant="secondary" onClick={() => { setEditingGroup(null); setGroupModalOpen(true); }}>
                             <Tags className="size-4" />
                             标签组
@@ -123,10 +142,16 @@ export function TagsPage() {
                     title="还没有标签"
                     description="标签适合标记跨分类的事情，比如一次旅行、一个装修项目。"
                     action={
-                        <Button size="sm" onClick={() => openCreateTag()}>
-                            <Plus className="size-3.5" />
-                            添加第一个标签
-                        </Button>
+                        <div className="flex flex-wrap justify-center gap-2">
+                            <Button size="sm" variant="secondary" onClick={handleDefaultTags}>
+                                <Sparkles className="size-3.5" />
+                                添加日常标签
+                            </Button>
+                            <Button size="sm" onClick={() => openCreateTag()}>
+                                <Plus className="size-3.5" />
+                                添加第一个标签
+                            </Button>
+                        </div>
                     }
                 />
             ) : (

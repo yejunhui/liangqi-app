@@ -213,6 +213,8 @@ export interface Settings {
     customCss?: string;
     /** Enable single-key shortcuts (n = new entry, q = quick entry). Defaults to true. */
     keyboardShortcuts?: boolean;
+    /** Whether starter tags have been seeded for this book. */
+    defaultTagsSeeded?: boolean;
 }
 
 export interface LedgerData {

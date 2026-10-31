@@ -3,6 +3,7 @@
  */
 
 import type { LedgerData, Member } from "@/types";
+import { seedDefaultTags } from "@/domain/tags";
 
 export const DEFAULT_MEMBER_ID = "member_me";
 
@@ -32,7 +33,7 @@ export function ensureMembers<T extends LedgerData>(data: T, now = Date.now()): 
         Array.isArray(data.members) && data.members.length > 0
             ? data.members
             : [createDefaultMember(now)];
-    return {
+    const normalized = {
         ...data,
         members,
         tagGroups: Array.isArray(data.tagGroups) ? data.tagGroups : [],
@@ -44,6 +45,7 @@ export function ensureMembers<T extends LedgerData>(data: T, now = Date.now()): 
         deletedBills: Array.isArray(data.deletedBills) ? data.deletedBills : [],
         deletedConfig: Array.isArray(data.deletedConfig) ? data.deletedConfig : [],
     };
+    return seedDefaultTags(normalized, now);
 }
 
 export function findMember(members: Member[], memberId?: string): Member | undefined {

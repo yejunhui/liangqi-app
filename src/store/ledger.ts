@@ -28,6 +28,7 @@ import type {
     Tombstone,
 } from "@/types";
 import { createSeedData } from "@/domain/seed";
+import { createDefaultTagGroups, createDefaultTags, seedDefaultTags } from "@/domain/tags";
 import {
     getBillRepaid,
     getBillRemaining,
@@ -206,6 +207,7 @@ export interface LedgerActions {
         patch: Partial<Pick<Tag, "name" | "color" | "groupId">>,
     ) => Result;
     deleteTag: (tagId: string) => Result;
+    addDefaultTags: () => Result & { count?: number };
     addBudget: (input: BudgetInput) => Result & { id?: string };
     updateBudget: (
         budgetId: string,
@@ -1301,6 +1303,33 @@ const createActions = (
         return { ok: true };
     },
 
+    addDefaultTags() {
+        const state = get();
+        const existingGroupIds = new Set(state.tagGroups.map((item) => item.id));
+        const existingTagIds = new Set(state.tags.map((item) => item.id));
+        const groups = createDefaultTagGroups().filter(
+            (item) => !existingGroupIds.has(item.id),
+        );
+        const tags = createDefaultTags().filter(
+            (item) => !existingTagIds.has(item.id),
+        );
+        if (groups.length === 0 && tags.length === 0) {
+            return { ok: true, count: 0 };
+        }
+        const addedIds = new Set(
+            [...groups, ...tags].map((item) => item.id),
+        );
+        set({
+            tagGroups: [...state.tagGroups, ...groups],
+            tags: [...state.tags, ...tags],
+            deletedConfig: state.deletedConfig.filter(
+                (item) => !addedIds.has(item.id),
+            ),
+            settings: { ...state.settings, defaultTagsSeeded: true },
+        });
+        return { ok: true, count: groups.length + tags.length };
+    },
+
     addBudget(input) {
         const name = input.name.trim();
         if (!name) {
@@ -1829,21 +1858,22 @@ const createActions = (
         if (!data.accounts.length) {
             return fail("导入文件里没有账户");
         }
+        const seeded = seedDefaultTags(data);
         set({
-            accounts: data.accounts,
-            categories: data.categories,
-            members: data.members,
-            tagGroups: data.tagGroups,
-            tags: data.tags,
-            budgets: data.budgets,
-            recurringRules: data.recurringRules,
-            attachments: data.attachments,
-            deletedEntries: data.deletedEntries,
-            deletedBills: data.deletedBills,
-            deletedConfig: data.deletedConfig,
-            bills: data.bills,
-            entries: data.entries,
-            settings: data.settings,
+            accounts: seeded.accounts,
+            categories: seeded.categories,
+            members: seeded.members,
+            tagGroups: seeded.tagGroups,
+            tags: seeded.tags,
+            budgets: seeded.budgets,
+            recurringRules: seeded.recurringRules,
+            attachments: seeded.attachments,
+            deletedEntries: seeded.deletedEntries,
+            deletedBills: seeded.deletedBills,
+            deletedConfig: seeded.deletedConfig,
+            bills: seeded.bills,
+            entries: seeded.entries,
+            settings: seeded.settings,
         });
         return { ok: true };
     },
