@@ -30,6 +30,7 @@ import {
     parseManifest,
     parseMetaFile,
 } from "@/remote/chunks";
+import { cacheChunk, readCachedChunk } from "@/remote/chunk-cache";
 
 function isObject(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -215,10 +216,15 @@ async function readChunks<T>(
 ): Promise<T[]> {
     const texts = await Promise.all(
         refs.map(async (ref) => {
+            const cached = await readCachedChunk(ref.hash);
+            if (cached !== undefined) {
+                return cached;
+            }
             const file = await adapter.readFile(ref.path);
             if (!file) {
                 throw new RemoteError(`缺少远程分片 ${ref.path}`);
             }
+            await cacheChunk(ref.hash, file.text);
             return file.text;
         }),
     );
