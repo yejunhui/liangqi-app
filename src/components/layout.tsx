@@ -15,6 +15,7 @@ import {
     Database,
     Cloud,
     Users,
+    LockKeyhole,
 } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Logo } from "@/components/logo";
@@ -22,6 +23,7 @@ import { Button } from "@/components/button";
 import { BookSwitcher } from "@/components/book-switcher";
 import { useLedgerStore, useCurrency } from "@/store/ledger";
 import { useLibraryStore, getActiveBook } from "@/store/library";
+import { useAuthStore } from "@/store/auth";
 import { useUIStore } from "@/store/ui";
 import { getTotals } from "@/domain/ledger";
 import { formatCents } from "@/domain/money";
@@ -59,6 +61,8 @@ export function Layout() {
     const closeEntryModal = useUIStore((state) => state.closeEntryModal);
     const openBookSwitcher = useUIStore((state) => state.openBookSwitcher);
     const activeBook = useLibraryStore((state) => getActiveBook(state));
+    const authEnabled = useAuthStore((state) => state.enabled);
+    const lock = useAuthStore((state) => state.lock);
     const totals = getTotals({ accounts, entries });
 
     useEffect(() => {
@@ -125,6 +129,16 @@ export function Layout() {
                             {item.label}
                         </NavLink>
                     ))}
+                    {authEnabled && (
+                        <button
+                            type="button"
+                            onClick={lock}
+                            className={cn(navClass(false), "w-full text-left")}
+                        >
+                            <LockKeyhole className="size-[18px]" />
+                            锁定
+                        </button>
+                    )}
                 </nav>
 
                 <div className="m-3 rounded-2xl border border-line bg-surface-2/70 p-4">
@@ -158,13 +172,25 @@ export function Layout() {
                                 <ChevronDown className="size-3 shrink-0 text-muted" />
                             </button>
                         </div>
-                        <NavLink
-                            to="/settings"
-                            className="grid size-9 shrink-0 place-items-center rounded-xl border border-line bg-surface text-muted transition hover:text-text"
-                            aria-label="设置"
-                        >
-                            <Settings className="size-4" />
-                        </NavLink>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                            {authEnabled && (
+                                <button
+                                    type="button"
+                                    onClick={lock}
+                                    className="grid size-9 place-items-center rounded-xl border border-line bg-surface text-muted transition hover:text-text"
+                                    aria-label="锁定"
+                                >
+                                    <LockKeyhole className="size-4" />
+                                </button>
+                            )}
+                            <NavLink
+                                to="/settings"
+                                className="grid size-9 place-items-center rounded-xl border border-line bg-surface text-muted transition hover:text-text"
+                                aria-label="设置"
+                            >
+                                <Settings className="size-4" />
+                            </NavLink>
+                        </div>
                     </div>
                 </header>
 
