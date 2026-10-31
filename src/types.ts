@@ -19,6 +19,20 @@ export interface Member {
     createdAt: number;
 }
 
+export interface RemoteUser {
+    /** Stable provider user id, or a local fallback id. */
+    id: string;
+    name: string;
+    color?: string;
+    provider?: RemoteProvider;
+}
+
+export interface Tombstone {
+    id: string;
+    deletedAt: number;
+    ownerId?: string;
+}
+
 export interface Account {
     id: string;
     name: string;
@@ -85,6 +99,9 @@ export interface RecurringRule {
     tagIds?: string[];
     note?: string;
     createdAt: number;
+    ownerId?: string;
+    ownerName?: string;
+    updatedAt?: number;
 }
 
 export interface Budget {
@@ -106,6 +123,8 @@ export interface Attachment {
     /** File size in bytes. */
     size: number;
     createdAt: number;
+    ownerId?: string;
+    ownerName?: string;
 }
 
 export interface EntryLocation {
@@ -133,6 +152,9 @@ export interface Bill {
     tagIds?: string[];
     attachmentIds?: string[];
     originalAmount?: OriginalAmount;
+    ownerId?: string;
+    ownerName?: string;
+    updatedAt?: number;
     title: string;
     /** Original amount in cents. */
     principal: number;
@@ -163,6 +185,9 @@ export interface Entry {
     memberId?: string;
     tagIds?: string[];
     attachmentIds?: string[];
+    ownerId?: string;
+    ownerName?: string;
+    updatedAt?: number;
     location?: EntryLocation;
     originalAmount?: OriginalAmount;
     note?: string;
@@ -185,6 +210,8 @@ export interface LedgerData {
     budgets: Budget[];
     recurringRules: RecurringRule[];
     attachments: Attachment[];
+    deletedEntries: Tombstone[];
+    deletedBills: Tombstone[];
     bills: Bill[];
     entries: Entry[];
     settings: Settings;
@@ -215,6 +242,8 @@ export interface Connection {
     url?: string;
     username?: string;
     password?: string;
+    /** Resolved identity of the user behind this connection. */
+    user?: RemoteUser;
 }
 
 export interface RemoteBinding {

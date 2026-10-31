@@ -21,9 +21,11 @@ import type {
     RecurringFrequency,
     RecurringRule,
     RemoteBinding,
+    RemoteUser,
     Settings,
     Tag,
     TagGroup,
+    Tombstone,
 } from "@/types";
 import { createDefaultMember } from "@/domain/members";
 
@@ -146,6 +148,44 @@ function parseOptionalOriginalAmount(
     };
 }
 
+function parseTombstone(raw: unknown, index: number, label: string): Tombstone {
+    if (!isObject(raw)) {
+        throw new Error(`第 ${index + 1} 个${label}删除记录格式不正确`);
+    }
+    if (!optionalString(raw.ownerId)) {
+        throw new Error(`第 ${index + 1} 个${label}删除记录归属格式不正确`);
+    }
+    return {
+        id: requiredString(raw.id, `${label}删除记录 id`),
+        deletedAt: requiredTimestamp(raw.deletedAt, `${label}删除时间`),
+        ownerId: raw.ownerId as string | undefined,
+    };
+}
+
+function parseRemoteUser(value: unknown): RemoteUser | undefined {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (
+        !isObject(value) ||
+        !isString(value.id) ||
+        !isString(value.name) ||
+        (value.color !== undefined && !isString(value.color)) ||
+        (value.provider !== undefined &&
+            value.provider !== "github" &&
+            value.provider !== "gitee" &&
+            value.provider !== "webdav")
+    ) {
+        throw new Error("远程用户身份格式不正确");
+    }
+    return {
+        id: value.id,
+        name: value.name,
+        color: value.color as string | undefined,
+        provider: value.provider as RemoteUser["provider"],
+    };
+}
+
 function parseAttachment(raw: unknown, index: number): Attachment {
     if (!isObject(raw)) {
         throw new Error(`第 ${index + 1} 个附件格式不正确`);
@@ -156,6 +196,8 @@ function parseAttachment(raw: unknown, index: number): Attachment {
         mimeType: requiredString(raw.mimeType, "附件类型"),
         size: requiredInteger(raw.size, "附件大小", 0),
         createdAt: requiredTimestamp(raw.createdAt, "附件创建时间"),
+        ownerId: raw.ownerId as string | undefined,
+        ownerName: raw.ownerName as string | undefined,
     };
 }
 
@@ -237,7 +279,10 @@ function parseRecurringRule(raw: unknown, index: number): RecurringRule {
         !optionalString(raw.accountId) ||
         !optionalString(raw.liabilityAccountId) ||
         !optionalString(raw.memberId) ||
-        !optionalString(raw.note)
+        !optionalString(raw.note) ||
+        !optionalString(raw.ownerId) ||
+        !optionalString(raw.ownerName) ||
+        !optionalNumber(raw.updatedAt)
     ) {
         throw new Error(`第 ${index + 1} 个周期记账字段格式不正确`);
     }
@@ -271,6 +316,9 @@ function parseRecurringRule(raw: unknown, index: number): RecurringRule {
         memberId: raw.memberId as string | undefined,
         tagIds: raw.tagIds as string[] | undefined,
         note: raw.note as string | undefined,
+        ownerId: raw.ownerId as string | undefined,
+        ownerName: raw.ownerName as string | undefined,
+        updatedAt: raw.updatedAt as number | undefined,
         createdAt: requiredTimestamp(raw.createdAt, "周期记账创建时间"),
     };
 }
@@ -294,7 +342,10 @@ function parseBill(raw: unknown, index: number): Bill {
     if (
         !optionalString(raw.categoryId) ||
         !optionalString(raw.memberId) ||
-        !optionalString(raw.note)
+        !optionalString(raw.note) ||
+        !optionalString(raw.ownerId) ||
+        !optionalString(raw.ownerName) ||
+        !optionalNumber(raw.updatedAt)
     ) {
         throw new Error(`第 ${index + 1} 张账单字段格式不正确`);
     }
@@ -334,6 +385,9 @@ function parseBill(raw: unknown, index: number): Bill {
         dueDate: raw.dueDate as number | undefined,
         note: raw.note as string | undefined,
         opening: raw.opening as boolean | undefined,
+        ownerId: raw.ownerId as string | undefined,
+        ownerName: raw.ownerName as string | undefined,
+        updatedAt: raw.updatedAt as number | undefined,
         createdAt: requiredTimestamp(raw.createdAt, "账单创建时间"),
     };
 }
@@ -360,10 +414,15 @@ function parseEntry(raw: unknown, index: number): Entry {
         "note",
         "recurringId",
         "toAccountId",
+        "ownerId",
+        "ownerName",
     ] as const) {
         if (!optionalString(raw[key])) {
             throw new Error(`第 ${index + 1} 条流水 ${key} 格式不正确`);
         }
+    }
+    if (!optionalNumber(raw.updatedAt)) {
+        throw new Error(`第 ${index + 1} 条流水更新时间格式不正确`);
     }
     if (
         raw.tagIds !== undefined &&
@@ -405,6 +464,9 @@ function parseEntry(raw: unknown, index: number): Entry {
         originalAmount: parseOptionalOriginalAmount(raw.originalAmount, index),
         note: raw.note as string | undefined,
         recurringId: raw.recurringId as string | undefined,
+        ownerId: raw.ownerId as string | undefined,
+        ownerName: raw.ownerName as string | undefined,
+        updatedAt: raw.updatedAt as number | undefined,
         createdAt: requiredTimestamp(raw.createdAt, "流水创建时间"),
     };
 }
@@ -713,6 +775,14 @@ export function parseBackup(raw: unknown): { ok: true; data: LedgerData } | { ok
         const attachments = Array.isArray(raw.attachments)
             ? raw.attachments.map(parseAttachment)
             : [];
+        const deletedEntries = Array.isArray(raw.deletedEntries)
+            ? raw.deletedEntries.map((item, index) =>
+                  parseTombstone(item, index, "流水"),
+              )
+            : [];
+        const deletedBills = Array.isArray(raw.deletedBills)
+            ? raw.deletedBills.map((item, index) => parseTombstone(item, index, "账单"))
+            : [];
         const bills = raw.bills.map(parseBill);
         const entries = raw.entries.map(parseEntry);
         const settings = parseSettings(raw.settings);
@@ -745,6 +815,8 @@ export function parseBackup(raw: unknown): { ok: true; data: LedgerData } | { ok
             budgets,
             recurringRules,
             attachments,
+            deletedEntries,
+            deletedBills,
             bills,
             entries,
             settings,
@@ -851,6 +923,7 @@ function parseConnection(raw: unknown, index: number): Connection {
         url: raw.url as string | undefined,
         username: raw.username as string | undefined,
         password: raw.password as string | undefined,
+        user: parseRemoteUser(raw.user),
     };
 }
 

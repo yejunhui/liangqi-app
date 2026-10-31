@@ -17,6 +17,7 @@ interface BillCardProps {
     members: Member[];
     tags: Tag[];
     currency: string;
+    canEdit?: boolean;
     onRepay: () => void;
     onEdit: () => void;
     onDelete: () => void;
@@ -49,6 +50,7 @@ export function BillCard({
     members,
     tags,
     currency,
+    canEdit = true,
     onRepay,
     onEdit,
     onDelete,
@@ -112,6 +114,14 @@ export function BillCard({
                                 {tag.name}
                             </span>
                         ))}
+                        {bill.ownerName && (
+                            <span className="chip bg-surface-3 text-muted">
+                                记 · {bill.ownerName}
+                            </span>
+                        )}
+                        {!canEdit && (
+                            <span className="chip bg-surface-3 text-muted">只读</span>
+                        )}
                     </div>
                     <p className="mt-0.5 truncate text-[11px] text-muted">
                         {liability?.name ?? "负债账户"}
@@ -163,15 +173,17 @@ export function BillCard({
                         这笔账单已经结清
                     </span>
                 )}
-                <button
-                    type="button"
-                    onClick={onEdit}
-                    className="grid size-8 place-items-center rounded-lg border border-line text-muted transition hover:bg-surface-2 hover:text-text"
-                    aria-label="编辑账单"
-                >
-                    <Pencil className="size-3.5" />
-                </button>
-                {canDelete && (
+                {canEdit && (
+                    <button
+                        type="button"
+                        onClick={onEdit}
+                        className="grid size-8 place-items-center rounded-lg border border-line text-muted transition hover:bg-surface-2 hover:text-text"
+                        aria-label="编辑账单"
+                    >
+                        <Pencil className="size-3.5" />
+                    </button>
+                )}
+                {canDelete && canEdit && (
                     <button
                         type="button"
                         onClick={onDelete}

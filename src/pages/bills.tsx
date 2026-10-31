@@ -21,6 +21,7 @@ import {
 } from "@/domain/ledger";
 import { formatCents } from "@/domain/money";
 import { useCurrency, useLedgerStore } from "@/store/ledger";
+import { useCurrentActor } from "@/store/identity";
 import { useUIStore } from "@/store/ui";
 import { toast } from "@/store/toast";
 
@@ -35,6 +36,7 @@ export function Bills() {
     const tags = useLedgerStore((state) => state.tags);
     const deleteBill = useLedgerStore((state) => state.deleteBill);
     const currency = useCurrency();
+    const actor = useCurrentActor();
     const openEntryModal = useUIStore((state) => state.openEntryModal);
 
     const [filter, setFilter] = useState<Filter>("open");
@@ -215,6 +217,7 @@ export function Bills() {
                             members={members}
                             tags={tags}
                             currency={currency}
+                            canEdit={!bill.ownerId || bill.ownerId === actor.id}
                             onRepay={() =>
                                 openEntryModal({ kind: "repayment", billId: bill.id })
                             }

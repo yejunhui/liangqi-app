@@ -21,6 +21,7 @@ interface AttachmentListProps {
     target: { kind: "entry" | "bill"; id: string };
     attachmentIds: string[] | undefined;
     label?: string;
+    readOnly?: boolean;
 }
 
 function formatFileSize(size: number): string {
@@ -37,6 +38,7 @@ export function AttachmentList({
     target,
     attachmentIds,
     label = "附件",
+    readOnly = false,
 }: AttachmentListProps) {
     const attachments = useLedgerStore((state) => state.attachments);
     const addAttachments = useLedgerStore((state) => state.addAttachments);
@@ -109,15 +111,17 @@ export function AttachmentList({
                     <Paperclip className="size-3" />
                     {label}
                 </p>
-                <button
-                    type="button"
-                    onClick={() => inputRef.current?.click()}
-                    disabled={uploading}
-                    className="inline-flex items-center gap-1 rounded-lg border border-line px-2 py-1 text-[10px] font-medium text-muted transition hover:text-text disabled:opacity-50"
-                >
-                    <Plus className="size-3" />
-                    {uploading ? "保存中…" : "添加"}
-                </button>
+                {!readOnly && (
+                    <button
+                        type="button"
+                        onClick={() => inputRef.current?.click()}
+                        disabled={uploading}
+                        className="inline-flex items-center gap-1 rounded-lg border border-line px-2 py-1 text-[10px] font-medium text-muted transition hover:text-text disabled:opacity-50"
+                    >
+                        <Plus className="size-3" />
+                        {uploading ? "保存中…" : "添加"}
+                    </button>
+                )}
             </div>
 
             <input
@@ -159,14 +163,16 @@ export function AttachmentList({
                                     {formatFileSize(attachment.size)}
                                 </span>
                             </button>
-                            <button
-                                type="button"
-                                onClick={() => setDeleting(attachment)}
-                                className="grid size-6 place-items-center rounded-md text-muted transition hover:bg-danger-soft hover:text-danger"
-                                aria-label="删除附件"
-                            >
-                                <Trash2 className="size-3" />
-                            </button>
+                            {!readOnly && (
+                                <button
+                                    type="button"
+                                    onClick={() => setDeleting(attachment)}
+                                    className="grid size-6 place-items-center rounded-md text-muted transition hover:bg-danger-soft hover:text-danger"
+                                    aria-label="删除附件"
+                                >
+                                    <Trash2 className="size-3" />
+                                </button>
+                            )}
                         </div>
                     ))}
                 </div>

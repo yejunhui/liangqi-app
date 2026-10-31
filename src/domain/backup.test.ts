@@ -369,6 +369,35 @@ describe("backup validation", () => {
         expect(parseBackup(createExportPayload(nested)).ok).toBe(false);
     });
 
+    it("round-trips owners, tombstones and remote identities", () => {
+        const data = buildData();
+        data.entries[0].ownerId = "github:1";
+        data.entries[0].ownerName = "Alice";
+        data.entries[0].updatedAt = NOW;
+        data.bills[0].ownerId = "github:1";
+        data.bills[0].ownerName = "Alice";
+        data.bills[0].updatedAt = NOW;
+        data.deletedEntries.push({
+            id: "entry_gone",
+            deletedAt: NOW,
+            ownerId: "github:1",
+        });
+        data.deletedBills.push({
+            id: "bill_gone",
+            deletedAt: NOW,
+            ownerId: "github:1",
+        });
+
+        const parsed = parseBackup(createExportPayload(data));
+        expect(parsed.ok).toBe(true);
+        if (parsed.ok) {
+            expect(parsed.data.entries[0].ownerName).toBe("Alice");
+            expect(parsed.data.bills[0].ownerId).toBe("github:1");
+            expect(parsed.data.deletedEntries).toHaveLength(1);
+            expect(parsed.data.deletedBills[0].id).toBe("bill_gone");
+        }
+    });
+
     it("round-trips member ids and rejects unknown members", () => {
         const data = buildData();
         data.members.push({
@@ -428,6 +457,11 @@ describe("library backup", () => {
                     branch: "main",
                     token: "secret-token",
                     tokenKind: "pat",
+                    user: {
+                        id: "github:1",
+                        name: "Alice",
+                        provider: "github",
+                    },
                 },
             ],
         };
@@ -447,6 +481,7 @@ describe("library backup", () => {
             expect(parsed.library.activeBookId).toBe(library.activeBookId);
             expect(parsed.library.books[1].remote?.connectionId).toBe("conn_1");
             expect(parsed.library.connections[0].token).toBeUndefined();
+            expect(parsed.library.connections[0].user?.name).toBe("Alice");
         }
     });
 

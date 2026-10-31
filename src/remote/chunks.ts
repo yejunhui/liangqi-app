@@ -78,6 +78,8 @@ export function bookMeta(book: Book): Omit<Book, "entries" | "bills" | "remote">
         budgets: book.budgets,
         recurringRules: book.recurringRules,
         attachments: book.attachments,
+        deletedEntries: book.deletedEntries,
+        deletedBills: book.deletedBills,
         settings: book.settings,
     };
 }

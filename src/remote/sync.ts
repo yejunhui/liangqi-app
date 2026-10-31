@@ -1,5 +1,9 @@
 /**
  * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * One repository = one shared ledger. Sync pulls the remote copy, merges it
+ * per record with the local copy, then pushes only if the merged result really
+ * differs from what the server already has.
  */
 
 import type { Book, Connection, RemoteBinding, RemoteBookManifest } from "@/types";
@@ -16,7 +20,16 @@ import {
     readRemoteManifest,
     RemoteNewerError,
 } from "@/remote/repository";
+import { resolveConnectionUser } from "@/remote/identity";
+import {
+    bookContentSignature,
+    claimUnownedRecords,
+    mergeBooks,
+    reassignOwner,
+} from "@/domain/merge";
 import { RemoteError } from "@/remote/errors";
+import { getCurrentActor } from "@/store/identity";
+import { useLocalUserStore } from "@/store/identity";
 
 export type SyncAction = "push" | "pull" | "conflict" | "noop" | "local-only";
 
@@ -26,10 +39,6 @@ export interface SyncResult {
     message: string;
     revision?: string;
     manifest?: RemoteBookManifest;
-}
-
-function comparable(book: Book): string {
-    return JSON.stringify({ ...book, remote: undefined, updatedAt: 0 });
 }
 
 function withBinding(
@@ -75,279 +84,335 @@ export function getActiveBinding(): {
     return { book, connection, binding: book.remote };
 }
 
-export async function reconcileBook(
+async function ensureConnectionUser(connection: Connection): Promise<Connection> {
+    if (connection.user) {
+        return connection;
+    }
+    const user = await resolveConnectionUser(connection);
+    const updated = { ...connection, user };
+    useLibraryStore.getState().updateConnection(connection.id, { user });
+    return updated;
+}
+
+function applyBook(
+    book: Book,
     connection: Connection,
+    revision: string | undefined,
+    lastSyncedAt: number,
+    manifest?: RemoteBookManifest,
+): Book {
+    const syncedBook = withBinding(
+        book,
+        connection,
+        book.id,
+        revision,
+        lastSyncedAt,
+        book.remote?.autoSync ?? true,
+        manifest,
+    );
+    useLibraryStore.getState().upsertBook(syncedBook);
+    if (useLibraryStore.getState().activeBookId === book.id) {
+        useLedgerStore.setState(syncedBook);
+    }
+    return syncedBook;
+}
+
+function mergeForUser(
     local: Book,
-    binding: RemoteBinding,
-): Promise<SyncResult> {
-    const manifestRecord = await readRemoteManifest(connection, binding.remoteBookId);
-    const last = binding.lastSyncedAt ?? 0;
-    const localChanged = local.updatedAt > last;
-
-    if (!manifestRecord) {
-        return {
-            action: "push",
-            message: "远程还没有这个账本，正在上传",
-        };
-    }
-
-    const remoteChanged = manifestRecord.manifest.updatedAt > last;
-
-    // Fast path: the remote manifest is unchanged, so skip meta/chunk reads.
-    if (!remoteChanged && !localChanged) {
-        return {
-            action: "noop",
-            book: local,
-            message: "已是最新",
-            revision: manifestRecord.revision,
-            manifest: manifestRecord.manifest,
-        };
-    }
-
-    if (localChanged && !remoteChanged) {
-        return {
-            action: "push",
-            message: "正在上传本地更新",
-        };
-    }
-
-    // Remote changed (or both changed): fetch meta and chunks once.
-    const remote = await pullRemoteBook(connection, binding.remoteBookId);
-    if (!remote) {
-        return {
-            action: "push",
-            message: "远程还没有这个账本，正在上传",
-        };
-    }
-    const finalRemoteChanged = remote.book.updatedAt > last;
-    if (!finalRemoteChanged && localChanged) {
-        return {
-            action: "push",
-            message: "正在上传本地更新",
-        };
-    }
-    if (finalRemoteChanged && !localChanged) {
-        return {
-            action: "pull",
-            book: remote.book,
-            message: "已拉取远程更新",
-            revision: remote.revision,
-            manifest: remote.manifest,
-        };
-    }
-    if (finalRemoteChanged && localChanged) {
-        return {
-            action: "conflict",
-            book: remote.book,
-            message: "本地和远程都有修改，按远程优先处理，并保留本地冲突备份",
-            revision: remote.revision,
-            manifest: remote.manifest,
-        };
-    }
-
+    remote: Book | undefined,
+    connection: Connection,
+): Book {
+    const actor = connection.user ?? getCurrentActor();
+    const base = remote ? mergeBooks(local, remote) : local;
     return {
-        action: "noop",
-        book: remote.book,
-        message: "已是最新",
-        revision: remote.revision,
-        manifest: remote.manifest,
+        ...claimUnownedRecords(base, actor),
+        id: local.id,
+        name: local.name || base.name,
+        createdAt: Math.min(local.createdAt, base.createdAt),
+        remote: local.remote,
     };
+}
+
+async function pushWithRetry(
+    connection: Connection,
+    book: Book,
+    remote: Book | undefined,
+): Promise<{
+    book: Book;
+    revision?: string;
+    manifest: RemoteBookManifest;
+    merged: boolean;
+}> {
+    let candidate = book;
+    let remoteCopy = remote;
+    let merged = false;
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        const toPush = {
+            ...candidate,
+            updatedAt: Math.max(
+                Date.now(),
+                candidate.updatedAt,
+                remoteCopy?.updatedAt ?? 0,
+            ),
+        };
+        try {
+            const pushed = await pushRemoteBook(connection, toPush);
+            return {
+                book: toPush,
+                revision: pushed.revision,
+                manifest: pushed.manifest,
+                merged,
+            };
+        } catch (error) {
+            lastError = error;
+            if (!(error instanceof RemoteNewerError)) {
+                throw error;
+            }
+            saveConflictBackup(toPush);
+            remoteCopy = error.remoteBook;
+            candidate = mergeForUser(toPush, error.remoteBook, connection);
+            merged = true;
+        }
+    }
+    throw lastError instanceof Error
+        ? lastError
+        : new RemoteError("多个用户同时同步，暂时无法合并，请稍后重试");
 }
 
 export async function syncBookNow(bookId?: string): Promise<SyncResult> {
     const library = useLibraryStore.getState();
     const id = bookId ?? library.activeBookId;
-    const book = library.books.find((item) => item.id === id);
+    let book = library.books.find((item) => item.id === id);
     if (!book) {
         throw new RemoteError("账本不存在");
     }
     if (!book.remote) {
         return { action: "local-only", message: "这个账本还没有连接远程" };
     }
-    const connection = getConnectionById(library, book.remote.connectionId);
+    const binding = book.remote;
+    let connection = getConnectionById(library, binding.connectionId);
     if (!connection) {
         return { action: "local-only", message: "远程连接配置已丢失，请重新连接" };
     }
-
-    const result = await reconcileBook(connection, book, book.remote);
-
-    if (result.action === "push") {
-        try {
-            const pushed = await pushRemoteBook(connection, book);
-            const latest = latestBook(book.id, book);
-            const syncedBook = withBinding(
-                latest,
-                connection,
-                book.id,
-                pushed.revision,
-                book.updatedAt,
-                latest.remote?.autoSync ?? book.remote.autoSync,
-                pushed.manifest,
-            );
-            useLibraryStore.getState().upsertBook(syncedBook);
-            if (useLibraryStore.getState().activeBookId === book.id) {
-                useLedgerStore.setState({ remote: syncedBook.remote });
-            }
-            return {
-                action: "push",
-                book: syncedBook,
-                revision: pushed.revision,
-                manifest: pushed.manifest,
-                message: "已上传到远程",
-            };
-        } catch (error) {
-            if (error instanceof RemoteNewerError) {
-                const latest = latestBook(book.id, book);
-                saveConflictBackup(latest);
-                const remoteBook = withBinding(
-                    error.remoteBook,
-                    connection,
-                    book.id,
-                    error.revision,
-                    error.remoteBook.updatedAt,
-                    latest.remote?.autoSync ?? book.remote.autoSync,
-                );
-                useLibraryStore.getState().upsertBook(remoteBook);
-                if (useLibraryStore.getState().activeBookId === book.id) {
-                    useLedgerStore.setState(remoteBook);
-                }
-                return {
-                    action: "conflict",
-                    book: remoteBook,
-                    revision: error.revision,
-                    message: "远程有更新的数据，已采用远程版本并保留本地备份",
-                };
-            }
-            throw error;
-        }
+    connection = await ensureConnectionUser(connection);
+    const localUserId = useLocalUserStore.getState().user.id;
+    if (connection.user && connection.user.id !== localUserId) {
+        book = reassignOwner(book, localUserId, connection.user);
     }
 
-    if (result.action === "pull" || result.action === "conflict") {
-        const latest = latestBook(book.id, book);
-        if (result.action === "conflict" || latest.updatedAt > book.updatedAt) {
-            saveConflictBackup(latest);
-        }
-        const remoteBook = result.book;
-        if (!remoteBook) {
-            return { action: "noop", message: "远程没有可用数据" };
-        }
-        const syncedBook = withBinding(
-            remoteBook,
+    const last = binding.lastSyncedAt ?? 0;
+    const manifestRecord = await readRemoteManifest(connection, binding.remoteBookId);
+    const needsLayoutMigration = manifestRecord?.layout !== "current";
+
+    if (
+        manifestRecord?.layout === "current" &&
+        manifestRecord.manifest.updatedAt === last &&
+        book.updatedAt <= last
+    ) {
+        const synced = applyBook(
+            book,
             connection,
-            book.id,
-            result.revision,
-            remoteBook.updatedAt,
-            latest.remote?.autoSync ?? book.remote.autoSync,
-            result.manifest,
+            manifestRecord.revision,
+            manifestRecord.manifest.updatedAt,
+            manifestRecord.manifest,
         );
-        useLibraryStore.getState().upsertBook(syncedBook);
-        if (useLibraryStore.getState().activeBookId === book.id) {
-            useLedgerStore.setState(syncedBook);
-        }
         return {
-            ...result,
-            book: syncedBook,
+            action: "noop",
+            book: synced,
+            message: "已是最新",
+            revision: manifestRecord.revision,
+            manifest: manifestRecord.manifest,
         };
     }
 
-    if (result.action === "noop" && result.book) {
-        const latest = latestBook(book.id, book);
-        const syncedBook = withBinding(
-            latest,
+    if (
+        manifestRecord?.layout === "current" &&
+        manifestRecord.manifest.updatedAt === last &&
+        book.updatedAt > last
+    ) {
+        const claimed = mergeForUser(book, undefined, connection);
+        const pushed = await pushWithRetry(connection, claimed, undefined);
+        const synced = applyBook(
+            pushed.book,
             connection,
-            book.id,
-            result.revision,
-            result.manifest?.updatedAt ?? result.book.updatedAt,
-            latest.remote?.autoSync ?? book.remote.autoSync,
-            result.manifest,
+            pushed.revision,
+            pushed.book.updatedAt,
+            pushed.manifest,
         );
-        useLibraryStore.getState().upsertBook(syncedBook);
-        if (useLibraryStore.getState().activeBookId === book.id) {
-            useLedgerStore.setState({ remote: syncedBook.remote });
-        }
-        return { ...result, book: syncedBook };
+        return {
+            action: "push",
+            book: synced,
+            message: "已上传本地更新",
+            revision: pushed.revision,
+            manifest: pushed.manifest,
+        };
     }
 
-    return result;
+    const remote = await pullRemoteBook(connection, binding.remoteBookId);
+    if (!remote) {
+        const claimed = mergeForUser(book, undefined, connection);
+        const pushed = await pushWithRetry(connection, claimed, undefined);
+        const synced = applyBook(
+            pushed.book,
+            connection,
+            pushed.revision,
+            pushed.book.updatedAt,
+            pushed.manifest,
+        );
+        return {
+            action: "push",
+            book: synced,
+            message: "远程还没有这个账本，已上传",
+            revision: pushed.revision,
+            manifest: pushed.manifest,
+        };
+    }
+
+    const localChanged = book.updatedAt > last;
+    if (localChanged) {
+        saveConflictBackup(book);
+    }
+    const merged = mergeForUser(book, remote.book, connection);
+    if (
+        !needsLayoutMigration &&
+        bookContentSignature(merged) === bookContentSignature(remote.book)
+    ) {
+        const synced = applyBook(
+            merged,
+            connection,
+            remote.revision,
+            remote.book.updatedAt,
+            remote.manifest,
+        );
+        return {
+            action: "pull",
+            book: synced,
+            message: "已拉取远程更新并合并",
+            revision: remote.revision,
+            manifest: remote.manifest,
+        };
+    }
+
+    const pushed = await pushWithRetry(connection, merged, remote.book);
+    const synced = applyBook(
+        pushed.book,
+        connection,
+        pushed.revision,
+        pushed.book.updatedAt,
+        pushed.manifest,
+    );
+    return {
+        action: "push",
+        book: synced,
+        message: "已合并远程和本地更新",
+        revision: pushed.revision,
+        manifest: pushed.manifest,
+    };
 }
 
 export async function openRemoteBook(
     connection: Connection,
-    remoteBookId: string,
+    remoteBookId?: string,
 ): Promise<Book> {
-    const remote = await pullRemoteBook(connection, remoteBookId);
+    const resolvedConnection = await ensureConnectionUser(connection);
+    const remote = await pullRemoteBook(
+        resolvedConnection,
+        remoteBookId ?? "",
+    );
     if (!remote) {
         throw new RemoteError("远程账本不存在");
     }
     const library = useLibraryStore.getState();
     const existing = library.books.find((book) => book.id === remote.book.id);
-    if (existing && comparable(existing) !== comparable(remote.book)) {
+    let localBook: Book;
+    if (existing && bookContentSignature(existing) !== bookContentSignature(remote.book)) {
         saveConflictBackup(existing);
+        const localUserId = useLocalUserStore.getState().user.id;
+        const preparedExisting =
+            resolvedConnection.user && resolvedConnection.user.id !== localUserId
+                ? reassignOwner(existing, localUserId, resolvedConnection.user)
+                : existing;
+        const merged = mergeForUser(preparedExisting, remote.book, resolvedConnection);
+        const pushed =
+            bookContentSignature(merged) === bookContentSignature(remote.book)
+                ? {
+                      book: merged,
+                      revision: remote.revision,
+                      manifest: remote.manifest,
+                  }
+                : await pushWithRetry(resolvedConnection, merged, remote.book);
+        localBook = withBinding(
+            pushed.book,
+            resolvedConnection,
+            pushed.book.id,
+            pushed.revision,
+            pushed.book.updatedAt,
+            true,
+            pushed.manifest,
+        );
+    } else {
+        const actor = resolvedConnection.user ?? getCurrentActor();
+        const claimed = claimUnownedRecords(remote.book, actor);
+        localBook = withBinding(
+            claimed,
+            resolvedConnection,
+            claimed.id,
+            remote.revision,
+            remote.book.updatedAt,
+            true,
+            remote.manifest,
+        );
     }
-    const localBook = withBinding(
-        remote.book,
-        connection,
-        remoteBookId,
-        remote.revision,
-        remote.book.updatedAt,
-        true,
-        remote.manifest,
-    );
-    library.upsertBook(localBook);
+    useLibraryStore.getState().upsertBook(localBook);
     activateBook(localBook.id);
     setActiveBookRemote(localBook.id, localBook.remote);
     return localBook;
 }
 
-export async function uploadCurrentBook(
-    connection: Connection,
-): Promise<SyncResult> {
+export async function uploadCurrentBook(connection: Connection): Promise<SyncResult> {
     const library = useLibraryStore.getState();
     const book = library.books.find((item) => item.id === library.activeBookId);
     if (!book) {
         throw new RemoteError("没有当前账本");
     }
+    const resolvedConnection = await ensureConnectionUser(connection);
+    const existingRemote = await pullRemoteBook(resolvedConnection, book.id);
+    if (existingRemote) {
+        throw new RemoteError("这个仓库已经有一本账，请直接打开共享账本");
+    }
+    const actor = resolvedConnection.user ?? getCurrentActor();
+    const localUserId = useLocalUserStore.getState().user.id;
+    const prepared =
+        resolvedConnection.user && resolvedConnection.user.id !== localUserId
+            ? reassignOwner(book, localUserId, resolvedConnection.user)
+            : book;
+    const claimed = claimUnownedRecords(prepared, actor);
     try {
-        const pushed = await pushRemoteBook(connection, book);
-        const latest = latestBook(book.id, book);
+        const pushed = await pushRemoteBook(resolvedConnection, claimed);
         const bound = withBinding(
-            latest,
-            connection,
-            book.id,
+            claimed,
+            resolvedConnection,
+            claimed.id,
             pushed.revision,
-            book.updatedAt,
+            claimed.updatedAt,
             true,
             pushed.manifest,
         );
         useLibraryStore.getState().upsertBook(bound);
-        useLedgerStore.setState({ remote: bound.remote });
+        useLedgerStore.setState(bound);
         return {
             action: "push",
             book: bound,
             revision: pushed.revision,
             manifest: pushed.manifest,
-            message: "当前账本已上传，并绑定到这个仓库",
+            message: "当前账本已上传到这个仓库",
         };
     } catch (error) {
         if (error instanceof RemoteNewerError) {
             const latest = latestBook(book.id, book);
             saveConflictBackup(latest);
-            const remoteBook = withBinding(
-                error.remoteBook,
-                connection,
-                book.id,
-                error.revision,
-                error.remoteBook.updatedAt,
-                true,
-            );
-            useLibraryStore.getState().upsertBook(remoteBook);
-            useLedgerStore.setState(remoteBook);
-            return {
-                action: "conflict",
-                book: remoteBook,
-                revision: error.revision,
-                message: "远程已有同名账本且更新，已采用远程版本并保留本地备份",
-            };
+            throw new RemoteError("远程已经有账本，请重新打开共享账本");
         }
         throw error;
     }

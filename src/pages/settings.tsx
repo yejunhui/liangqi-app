@@ -24,6 +24,7 @@ import {
     Repeat,
     FileSpreadsheet,
     Upload,
+    UserRound,
     Users,
 } from "lucide-react";
 import type { LedgerData, LibraryData, ThemeMode } from "@/types";
@@ -49,6 +50,10 @@ import {
 } from "@/store/library";
 import { useAuthStore } from "@/store/auth";
 import { isAiConfigured, useAiStore } from "@/store/ai";
+import {
+    useCurrentActor,
+    useLocalUserStore,
+} from "@/store/identity";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
@@ -67,6 +72,8 @@ export function Settings() {
     const budgets = useLedgerStore((state) => state.budgets);
     const recurringRules = useLedgerStore((state) => state.recurringRules);
     const attachments = useLedgerStore((state) => state.attachments);
+    const deletedEntries = useLedgerStore((state) => state.deletedEntries);
+    const deletedBills = useLedgerStore((state) => state.deletedBills);
     const bills = useLedgerStore((state) => state.bills);
     const entries = useLedgerStore((state) => state.entries);
     const settings = useLedgerStore((state) => state.settings);
@@ -78,11 +85,15 @@ export function Settings() {
     const authEnabled = useAuthStore((state) => state.enabled);
     const lock = useAuthStore((state) => state.lock);
     const ai = useAiStore();
+    const actor = useCurrentActor();
+    const localUser = useLocalUserStore((state) => state.user);
+    const setLocalUserName = useLocalUserStore((state) => state.setName);
 
     const [aiEndpoint, setAiEndpoint] = useState(ai.endpoint);
     const [aiModel, setAiModel] = useState(ai.model);
     const [aiApiKey, setAiApiKey] = useState(ai.apiKey);
     const [customCurrency, setCustomCurrency] = useState("");
+    const [displayName, setDisplayName] = useState(localUser.name);
 
     const inputRef = useRef<HTMLInputElement>(null);
     const [pendingImport, setPendingImport] = useState<LedgerData | null>(null);
@@ -100,6 +111,8 @@ export function Settings() {
             budgets,
             recurringRules,
             attachments,
+            deletedEntries,
+            deletedBills,
             bills,
             entries,
             settings,
@@ -390,6 +403,55 @@ export function Settings() {
                         打开分类管理
                         <ArrowRight className="size-3.5 text-muted" />
                     </Link>
+                </section>
+
+                <section className="card p-5">
+                    <SectionTitle
+                        icon={UserRound}
+                        title="当前用户"
+                        description={
+                            actor.provider
+                                ? "远程身份由当前连接的私钥决定，用来标记你记的账。"
+                                : "本机身份，用来标记你记的账；连接远程后会被私钥所属账号替换。"
+                        }
+                    />
+                    {actor.provider ? (
+                        <div className="mt-4 flex items-center gap-3 rounded-xl border border-line bg-surface-2/55 p-3">
+                            <span
+                                className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold text-white"
+                                style={{ backgroundColor: actor.color ?? "#0f766e" }}
+                            >
+                                {actor.name.slice(0, 1)}
+                            </span>
+                            <div className="min-w-0">
+                                <p className="truncate text-xs font-semibold text-text">
+                                    {actor.name}
+                                </p>
+                                <p className="text-[10px] text-muted">
+                                    {actor.provider.toUpperCase()} · {actor.id}
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="mt-4 flex gap-2">
+                            <input
+                                className="field text-xs"
+                                value={displayName}
+                                onChange={(event) => setDisplayName(event.target.value)}
+                                placeholder="你的显示名"
+                            />
+                            <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => {
+                                    setLocalUserName(displayName);
+                                    toast("显示名已保存", "success");
+                                }}
+                            >
+                                保存
+                            </Button>
+                        </div>
+                    )}
                 </section>
 
                 <section className="card p-5">

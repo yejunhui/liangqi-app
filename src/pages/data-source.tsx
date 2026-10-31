@@ -46,6 +46,7 @@ import {
     disconnectBook,
 } from "@/remote/sync";
 import { listRemoteBooks, testRemoteConnection } from "@/remote/repository";
+import { resolveConnectionUser } from "@/remote/identity";
 import { providerLabel } from "@/remote/index";
 import { startOAuth } from "@/remote/oauth";
 import {
@@ -137,6 +138,16 @@ export function DataSource() {
             username: target.username ?? "",
             password: target.password ?? "",
         }));
+        if (!target.user) {
+            void resolveConnectionUser(target)
+                .then((user) => {
+                    useLibraryStore.getState().updateConnection(target.id, { user });
+                    setConnection((current) =>
+                        current?.id === target.id ? { ...current, user } : current,
+                    );
+                })
+                .catch(() => undefined);
+        }
         listRemoteBooks(target)
             .then(setRemoteBooks)
             .catch(() => {
@@ -176,10 +187,16 @@ export function DataSource() {
             if (item.provider !== candidate.provider) {
                 return false;
             }
+            const sameUser =
+                (item.user?.id ?? "") === (candidate.user?.id ?? "");
             if (candidate.provider === "webdav") {
-                return item.url === candidate.url;
+                return item.url === candidate.url && sameUser;
             }
-            return item.owner === candidate.owner && item.repo === candidate.repo;
+            return (
+                item.owner === candidate.owner &&
+                item.repo === candidate.repo &&
+                sameUser
+            );
         });
     }
 
@@ -193,6 +210,7 @@ export function DataSource() {
                 ...candidate,
                 branch: candidate.branch || tested.defaultBranch,
             };
+            resolved.user = await resolveConnectionUser(resolved);
             const existing = findMatchingConnection(resolved);
             if (existing) {
                 useLibraryStore.getState().updateConnection(existing.id, resolved);
@@ -205,8 +223,8 @@ export function DataSource() {
             setRemoteBooks(books);
             toast(
                 books.length > 0
-                    ? `连接成功，仓库里有 ${books.length} 个账本`
-                    : "连接成功，仓库里还没有账本",
+                    ? "连接成功，这个仓库已经有一本共享账"
+                    : "连接成功，仓库是空的，可以上传当前账本",
                 "success",
             );
         } catch (cause) {
@@ -327,7 +345,7 @@ export function DataSource() {
             <PageHeader
                 eyebrow="本地优先"
                 title="数据源"
-                description="默认只保存在本机；连接 GitHub、Gitee 或 WebDAV 后，一个仓库可以放多个账本。已连接时优先使用远程数据，离线自动回退本地。"
+                description="一个仓库对应一本共享账。不同用户连接同一个仓库，就会进入同一套账；每条记账会记录作者，其他人只能查看，不能修改。"
             />
 
             <section className="card p-5 sm:p-6">
@@ -358,8 +376,8 @@ export function DataSource() {
                                           boundConnection.owner
                                               ? `${boundConnection.owner}/${boundConnection.repo}`
                                               : boundConnection.url
-                                      } · 远程账本 ${binding.remoteBookId}`
-                                    : "数据只保存在这个浏览器里。连接远程后，家庭设备之间可以共享同一个账本。"}
+                                      } · 当前用户 ${boundConnection.user?.name ?? "未识别"}`
+                                    : "数据只保存在这个浏览器里。连接远程后，同一仓库的所有用户共享这一本账。"}
                             </p>
                         </div>
                     </div>
@@ -418,10 +436,14 @@ export function DataSource() {
                 </div>
 
                 {binding && (
-                    <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                    <div className="mt-4 grid gap-2 sm:grid-cols-4">
                         <InfoCell
-                            label="远程账本"
+                            label="共享账本"
                             value={currentRemoteBook?.name ?? binding.remoteBookId}
+                        />
+                        <InfoCell
+                            label="当前用户"
+                            value={boundConnection?.user?.name ?? "未识别"}
                         />
                         <InfoCell
                             label="上次同步"
@@ -446,13 +468,10 @@ export function DataSource() {
             <section className="card mt-4 p-5 sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <h2 className="text-sm font-bold text-text">连接远程仓库</h2>
+                        <h2 className="text-sm font-bold text-text">连接共享仓库</h2>
                         <p className="mt-1 text-[11px] leading-relaxed text-muted">
-                            连接后会读取仓库里的{" "}
-                            <code className="rounded bg-surface-2 px-1 py-0.5">
-                                liangqi/index.json
-                            </code>
-                            ，列出所有账本供你选择。
+                            使用 GitHub / Gitee 私钥（Access Token）或 WebDAV
+                            连接到仓库。一个仓库只保存一本账；其他用户用各自的私钥连接同一个仓库，就会进入同一套账。
                         </p>
                     </div>
                 </div>
@@ -515,7 +534,7 @@ export function DataSource() {
                                 placeholder="留空自动使用默认分支"
                             />
                             <Field
-                                label="Access Token"
+                                label="私钥 / Access Token"
                                 value={form.token}
                                 onChange={(value) => update("token", value)}
                                 placeholder="repo / projects 读写权限"
@@ -548,6 +567,14 @@ export function DataSource() {
                         </>
                     )}
                 </div>
+
+                {!isWebDav && (
+                    <p className="mt-3 text-[10px] leading-relaxed text-muted">
+                        每个用户应使用自己的 GitHub / Gitee 私钥（Token）连接；应用会解析 token
+                        所属账号作为记账人。请先在仓库设置里把对方加为 Collaborator。若所有用户共用一个
+                        token，系统会认为它们是同一个人。
+                    </p>
+                )}
 
                 {!isWebDav && (
                     <div className="mt-4 rounded-xl border border-line bg-surface-2/45 p-3.5">
@@ -593,12 +620,12 @@ export function DataSource() {
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                     <Button onClick={handleConnect} disabled={busy !== null}>
                         <Server className="size-3.5" />
-                        {busy === "connect" ? "连接中…" : "测试并读取账本"}
+                        {busy === "connect" ? "连接中…" : "连接并检查共享账"}
                     </Button>
                     {connection && (
                         <span className="flex items-center gap-1 text-[10px] text-success">
                             <CheckCircle2 className="size-3" />
-                            已连接，可读取仓库账本
+                            已连接 · {connection.user?.name ?? "身份未知"}
                         </span>
                     )}
                 </div>
@@ -619,30 +646,32 @@ export function DataSource() {
             <section className="card mt-4 p-5 sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <h2 className="text-sm font-bold text-text">仓库里的账本</h2>
+                        <h2 className="text-sm font-bold text-text">共享账本</h2>
                         <p className="mt-1 text-[11px] text-muted">
-                            一个仓库可以放多个账本。打开远程账本会把它复制到本地并切换过去。
+                            一个仓库只保存一本账。打开共享账本会把远程数据合并到本地，并切换到这本账。
                         </p>
                     </div>
-                    <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={handleUploadCurrent}
-                        disabled={busy !== null || !connection}
-                    >
-                        <Upload className="size-3.5" />
-                        上传当前账本
-                    </Button>
+                    {remoteBooks.length === 0 && (
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={handleUploadCurrent}
+                            disabled={busy !== null || !connection}
+                        >
+                            <Upload className="size-3.5" />
+                            上传当前账本
+                        </Button>
+                    )}
                 </div>
 
                 {remoteBooks.length === 0 ? (
                     <EmptyState
                         icon={FolderOpen}
-                        title={connection ? "仓库里还没有账本" : "先连接一个远程仓库"}
+                        title={connection ? "这个仓库还是空的" : "先连接一个远程仓库"}
                         description={
                             connection
-                                ? "把当前账本上传上去，或从其他设备上传后再回来选择。"
-                                : "连接 GitHub、Gitee 或 WebDAV 后，这里会列出仓库里的账本。"
+                                ? "把当前账本上传上去，它就会成为这个仓库唯一的共享账。"
+                                : "连接 GitHub、Gitee 或 WebDAV 后，这里会显示这个仓库的共享账。"
                         }
                         className="mt-4 border-0 bg-transparent"
                     />
@@ -686,16 +715,21 @@ export function DataSource() {
                                         disabled={busy !== null}
                                     >
                                         {busy === `open:${book.id}`
-                                            ? "打开中…"
+                                            ? "合并中…"
                                             : isCurrent
-                                              ? "重新拉取"
-                                              : "打开"}
+                                              ? "合并远程"
+                                              : "打开共享账"}
                                     </Button>
                                 </div>
                             );
                         })}
                     </div>
                 )}
+
+                <div className="mt-4 flex items-start gap-2 rounded-xl border border-accent/20 bg-accent-soft/35 px-3 py-2.5 text-[10px] leading-relaxed text-muted">
+                    <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-accent" />
+                    每条流水和账单会记录作者身份。其他用户连接同一个仓库后可以查看和新增，但不能修改或删除你记的账。
+                </div>
             </section>
 
             <section className="card mt-4 p-5 sm:p-6">

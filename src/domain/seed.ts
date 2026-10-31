@@ -160,6 +160,8 @@ export function createSeedData(now = Date.now()): LedgerData {
         budgets: [],
         recurringRules: [],
         attachments: [],
+        deletedEntries: [],
+        deletedBills: [],
         bills: [],
         entries: [],
         settings: {

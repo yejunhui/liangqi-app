@@ -20,6 +20,7 @@ import type {
     OriginalAmount,
     RecurringFrequency,
     RecurringRule,
+    RemoteUser,
     Settings,
     Tag,
     TagGroup,
@@ -33,6 +34,7 @@ import {
     validateRepayment,
 } from "@/domain/ledger";
 import { getActiveBook, useLibraryStore } from "@/store/library";
+import { getCurrentActor } from "@/store/identity";
 import { advanceRecurringDate } from "@/domain/recurring";
 import { newId } from "@/utils/id";
 
@@ -51,6 +53,7 @@ export interface ExpenseInput {
     originalAmount?: OriginalAmount;
     note?: string;
     recurringId?: string;
+    actor?: RemoteUser;
     source:
         | { type: "asset"; accountId: string }
         | {
@@ -72,6 +75,7 @@ export interface IncomeInput {
     originalAmount?: OriginalAmount;
     note?: string;
     recurringId?: string;
+    actor?: RemoteUser;
 }
 
 export interface RepaymentInput {
@@ -266,6 +270,21 @@ function fail(error: string): { ok: false; error: string } {
     return { ok: false, error };
 }
 
+function canModify(record: { ownerId?: string }): boolean {
+    if (!record.ownerId) {
+        return true;
+    }
+    return record.ownerId === getCurrentActor().id;
+}
+
+function actorFields(actor: RemoteUser, at: number) {
+    return {
+        ownerId: actor.id,
+        ownerName: actor.name,
+        updatedAt: at,
+    };
+}
+
 function cleanTagIds(
     tagIds: string[] | undefined,
     tags: Tag[],
@@ -308,6 +327,7 @@ const createActions = (
         const tagIds = tagResult.tagIds;
 
         const createdAt = Date.now();
+        const actor = input.actor ?? getCurrentActor();
         const note = cleanNote(input.note);
 
         if (input.source.type === "asset") {
@@ -329,6 +349,7 @@ const createActions = (
                 recurringId: input.recurringId,
                 location: input.location,
                 originalAmount: input.originalAmount,
+                ...actorFields(actor, createdAt),
                 createdAt,
             };
             set({ entries: [...state.entries, entry] });
@@ -356,6 +377,7 @@ const createActions = (
             dueDate: input.source.dueDate,
             note,
             originalAmount: input.originalAmount,
+            ...actorFields(actor, createdAt),
             createdAt,
         };
         const entry: Entry = {
@@ -372,6 +394,7 @@ const createActions = (
             recurringId: input.recurringId,
             location: input.location,
             originalAmount: input.originalAmount,
+            ...actorFields(actor, createdAt),
             createdAt,
         };
 
@@ -421,6 +444,7 @@ const createActions = (
             recurringId: input.recurringId,
             location: input.location,
             originalAmount: input.originalAmount,
+            ...actorFields(input.actor ?? getCurrentActor(), Date.now()),
             createdAt: Date.now(),
         };
         set({ entries: [...state.entries, entry] });
@@ -464,6 +488,7 @@ const createActions = (
             note: cleanNote(input.note),
             location: input.location,
             originalAmount: input.originalAmount,
+            ...actorFields(getCurrentActor(), Date.now()),
             createdAt: Date.now(),
         };
         set({ entries: [...state.entries, entry] });
@@ -506,6 +531,7 @@ const createActions = (
             note: cleanNote(input.note),
             location: input.location,
             originalAmount: input.originalAmount,
+            ...actorFields(getCurrentActor(), Date.now()),
             createdAt: Date.now(),
         };
         set({ entries: [...state.entries, entry] });
@@ -518,12 +544,27 @@ const createActions = (
         if (!entry) {
             return fail("流水不存在");
         }
+        if (!canModify(entry)) {
+            return fail("不能修改其他成员的记账");
+        }
+        const deletedAt = Date.now();
+        const actor = getCurrentActor();
+        const entryTombstones = [
+            ...state.deletedEntries.filter((item) => item.id !== entryId),
+            { id: entryId, deletedAt, ownerId: actor.id },
+        ];
 
         if (entry.kind === "expense" && entry.billId) {
             const bill = state.bills.find((item) => item.id === entry.billId);
             if (!bill) {
-                set({ entries: state.entries.filter((item) => item.id !== entryId) });
+                set({
+                    entries: state.entries.filter((item) => item.id !== entryId),
+                    deletedEntries: entryTombstones,
+                });
                 return { ok: true };
+            }
+            if (!canModify(bill)) {
+                return fail("不能修改其他成员的账单");
             }
             if (bill.opening) {
                 return fail("期初负债不能直接删除");
@@ -534,11 +575,19 @@ const createActions = (
             set({
                 entries: state.entries.filter((item) => item.id !== entryId),
                 bills: state.bills.filter((item) => item.id !== bill.id),
+                deletedEntries: entryTombstones,
+                deletedBills: [
+                    ...state.deletedBills.filter((item) => item.id !== bill.id),
+                    { id: bill.id, deletedAt, ownerId: actor.id },
+                ],
             });
             return { ok: true };
         }
 
-        set({ entries: state.entries.filter((item) => item.id !== entryId) });
+        set({
+            entries: state.entries.filter((item) => item.id !== entryId),
+            deletedEntries: entryTombstones,
+        });
         return { ok: true };
     },
 
@@ -551,6 +600,9 @@ const createActions = (
         const items = state.entries.filter((entry) => ids.includes(entry.id));
         if (items.length !== ids.length) {
             return fail("部分流水不存在");
+        }
+        if (items.some((entry) => !canModify(entry))) {
+            return fail("包含其他成员的记账，不能批量修改");
         }
         if (patch.memberId !== undefined) {
             if (!state.members.some((member) => member.id === patch.memberId)) {
@@ -595,6 +647,7 @@ const createActions = (
                     ...(patch.note !== undefined
                         ? { note: cleanNote(patch.note) }
                         : {}),
+                    updatedAt: Date.now(),
                 };
             }),
             bills: state.bills.map((bill) => {
@@ -614,6 +667,7 @@ const createActions = (
                         ? { memberId: patch.memberId }
                         : {}),
                     ...(tagResult ? { tagIds: tagResult.tagIds } : {}),
+                    updatedAt: Date.now(),
                 };
             }),
         });
@@ -626,6 +680,9 @@ const createActions = (
         if (!bill) {
             return fail("账单不存在");
         }
+        if (!canModify(bill)) {
+            return fail("不能修改其他成员的账单");
+        }
         if (bill.opening) {
             return fail("期初负债不能删除，请通过还款结清");
         }
@@ -634,11 +691,28 @@ const createActions = (
         }
 
         const linkedExpense = getLinkedExpense(bill.id, state.entries);
+        if (linkedExpense && !canModify(linkedExpense)) {
+            return fail("不能修改其他成员的记账");
+        }
+        const deletedAt = Date.now();
+        const actor = getCurrentActor();
         set({
             bills: state.bills.filter((item) => item.id !== bill.id),
             entries: linkedExpense
                 ? state.entries.filter((item) => item.id !== linkedExpense.id)
                 : state.entries,
+            deletedBills: [
+                ...state.deletedBills.filter((item) => item.id !== bill.id),
+                { id: bill.id, deletedAt, ownerId: actor.id },
+            ],
+            deletedEntries: linkedExpense
+                ? [
+                      ...state.deletedEntries.filter(
+                          (item) => item.id !== linkedExpense.id,
+                      ),
+                      { id: linkedExpense.id, deletedAt, ownerId: actor.id },
+                  ]
+                : state.deletedEntries,
         });
         return { ok: true };
     },
@@ -648,6 +722,13 @@ const createActions = (
         const bill = state.bills.find((item) => item.id === billId);
         if (!bill) {
             return fail("账单不存在");
+        }
+        if (!canModify(bill)) {
+            return fail("不能修改其他成员的账单");
+        }
+        const linkedExpense = getLinkedExpense(bill.id, state.entries);
+        if (linkedExpense && !canModify(linkedExpense)) {
+            return fail("不能修改其他成员的记账");
         }
         if (patch.title !== undefined && patch.title.trim() === "") {
             return fail("账单名称不能为空");
@@ -683,6 +764,7 @@ const createActions = (
             return fail(tagResult.error);
         }
         const nextTagIds = tagResult?.tagIds;
+        const changedAt = Date.now();
 
         const updateEntries =
             patch.categoryId !== undefined ||
@@ -709,6 +791,7 @@ const createActions = (
                               patch.tagIds !== undefined
                                   ? nextTagIds
                                   : item.tagIds,
+                          updatedAt: changedAt,
                       }
                     : item,
             ),
@@ -726,6 +809,7 @@ const createActions = (
                                 ...(patch.tagIds !== undefined
                                     ? { tagIds: nextTagIds }
                                     : {}),
+                                updatedAt: changedAt,
                             }
                           : entry,
                   )
@@ -1262,6 +1346,7 @@ const createActions = (
             memberId: input.memberId,
             tagIds: tagResult.tagIds,
             note: cleanNote(input.note),
+            ...actorFields(getCurrentActor(), Date.now()),
             createdAt: Date.now(),
         };
         set({ recurringRules: [...state.recurringRules, rule] });
@@ -1273,6 +1358,9 @@ const createActions = (
         const rule = state.recurringRules.find((item) => item.id === ruleId);
         if (!rule) {
             return fail("周期记账不存在");
+        }
+        if (!canModify(rule)) {
+            return fail("不能修改其他成员的周期记账");
         }
         const next: RecurringRule = {
             ...rule,
@@ -1287,6 +1375,7 @@ const createActions = (
                 patch.memberId === undefined ? rule.memberId : patch.memberId || undefined,
             tagIds: patch.tagIds === undefined ? rule.tagIds : [...new Set(patch.tagIds)],
             note: patch.note === undefined ? rule.note : cleanNote(patch.note),
+            updatedAt: Date.now(),
             nextDueDate:
                 patch.nextDueDate ??
                 (patch.startDate !== undefined && patch.startDate !== rule.startDate
@@ -1352,6 +1441,10 @@ const createActions = (
         if (!state.recurringRules.some((item) => item.id === ruleId)) {
             return fail("周期记账不存在");
         }
+        const rule = state.recurringRules.find((item) => item.id === ruleId);
+        if (rule && !canModify(rule)) {
+            return fail("不能删除其他成员的周期记账");
+        }
         set({
             recurringRules: state.recurringRules.filter((item) => item.id !== ruleId),
             entries: state.entries.map((entry) =>
@@ -1365,12 +1458,17 @@ const createActions = (
 
     postDueRecurring(now = Date.now()) {
         const state = get();
+        const currentActor = getCurrentActor();
         let posted = 0;
         const errors: string[] = [];
         const nextRules = state.recurringRules.map((rule) => {
             if (!rule.enabled) {
                 return rule;
             }
+            const ruleActor = {
+                id: rule.ownerId ?? currentActor.id,
+                name: rule.ownerName ?? currentActor.name,
+            };
             let next = rule.nextDueDate;
             let enabled = true;
             let lastPostedAt = rule.lastPostedAt;
@@ -1396,6 +1494,7 @@ const createActions = (
                                   tagIds: rule.tagIds,
                                   note: rule.note,
                                   recurringId: rule.id,
+                                  actor: ruleActor,
                               })
                             : get().addExpense({
                                   amount: rule.amount,
@@ -1405,6 +1504,7 @@ const createActions = (
                                   tagIds: rule.tagIds,
                                   note: rule.note,
                                   recurringId: rule.id,
+                                  actor: ruleActor,
                                   source: rule.liabilityAccountId
                                       ? {
                                             type: "liability",
@@ -1434,6 +1534,9 @@ const createActions = (
                 nextDueDate: next,
                 lastPostedAt,
                 enabled,
+                ownerId: ruleActor.id,
+                ownerName: ruleActor.name,
+                updatedAt: Date.now(),
             };
         });
 
@@ -1449,19 +1552,35 @@ const createActions = (
             return { ok: true };
         }
         const state = get();
+        let targetRecord: Entry | Bill | undefined;
         if (target.kind === "entry") {
-            if (!state.entries.some((entry) => entry.id === target.id)) {
+            targetRecord = state.entries.find((entry) => entry.id === target.id);
+            if (!targetRecord) {
                 return fail("流水不存在");
             }
-        } else if (!state.bills.some((bill) => bill.id === target.id)) {
-            return fail("账单不存在");
+        } else {
+            targetRecord = state.bills.find((bill) => bill.id === target.id);
+            if (!targetRecord) {
+                return fail("账单不存在");
+            }
+        }
+        if (!canModify(targetRecord)) {
+            return fail("不能修改其他成员的记账");
         }
         const existing = new Set(state.attachments.map((item) => item.id));
-        const additions = items.filter((item) => !existing.has(item.id));
+        const actor = getCurrentActor();
+        const additions = items
+            .filter((item) => !existing.has(item.id))
+            .map((item) => ({
+                ...item,
+                ownerId: item.ownerId ?? actor.id,
+                ownerName: item.ownerName ?? actor.name,
+            }));
         if (additions.length === 0) {
             return { ok: true };
         }
         const ids = additions.map((item) => item.id);
+        const changedAt = Date.now();
         set({
             attachments: [...state.attachments, ...additions],
             entries:
@@ -1476,6 +1595,7 @@ const createActions = (
                                             ...ids,
                                         ]),
                                     ],
+                                    updatedAt: changedAt,
                                 }
                               : entry,
                       )
@@ -1492,6 +1612,7 @@ const createActions = (
                                             ...ids,
                                         ]),
                                     ],
+                                    updatedAt: changedAt,
                                 }
                               : bill,
                       )
@@ -1502,9 +1623,14 @@ const createActions = (
 
     deleteAttachment(attachmentId) {
         const state = get();
-        if (!state.attachments.some((item) => item.id === attachmentId)) {
+        const attachment = state.attachments.find((item) => item.id === attachmentId);
+        if (!attachment) {
             return fail("附件不存在");
         }
+        if (attachment.ownerId && attachment.ownerId !== getCurrentActor().id) {
+            return fail("不能删除其他成员添加的附件");
+        }
+        const changedAt = Date.now();
         set({
             attachments: state.attachments.filter((item) => item.id !== attachmentId),
             entries: state.entries.map((entry) =>
@@ -1514,6 +1640,7 @@ const createActions = (
                           attachmentIds: entry.attachmentIds.filter(
                               (id) => id !== attachmentId,
                           ),
+                          updatedAt: changedAt,
                       }
                     : entry,
             ),
@@ -1524,6 +1651,7 @@ const createActions = (
                           attachmentIds: bill.attachmentIds.filter(
                               (id) => id !== attachmentId,
                           ),
+                          updatedAt: changedAt,
                       }
                     : bill,
             ),
@@ -1548,6 +1676,8 @@ const createActions = (
             budgets: data.budgets,
             recurringRules: data.recurringRules,
             attachments: data.attachments,
+            deletedEntries: data.deletedEntries,
+            deletedBills: data.deletedBills,
             bills: data.bills,
             entries: data.entries,
             settings: data.settings,
@@ -1576,6 +1706,8 @@ export function extractBook(state: LedgerState): Book {
         budgets: state.budgets,
         recurringRules: state.recurringRules,
         attachments: state.attachments,
+        deletedEntries: state.deletedEntries,
+        deletedBills: state.deletedBills,
         bills: state.bills,
         entries: state.entries,
         settings: state.settings,

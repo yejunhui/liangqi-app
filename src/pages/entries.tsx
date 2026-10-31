@@ -15,6 +15,7 @@ import { EmptyState } from "@/components/empty-state";
 import { formatCents } from "@/domain/money";
 import { formatDate, formatRelativeDay, formatWeekday, startOfDay } from "@/utils/date";
 import { useCurrency, useLedgerStore } from "@/store/ledger";
+import { useCurrentActor } from "@/store/identity";
 import { useUIStore } from "@/store/ui";
 
 type Filter = "all" | EntryKind;
@@ -27,6 +28,7 @@ export function Entries() {
     const members = useLedgerStore((state) => state.members);
     const tags = useLedgerStore((state) => state.tags);
     const currency = useCurrency();
+    const actor = useCurrentActor();
     const openEntryModal = useUIStore((state) => state.openEntryModal);
 
     const [filter, setFilter] = useState<Filter>("all");
@@ -75,6 +77,7 @@ export function Entries() {
                     asset?.name,
                     liability?.name,
                     member?.name,
+                    entry.ownerName,
                     ...entryTags,
                     (entry.amount / 100).toFixed(2),
                     entry.kind === "expense"
@@ -120,6 +123,13 @@ export function Entries() {
         () => entries.filter((entry) => selectedIds.has(entry.id)),
         [entries, selectedIds],
     );
+    const selectableVisible = useMemo(
+        () =>
+            filtered.filter(
+                (entry) => !entry.ownerId || entry.ownerId === actor.id,
+            ),
+        [filtered, actor.id],
+    );
 
     function toggleSelection(entryId: string) {
         setSelectedIds((current) => {
@@ -143,15 +153,20 @@ export function Entries() {
     }
 
     function selectVisible() {
+        const selectable = filtered.filter(
+            (entry) => !entry.ownerId || entry.ownerId === actor.id,
+        );
         setSelectedIds((current) => {
             const next = new Set(current);
-            const allSelected = filtered.every((entry) => next.has(entry.id));
+            const allSelected =
+                selectable.length > 0 &&
+                selectable.every((entry) => next.has(entry.id));
             if (allSelected) {
-                for (const entry of filtered) {
+                for (const entry of selectable) {
                     next.delete(entry.id);
                 }
             } else {
-                for (const entry of filtered) {
+                for (const entry of selectable) {
                     next.add(entry.id);
                 }
             }
@@ -210,11 +225,14 @@ export function Entries() {
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent/20 bg-accent-soft/45 px-3 py-2.5">
                     <p className="text-xs font-semibold text-accent">
                         已选 {selectedIds.size} 笔
+                        <span className="ml-2 font-normal text-muted">
+                            只能选择自己记的账
+                        </span>
                     </p>
                     <div className="flex flex-wrap items-center gap-1.5">
                         <Button size="sm" variant="secondary" onClick={selectVisible}>
-                            {filtered.every((entry) => selectedIds.has(entry.id)) &&
-                            filtered.length > 0
+                            {selectableVisible.length > 0 &&
+                            selectableVisible.every((entry) => selectedIds.has(entry.id))
                                 ? "取消全选"
                                 : "全选当前"}
                         </Button>
@@ -321,7 +339,10 @@ export function Entries() {
                                             members={members}
                                             tags={tags}
                                             currency={currency}
-                                            selectable={selectMode}
+                                            selectable={
+                                                selectMode &&
+                                                (!entry.ownerId || entry.ownerId === actor.id)
+                                            }
                                             selected={selectedIds.has(entry.id)}
                                             onToggle={() => toggleSelection(entry.id)}
                                             onClick={() => setSelectedEntry(entry)}

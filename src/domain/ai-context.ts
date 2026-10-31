@@ -261,7 +261,9 @@ export function buildLedgerContext(
                 currency,
             )}${category ? ` · ${category.name}` : ""}${
                 entry.note ? ` · ${entry.note}` : ""
-            }${member ? ` · ${member.name}` : ""}${tags ? ` · #${tags}` : ""}`,
+            }${member ? ` · ${member.name}` : ""}${tags ? ` · #${tags}` : ""}${
+                entry.ownerName ? ` · 记账人 ${entry.ownerName}` : ""
+            }`,
         );
     }
     return lines.join("\n");

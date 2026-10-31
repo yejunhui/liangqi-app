@@ -17,6 +17,8 @@ import { createRemoteAdapter } from "@/remote/index";
 import { ensureMembers } from "@/domain/members";
 import {
     REMOTE_INDEX_PATH,
+    legacyRemoteBookManifestPath,
+    legacyRemoteBookMetaPath,
     remoteBookManifestPath,
     remoteBookMetaPath,
     remoteBookPath,
@@ -130,34 +132,6 @@ async function readIndex(
     return { index: parseRemoteIndex(file.text), revision: file.revision };
 }
 
-async function updateIndex(adapter: RemoteAdapter, book: Book): Promise<void> {
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-        const current = await readIndex(adapter);
-        const summary = summarizeBook(book);
-        const books = current.index.books.filter((item) => item.id !== book.id);
-        books.push(summary);
-        books.sort((a, b) => b.updatedAt - a.updatedAt);
-        const next: RemoteIndex = {
-            app: "liangqi",
-            version: 1,
-            books,
-        };
-        try {
-            await adapter.writeFile(
-                REMOTE_INDEX_PATH,
-                JSON.stringify(next, null, 2),
-                current.revision,
-            );
-            return;
-        } catch (error) {
-            if (error instanceof RemoteConflictError && attempt < 2) {
-                continue;
-            }
-            throw error;
-        }
-    }
-}
-
 export class RemoteNewerError extends RemoteError {
     readonly remoteBook: Book;
     readonly revision?: string;
@@ -180,6 +154,7 @@ export interface RemoteBookRecord {
 export interface RemoteManifestRecord {
     manifest: RemoteBookManifest;
     revision?: string;
+    layout: "current" | "legacy";
 }
 
 /** Reads only the small manifest file; used for incremental pull decisions. */
@@ -189,10 +164,22 @@ export async function readRemoteManifest(
 ): Promise<RemoteManifestRecord | null> {
     const adapter = createRemoteAdapter(connection);
     const file = await adapter.readFile(remoteBookManifestPath(bookId));
-    if (!file) {
-        return null;
+    if (file) {
+        return {
+            manifest: parseManifest(file.text),
+            revision: file.revision,
+            layout: "current",
+        };
     }
-    return { manifest: parseManifest(file.text), revision: file.revision };
+    const legacy = await adapter.readFile(legacyRemoteBookManifestPath(bookId));
+    if (legacy) {
+        return {
+            manifest: parseManifest(legacy.text),
+            revision: legacy.revision,
+            layout: "legacy",
+        };
+    }
+    return null;
 }
 
 export async function testRemoteConnection(
@@ -206,6 +193,19 @@ export async function listRemoteBooks(
     connection: Connection,
 ): Promise<RemoteBookSummary[]> {
     const adapter = createRemoteAdapter(connection);
+    const manifestFile = await adapter.readFile(remoteBookManifestPath());
+    if (manifestFile) {
+        const manifest = parseManifest(manifestFile.text);
+        return [
+            {
+                id: manifest.bookId,
+                name: manifest.name,
+                updatedAt: manifest.updatedAt,
+                currency: manifest.currency,
+                entryCount: manifest.entryCount,
+            },
+        ];
+    }
     const { index } = await readIndex(adapter);
     return index.books;
 }
@@ -239,29 +239,15 @@ export async function pullRemoteBook(
 
     const manifestFile = await adapter.readFile(remoteBookManifestPath(bookId));
     if (manifestFile) {
-        const manifest = parseManifest(manifestFile.text);
-        const metaFile = await adapter.readFile(remoteBookMetaPath(bookId));
-        if (!metaFile) {
-            throw new RemoteError("远程账本缺少 meta.json");
-        }
-        const meta = parseMetaFile(metaFile.text);
-        const [entries, bills] = await Promise.all([
-            readChunks<Entry>(adapter, manifest.chunks.entries),
-            readChunks<Bill>(adapter, manifest.chunks.bills),
-        ]);
-        if (
-            entries.length !== manifest.entryCount ||
-            bills.length !== manifest.billCount
-        ) {
-            throw new RemoteError("远程分片数量与 manifest 不一致");
-        }
-        const book = ensureMembers(bookFromParts(meta, entries, bills));
-        return {
-            book,
-            revision: manifestFile.revision,
-            updatedAt: manifest.updatedAt,
-            manifest,
-        };
+        return readManifestBook(adapter, manifestFile);
+    }
+
+    // Legacy multi-book layout: migrate one book at a time.
+    const legacyManifestFile = await adapter.readFile(
+        legacyRemoteBookManifestPath(bookId),
+    );
+    if (legacyManifestFile) {
+        return readManifestBook(adapter, legacyManifestFile, true);
     }
 
     // Legacy v1: one full JSON file per book.
@@ -274,6 +260,36 @@ export async function pullRemoteBook(
         book: parsed.book,
         revision: file.revision,
         updatedAt: parsed.updatedAt,
+    };
+}
+
+async function readManifestBook(
+    adapter: RemoteAdapter,
+    manifestFile: RemoteFile,
+    legacy = false,
+): Promise<RemoteBookRecord> {
+    const manifest = parseManifest(manifestFile.text);
+    const metaPath = legacy
+        ? legacyRemoteBookMetaPath(manifest.bookId)
+        : remoteBookMetaPath(manifest.bookId);
+    const metaFile = await adapter.readFile(metaPath);
+    if (!metaFile) {
+        throw new RemoteError("远程账本缺少 meta.json");
+    }
+    const meta = parseMetaFile(metaFile.text);
+    const [entries, bills] = await Promise.all([
+        readChunks<Entry>(adapter, manifest.chunks.entries),
+        readChunks<Bill>(adapter, manifest.chunks.bills),
+    ]);
+    if (entries.length !== manifest.entryCount || bills.length !== manifest.billCount) {
+        throw new RemoteError("远程分片数量与 manifest 不一致");
+    }
+    const book = ensureMembers(bookFromParts(meta, entries, bills));
+    return {
+        book,
+        revision: manifestFile.revision,
+        updatedAt: manifest.updatedAt,
+        manifest,
     };
 }
 
@@ -296,8 +312,10 @@ export async function pushRemoteBook(
     const metaPath = remoteBookMetaPath(book.id);
 
     let currentManifest: RemoteBookManifest | null = null;
+    let hasNewLayout = false;
     const currentFile = await adapter.readFile(manifestPath);
     if (currentFile) {
+        hasNewLayout = true;
         currentManifest = parseManifest(currentFile.text);
         if (currentManifest.updatedAt > book.updatedAt) {
             const remote = await pullRemoteBook(connection, book.id);
@@ -306,6 +324,18 @@ export async function pushRemoteBook(
             }
         }
     } else {
+        const legacyManifest = await adapter.readFile(
+            legacyRemoteBookManifestPath(book.id),
+        );
+        if (legacyManifest) {
+            currentManifest = parseManifest(legacyManifest.text);
+            if (currentManifest.updatedAt > book.updatedAt) {
+                const remote = await pullRemoteBook(connection, book.id);
+                if (remote) {
+                    throw new RemoteNewerError(remote.book, remote.revision);
+                }
+            }
+        }
         // Migration path: do not overwrite a newer legacy single-file book.
         const legacyFile = await adapter.readFile(remoteBookPath(book.id));
         if (legacyFile) {
@@ -319,7 +349,11 @@ export async function pushRemoteBook(
     const payload = await buildRemotePayload(book);
     const files: Array<{ path: string; text: string | null }> = [];
 
-    if (!currentManifest || currentManifest.metaHash !== payload.metaHash) {
+    if (
+        !hasNewLayout ||
+        !currentManifest ||
+        currentManifest.metaHash !== payload.metaHash
+    ) {
         files.push({ path: metaPath, text: payload.metaText });
     }
 
@@ -341,7 +375,7 @@ export async function pushRemoteBook(
     }
 
     // Batch-capable adapters can also remove chunks that no longer exist.
-    if (currentManifest && adapter.writeFiles) {
+    if (currentManifest && hasNewLayout && adapter.writeFiles) {
         const nextPaths = new Set(
             [
                 ...payload.manifest.chunks.entries,
@@ -373,7 +407,6 @@ export async function pushRemoteBook(
                 }
             }
         }
-        await updateIndex(adapter, book);
     } catch (error) {
         if (error instanceof RemoteConflictError) {
             const remote = await pullRemoteBook(connection, book.id);

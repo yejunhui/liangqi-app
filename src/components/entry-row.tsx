@@ -140,6 +140,11 @@ export function EntryRow({
                             {member.name}
                         </span>
                     )}
+                    {entry.ownerName && (
+                        <span className="chip bg-surface-3 text-muted">
+                            记 · {entry.ownerName}
+                        </span>
+                    )}
                     {badge && <span className={cn("chip", badge.className)}>{badge.label}</span>}
                     {entryTags.map((tag) => (
                         <span

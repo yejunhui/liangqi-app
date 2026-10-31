@@ -18,6 +18,7 @@ import {
 } from "@/domain/recurring";
 import { formatDateFull } from "@/utils/date";
 import { useCurrency, useLedgerStore } from "@/store/ledger";
+import { useCurrentActor } from "@/store/identity";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
@@ -30,6 +31,7 @@ export function Recurring() {
     const deleteRecurringRule = useLedgerStore((state) => state.deleteRecurringRule);
     const postDueRecurring = useLedgerStore((state) => state.postDueRecurring);
     const currency = useCurrency();
+    const actor = useCurrentActor();
 
     const [now] = useState(() => Date.now());
     const [modalOpen, setModalOpen] = useState(false);
@@ -182,6 +184,7 @@ export function Recurring() {
                             const member = members.find((item) => item.id === rule.memberId);
                             const next = getNextRecurringDate(rule, now);
                             const due = getDueOccurrences(rule, now).length;
+                            const canEdit = !rule.ownerId || rule.ownerId === actor.id;
                             return (
                                 <article
                                     key={rule.id}
@@ -233,6 +236,11 @@ export function Recurring() {
                                                         已暂停
                                                     </span>
                                                 )}
+                                                {rule.ownerName && (
+                                                    <span className="chip bg-surface-3 text-muted">
+                                                        记 · {rule.ownerName}
+                                                    </span>
+                                                )}
                                             </div>
                                             <p className="mt-0.5 truncate text-[11px] text-muted">
                                                 {category?.name ?? "分类"}
@@ -260,38 +268,47 @@ export function Recurring() {
                                     </div>
 
                                     <div className="mt-3 flex items-center gap-1.5 border-t border-line/70 pt-3">
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                updateRecurringRule(rule.id, {
-                                                    enabled: !rule.enabled,
-                                                })
-                                            }
-                                            className="inline-flex items-center gap-1 rounded-lg border border-line px-2 py-1.5 text-[10px] font-medium text-muted transition hover:text-text"
-                                        >
-                                            {rule.enabled ? (
-                                                <Pause className="size-3" />
-                                            ) : (
-                                                <Play className="size-3" />
-                                            )}
-                                            {rule.enabled ? "暂停" : "启用"}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openEdit(rule)}
-                                            className="grid size-7 place-items-center rounded-lg border border-line text-muted transition hover:text-text"
-                                            aria-label="编辑周期记账"
-                                        >
-                                            <Pencil className="size-3.5" />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setDeletingRule(rule)}
-                                            className="grid size-7 place-items-center rounded-lg border border-line text-muted transition hover:border-danger/30 hover:bg-danger-soft hover:text-danger"
-                                            aria-label="删除周期记账"
-                                        >
-                                            <Trash2 className="size-3.5" />
-                                        </button>
+                                        {canEdit && (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        updateRecurringRule(rule.id, {
+                                                            enabled: !rule.enabled,
+                                                        })
+                                                    }
+                                                    className="inline-flex items-center gap-1 rounded-lg border border-line px-2 py-1.5 text-[10px] font-medium text-muted transition hover:text-text"
+                                                >
+                                                    {rule.enabled ? (
+                                                        <Pause className="size-3" />
+                                                    ) : (
+                                                        <Play className="size-3" />
+                                                    )}
+                                                    {rule.enabled ? "暂停" : "启用"}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openEdit(rule)}
+                                                    className="grid size-7 place-items-center rounded-lg border border-line text-muted transition hover:text-text"
+                                                    aria-label="编辑周期记账"
+                                                >
+                                                    <Pencil className="size-3.5" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDeletingRule(rule)}
+                                                    className="grid size-7 place-items-center rounded-lg border border-line text-muted transition hover:border-danger/30 hover:bg-danger-soft hover:text-danger"
+                                                    aria-label="删除周期记账"
+                                                >
+                                                    <Trash2 className="size-3.5" />
+                                                </button>
+                                            </>
+                                        )}
+                                        {!canEdit && (
+                                            <span className="text-[10px] text-muted">
+                                                只能查看其他成员创建的周期记账
+                                            </span>
+                                        )}
                                         {rule.lastPostedAt && (
                                             <span className="ml-auto text-[10px] text-muted">
                                                 上次 {formatDateFull(rule.lastPostedAt)}

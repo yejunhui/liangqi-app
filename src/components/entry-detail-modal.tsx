@@ -18,6 +18,7 @@ import {
 } from "@/domain/ledger";
 import { formatDateFull } from "@/utils/date";
 import { useCurrency, useLedgerStore } from "@/store/ledger";
+import { useCurrentActor } from "@/store/identity";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
@@ -35,6 +36,7 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
     const entries = useLedgerStore((state) => state.entries);
     const deleteEntry = useLedgerStore((state) => state.deleteEntry);
     const currency = useCurrency();
+    const actor = useCurrentActor();
     const [confirmOpen, setConfirmOpen] = useState(false);
 
     const bill = entry?.billId ? bills.find((item) => item.id === entry.billId) : undefined;
@@ -53,6 +55,7 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
     const member = entry?.memberId
         ? members.find((item) => item.id === entry.memberId)
         : undefined;
+    const canEdit = !entry?.ownerId || entry.ownerId === actor.id;
     const entryTags = (entry?.tagIds ?? [])
         .map((tagId) => tags.find((item) => item.id === tagId))
         .filter((tag): tag is (typeof tags)[number] => tag !== undefined);
@@ -98,14 +101,16 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                         <Button variant="secondary" className="flex-1" onClick={onClose}>
                             关闭
                         </Button>
-                        <Button
-                            variant="danger"
-                            className="flex-1"
-                            onClick={() => setConfirmOpen(true)}
-                        >
-                            <Trash2 className="size-3.5" />
-                            删除
-                        </Button>
+                        {canEdit && (
+                            <Button
+                                variant="danger"
+                                className="flex-1"
+                                onClick={() => setConfirmOpen(true)}
+                            >
+                                <Trash2 className="size-3.5" />
+                                删除
+                            </Button>
+                        )}
                     </div>
                 }
             >
@@ -286,12 +291,26 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                                     </a>
                                 </DetailRow>
                             )}
+                            {entry.ownerName && (
+                                <DetailRow label="记账人">
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <span className="grid size-5 place-items-center rounded-full bg-surface-3 text-[9px] font-bold text-muted">
+                                            {entry.ownerName.slice(0, 1)}
+                                        </span>
+                                        {entry.ownerName}
+                                        {!canEdit && (
+                                            <span className="text-[9px] text-muted">只读</span>
+                                        )}
+                                    </span>
+                                </DetailRow>
+                            )}
                             {entry.note && <DetailRow label="备注">{entry.note}</DetailRow>}
                         </dl>
 
                         <AttachmentList
                             target={{ kind: "entry", id: entry.id }}
                             attachmentIds={entry.attachmentIds}
+                            readOnly={!canEdit}
                         />
 
                         <p className="rounded-xl bg-surface-2/70 px-3 py-2.5 text-[10px] leading-relaxed text-muted">
