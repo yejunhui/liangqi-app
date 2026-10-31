@@ -5,7 +5,14 @@
 import { describe, expect, it } from "vitest";
 import type { Bill, Entry, LedgerData } from "@/types";
 import { createSeedData } from "@/domain/seed";
-import { createExportPayload, parseBackup } from "@/domain/backup";
+import { createSeedBook } from "@/domain/seed";
+import {
+    createExportPayload,
+    createLibraryExport,
+    parseBackup,
+    parseLibraryBackup,
+} from "@/domain/backup";
+import type { LibraryData } from "@/types";
 
 const NOW = new Date(2026, 9, 31, 12).getTime();
 
@@ -115,7 +122,6 @@ describe("backup validation", () => {
         const parsed = parseBackup({ ...payload, app: "zhaibu" });
         expect(parsed.ok).toBe(true);
     });
-
     it("rejects a different app or version", () => {
         const payload = createExportPayload(buildData());
         expect(parseBackup({ ...payload, app: "cent" }).ok).toBe(false);
@@ -174,5 +180,73 @@ describe("backup validation", () => {
         data.settings.currency = "rmb";
         const parsed = parseBackup(createExportPayload(data));
         expect(parsed.ok).toBe(false);
+    });
+});
+
+describe("library backup", () => {
+    function buildLibrary(): LibraryData {
+        const first = createSeedBook("家庭账", NOW);
+        const second = createSeedBook("旅行账", NOW + 1);
+        return {
+            version: 2,
+            books: [
+                first,
+                {
+                    ...second,
+                    remote: {
+                        connectionId: "conn_1",
+                        remoteBookId: second.id,
+                        autoSync: true,
+                        lastSyncedAt: NOW,
+                    },
+                },
+            ],
+            activeBookId: first.id,
+            connections: [
+                {
+                    id: "conn_1",
+                    provider: "github",
+                    label: "GitHub · me/ledger",
+                    createdAt: NOW,
+                    owner: "me",
+                    repo: "ledger",
+                    branch: "main",
+                    token: "secret-token",
+                    tokenKind: "pat",
+                },
+            ],
+        };
+    }
+
+    it("round-trips multiple books and strips secrets", () => {
+        const library = buildLibrary();
+        const payload = createLibraryExport(library);
+        expect(payload.version).toBe(2);
+        expect(payload.secretsIncluded).toBe(false);
+        expect(payload.library.connections[0].token).toBeUndefined();
+
+        const parsed = parseLibraryBackup(JSON.parse(JSON.stringify(payload)));
+        expect(parsed.ok).toBe(true);
+        if (parsed.ok) {
+            expect(parsed.library.books).toHaveLength(2);
+            expect(parsed.library.activeBookId).toBe(library.activeBookId);
+            expect(parsed.library.books[1].remote?.connectionId).toBe("conn_1");
+            expect(parsed.library.connections[0].token).toBeUndefined();
+        }
+    });
+
+    it("rejects duplicate book ids", () => {
+        const library = buildLibrary();
+        library.books[1] = { ...library.books[1], id: library.books[0].id };
+        const parsed = parseLibraryBackup(createLibraryExport(library));
+        expect(parsed.ok).toBe(false);
+        if (!parsed.ok) {
+            expect(parsed.error).toContain("重复账本");
+        }
+    });
+
+    it("rejects the wrong version", () => {
+        const payload = createLibraryExport(buildLibrary());
+        expect(parseLibraryBackup({ ...payload, version: 1 }).ok).toBe(false);
     });
 });

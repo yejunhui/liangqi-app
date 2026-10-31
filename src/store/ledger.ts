@@ -3,11 +3,11 @@
  */
 
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
 import type {
     Account,
     AccountKind,
     Bill,
+    Book,
     Category,
     CategoryKind,
     Entry,
@@ -22,6 +22,8 @@ import {
     getLinkedExpense,
     validateRepayment,
 } from "@/domain/ledger";
+import { getActiveBook, useLibraryStore } from "@/store/library";
+import { newId } from "@/utils/id";
 
 export type Result = { ok: true } | { ok: false; error: string };
 export type AddExpenseResult = { ok: true; billId?: string } | { ok: false; error: string };
@@ -99,15 +101,7 @@ export interface LedgerActions {
     resetData: () => void;
 }
 
-export type LedgerState = LedgerData & LedgerActions;
-
-function newId(prefix: string): string {
-    const uuid =
-        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-            ? crypto.randomUUID()
-            : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-    return `${prefix}_${uuid}`;
-}
+export type LedgerState = Book & LedgerActions;
 
 function cleanNote(note?: string): string | undefined {
     const value = note?.trim();
@@ -540,68 +534,39 @@ const createActions = (
     },
 });
 
-const STORAGE_KEY = "liangqi-ledger-v1";
-const LEGACY_STORAGE_KEY = "zhaibu-ledger-v1";
+const initialBook = getActiveBook(useLibraryStore.getState());
 
-/**
- * The project was renamed from Zhaibu to Liangqi. Copy an existing local
- * ledger to the new key once, so current users do not lose their data.
- */
-function migrateLegacyStorage(): void {
-    if (typeof window === "undefined") {
-        return;
-    }
-    try {
-        if (window.localStorage.getItem(STORAGE_KEY)) {
-            return;
-        }
-        const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY);
-        if (legacy) {
-            window.localStorage.setItem(STORAGE_KEY, legacy);
-        }
-    } catch {
-        // localStorage may be unavailable (private mode, disabled storage).
-    }
+export function extractBook(state: LedgerState): Book {
+    return {
+        id: state.id,
+        name: state.name,
+        createdAt: state.createdAt,
+        updatedAt: state.updatedAt,
+        accounts: state.accounts,
+        categories: state.categories,
+        bills: state.bills,
+        entries: state.entries,
+        settings: state.settings,
+        remote: state.remote,
+    };
 }
 
-migrateLegacyStorage();
+export const useLedgerStore = create<LedgerState>()((set, get) => {
+    const setAndSync = (
+        partial:
+            | Partial<LedgerState>
+            | ((state: LedgerState) => Partial<LedgerState>),
+    ) => {
+        const patch = typeof partial === "function" ? partial(get()) : partial;
+        set({ ...patch, updatedAt: Date.now() });
+        useLibraryStore.getState().upsertBook(extractBook(get()));
+    };
 
-const initial = createSeedData();
-
-export const useLedgerStore = create<LedgerState>()(
-    persist(
-        (set, get) => ({
-            ...initial,
-            ...createActions(set, get),
-        }),
-        {
-            name: STORAGE_KEY,
-            version: 1,
-            storage: createJSONStorage(() => localStorage),
-            partialize: (state) => ({
-                accounts: state.accounts,
-                categories: state.categories,
-                bills: state.bills,
-                entries: state.entries,
-                settings: state.settings,
-            }),
-            merge: (persisted, current) => {
-                const data = persisted as Partial<LedgerData> | undefined;
-                if (!data) {
-                    return current;
-                }
-                return {
-                    ...current,
-                    ...data,
-                    settings: {
-                        ...current.settings,
-                        ...(data.settings ?? {}),
-                    },
-                };
-            },
-        },
-    ),
-);
+    return {
+        ...initialBook,
+        ...createActions(setAndSync, get),
+    };
+});
 
 export function useCurrency(): string {
     return useLedgerStore((state) => state.settings.currency);

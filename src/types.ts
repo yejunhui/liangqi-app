@@ -83,3 +83,85 @@ export interface ExportPayload extends LedgerData {
     version: 1;
     exportedAt: string;
 }
+
+export type RemoteProvider = "github" | "gitee" | "webdav";
+
+export type TokenKind = "pat" | "oauth";
+
+export interface Connection {
+    id: string;
+    provider: RemoteProvider;
+    label: string;
+    createdAt: number;
+    /** GitHub / Gitee */
+    owner?: string;
+    repo?: string;
+    branch?: string;
+    token?: string;
+    tokenKind?: TokenKind;
+    /** WebDAV */
+    url?: string;
+    username?: string;
+    password?: string;
+}
+
+export interface RemoteBinding {
+    connectionId: string;
+    remoteBookId: string;
+    revision?: string;
+    lastSyncedAt?: number;
+    autoSync: boolean;
+}
+
+export interface Book extends LedgerData {
+    id: string;
+    name: string;
+    createdAt: number;
+    updatedAt: number;
+    remote?: RemoteBinding;
+}
+
+export interface LibraryData {
+    version: 2;
+    books: Book[];
+    activeBookId: string;
+    connections: Connection[];
+}
+
+export interface RemoteBookSummary {
+    id: string;
+    name: string;
+    updatedAt: number;
+    currency: string;
+    entryCount: number;
+}
+
+export interface RemoteIndex {
+    app: "liangqi";
+    version: 1;
+    books: RemoteBookSummary[];
+}
+
+export interface RemoteBookFile {
+    app: "liangqi";
+    version: 1;
+    book: Book;
+    updatedAt: number;
+}
+
+export interface ConflictBackup {
+    id: string;
+    bookId: string;
+    name: string;
+    savedAt: number;
+    book: Book;
+}
+
+export interface LibraryExportPayload {
+    app: "liangqi";
+    version: 2;
+    exportedAt: string;
+    library: LibraryData;
+    secretsIncluded: false;
+}
+

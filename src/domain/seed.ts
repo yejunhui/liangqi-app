@@ -2,7 +2,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { Account, Category, LedgerData } from "@/types";
+import type { Account, Book, Category, LedgerData } from "@/types";
+import { newId } from "@/utils/id";
 
 const CATEGORY_COLORS = {
     food: "#e07a5f",
@@ -158,5 +159,15 @@ export function createSeedData(now = Date.now()): LedgerData {
             currency: "CNY",
             theme: "system",
         },
+    };
+}
+
+export function createSeedBook(name = "我的账本", now = Date.now()): Book {
+    return {
+        id: newId("book"),
+        name,
+        createdAt: now,
+        updatedAt: now,
+        ...createSeedData(now),
     };
 }

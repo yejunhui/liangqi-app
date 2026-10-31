@@ -5,10 +5,15 @@
 import type {
     Account,
     Bill,
+    Book,
     Category,
+    Connection,
     Entry,
     ExportPayload,
     LedgerData,
+    LibraryData,
+    LibraryExportPayload,
+    RemoteBinding,
     Settings,
 } from "@/types";
 
@@ -346,6 +351,182 @@ export function parseBackup(raw: unknown): { ok: true; data: LedgerData } | { ok
         return {
             ok: false,
             error: error instanceof Error ? error.message : "备份文件解析失败",
+        };
+    }
+}
+
+function parseRemoteBinding(value: unknown): RemoteBinding | undefined {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (!isObject(value)) {
+        throw new Error("远程绑定格式不正确");
+    }
+    if (
+        !isString(value.connectionId) ||
+        !isString(value.remoteBookId) ||
+        typeof value.autoSync !== "boolean"
+    ) {
+        throw new Error("远程绑定字段不完整");
+    }
+    if (value.revision !== undefined && !isString(value.revision)) {
+        throw new Error("远程版本号格式不正确");
+    }
+    if (value.lastSyncedAt !== undefined && !isFiniteNumber(value.lastSyncedAt)) {
+        throw new Error("远程同步时间格式不正确");
+    }
+    return {
+        connectionId: value.connectionId,
+        remoteBookId: value.remoteBookId,
+        revision: value.revision as string | undefined,
+        lastSyncedAt: value.lastSyncedAt as number | undefined,
+        autoSync: value.autoSync,
+    };
+}
+
+function parseBookRecord(raw: unknown, index: number): Book {
+    if (!isObject(raw)) {
+        throw new Error(`第 ${index + 1} 个账本格式不正确`);
+    }
+    const id = requiredString(raw.id, "账本 id");
+    const name = requiredString(raw.name, "账本名称");
+    const createdAt = requiredTimestamp(raw.createdAt, "账本创建时间");
+    const updatedAt = requiredTimestamp(raw.updatedAt, "账本更新时间");
+    const parsed = parseBackup({
+        ...raw,
+        app: "liangqi",
+        version: 1,
+    });
+    if (!parsed.ok) {
+        throw new Error(`账本“${name}”：${parsed.error}`);
+    }
+    return {
+        ...parsed.data,
+        id,
+        name,
+        createdAt,
+        updatedAt,
+        remote: parseRemoteBinding(raw.remote),
+    };
+}
+
+function parseConnection(raw: unknown, index: number): Connection {
+    if (!isObject(raw)) {
+        throw new Error(`第 ${index + 1} 个远程连接格式不正确`);
+    }
+    const provider = raw.provider;
+    if (provider !== "github" && provider !== "gitee" && provider !== "webdav") {
+        throw new Error(`第 ${index + 1} 个远程连接类型不正确`);
+    }
+    for (const key of [
+        "owner",
+        "repo",
+        "branch",
+        "token",
+        "url",
+        "username",
+        "password",
+    ] as const) {
+        if (!optionalString(raw[key])) {
+            throw new Error(`第 ${index + 1} 个远程连接 ${key} 格式不正确`);
+        }
+    }
+    if (raw.tokenKind !== undefined && raw.tokenKind !== "pat" && raw.tokenKind !== "oauth") {
+        throw new Error(`第 ${index + 1} 个远程连接 token 类型不正确`);
+    }
+    return {
+        id: requiredString(raw.id, "连接 id"),
+        provider,
+        label: requiredString(raw.label, "连接名称"),
+        createdAt: requiredTimestamp(raw.createdAt, "连接创建时间"),
+        owner: raw.owner as string | undefined,
+        repo: raw.repo as string | undefined,
+        branch: raw.branch as string | undefined,
+        token: raw.token as string | undefined,
+        tokenKind: raw.tokenKind as Connection["tokenKind"],
+        url: raw.url as string | undefined,
+        username: raw.username as string | undefined,
+        password: raw.password as string | undefined,
+    };
+}
+
+export function createLibraryExport(library: LibraryData): LibraryExportPayload {
+    return {
+        app: "liangqi",
+        version: 2,
+        exportedAt: new Date().toISOString(),
+        secretsIncluded: false,
+        library: {
+            ...library,
+            books: library.books.map((book) => ({
+                ...book,
+                remote: book.remote ? { ...book.remote } : undefined,
+            })),
+            connections: library.connections.map((connection) => ({
+                ...connection,
+                token: undefined,
+                password: undefined,
+            })),
+        },
+    };
+}
+
+export function parseLibraryBackup(
+    raw: unknown,
+): { ok: true; library: LibraryData } | { ok: false; error: string } {
+    try {
+        if (!isObject(raw)) {
+            throw new Error("书库备份格式不正确");
+        }
+        if (raw.app !== "liangqi" || raw.version !== 2) {
+            throw new Error("不是两讫 v2 书库备份");
+        }
+        if (!isObject(raw.library)) {
+            throw new Error("书库备份缺少 library 数据");
+        }
+        const libraryRaw = raw.library;
+        if (!Array.isArray(libraryRaw.books)) {
+            throw new Error("书库备份缺少账本列表");
+        }
+        const books = libraryRaw.books.map(parseBookRecord);
+        if (books.length === 0) {
+            throw new Error("书库备份里没有账本");
+        }
+        const bookIds = new Set<string>();
+        for (const book of books) {
+            if (bookIds.has(book.id)) {
+                throw new Error(`书库中存在重复账本 id：${book.id}`);
+            }
+            bookIds.add(book.id);
+        }
+
+        const connections = Array.isArray(libraryRaw.connections)
+            ? libraryRaw.connections.map(parseConnection)
+            : [];
+        const connectionIds = new Set(connections.map((connection) => connection.id));
+        const normalizedBooks = books.map((book) =>
+            book.remote && !connectionIds.has(book.remote.connectionId)
+                ? { ...book, remote: undefined }
+                : book,
+        );
+        const activeBookId =
+            isString(libraryRaw.activeBookId) && bookIds.has(libraryRaw.activeBookId)
+                ? libraryRaw.activeBookId
+                : normalizedBooks[0].id;
+
+        return {
+            ok: true,
+            library: {
+                version: 2,
+                books: normalizedBooks,
+                activeBookId,
+                connections,
+            },
+        };
+    } catch (error) {
+        return {
+            ok: false,
+            error: error instanceof Error ? error.message : "书库备份解析失败",
         };
     }
 }

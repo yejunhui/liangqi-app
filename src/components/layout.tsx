@@ -11,11 +11,16 @@ import {
     Tags,
     Settings,
     Plus,
+    ChevronDown,
+    Database,
+    Cloud,
 } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/button";
+import { BookSwitcher } from "@/components/book-switcher";
 import { useLedgerStore, useCurrency } from "@/store/ledger";
+import { useLibraryStore, getActiveBook } from "@/store/library";
 import { useUIStore } from "@/store/ui";
 import { getTotals } from "@/domain/ledger";
 import { formatCents } from "@/domain/money";
@@ -30,6 +35,7 @@ const primaryNav = [
 
 const secondaryNav = [
     { to: "/categories", label: "分类", icon: Tags },
+    { to: "/data", label: "数据源", icon: Cloud },
     { to: "/settings", label: "设置", icon: Settings },
 ];
 
@@ -49,6 +55,8 @@ export function Layout() {
     const currency = useCurrency();
     const openEntryModal = useUIStore((state) => state.openEntryModal);
     const closeEntryModal = useUIStore((state) => state.closeEntryModal);
+    const openBookSwitcher = useUIStore((state) => state.openBookSwitcher);
+    const activeBook = useLibraryStore((state) => getActiveBook(state));
     const totals = getTotals({ accounts, entries });
 
     useEffect(() => {
@@ -59,11 +67,30 @@ export function Layout() {
     return (
         <div className="min-h-dvh">
             <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-line bg-surface/75 backdrop-blur-xl md:flex">
-                <div className="px-5 pb-5 pt-6">
+                <div className="px-5 pb-4 pt-6">
                     <Logo />
                 </div>
 
                 <div className="px-3">
+                    <button
+                        type="button"
+                        onClick={openBookSwitcher}
+                        className="flex w-full items-center gap-2 rounded-xl border border-line bg-surface-2/55 px-3 py-2 text-left transition hover:border-line-strong"
+                    >
+                        <Database className="size-4 shrink-0 text-accent" />
+                        <span className="min-w-0 flex-1">
+                            <span className="block text-[9px] font-medium uppercase tracking-[0.12em] text-muted">
+                                当前账本
+                            </span>
+                            <span className="mt-0.5 block truncate text-xs font-semibold text-text">
+                                {activeBook.name}
+                            </span>
+                        </span>
+                        <ChevronDown className="size-3.5 shrink-0 text-muted" />
+                    </button>
+                </div>
+
+                <div className="mt-3 px-3">
                     <Button
                         className="w-full shadow-sm"
                         onClick={() => openEntryModal()}
@@ -116,11 +143,22 @@ export function Layout() {
 
             <div className="md:pl-64">
                 <header className="sticky top-0 z-30 border-b border-line bg-bg/75 backdrop-blur-xl md:hidden">
-                    <div className="flex items-center justify-between px-4 py-3">
-                        <Logo />
+                    <div className="flex items-center justify-between gap-2 px-4 py-3">
+                        <div className="flex min-w-0 items-center gap-2">
+                            <Logo />
+                            <button
+                                type="button"
+                                onClick={openBookSwitcher}
+                                className="flex min-w-0 items-center gap-1 rounded-lg border border-line bg-surface px-2 py-1.5 text-[11px] font-semibold text-text transition hover:border-line-strong"
+                            >
+                                <Database className="size-3.5 shrink-0 text-accent" />
+                                <span className="max-w-[5.5rem] truncate">{activeBook.name}</span>
+                                <ChevronDown className="size-3 shrink-0 text-muted" />
+                            </button>
+                        </div>
                         <NavLink
                             to="/settings"
-                            className="grid size-9 place-items-center rounded-xl border border-line bg-surface text-muted transition hover:text-text"
+                            className="grid size-9 shrink-0 place-items-center rounded-xl border border-line bg-surface text-muted transition hover:text-text"
                             aria-label="设置"
                         >
                             <Settings className="size-4" />
@@ -182,6 +220,8 @@ export function Layout() {
                     ))}
                 </div>
             </nav>
+
+            <BookSwitcher />
         </div>
     );
 }

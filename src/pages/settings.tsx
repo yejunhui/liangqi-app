@@ -6,6 +6,7 @@ import { useRef, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import {
     ArrowRight,
+    Cloud,
     Download,
     FileJson,
     Info,
@@ -17,13 +18,23 @@ import {
     Tags,
     Upload,
 } from "lucide-react";
-import type { LedgerData, ThemeMode } from "@/types";
+import type { LedgerData, LibraryData, ThemeMode } from "@/types";
 import { PageHeader } from "@/components/page-header";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { createExportPayload, parseBackup } from "@/domain/backup";
+import {
+    createExportPayload,
+    createLibraryExport,
+    parseBackup,
+    parseLibraryBackup,
+} from "@/domain/backup";
 import { downloadJson } from "@/utils/download";
 import { toDateInputValue } from "@/utils/date";
 import { useLedgerStore } from "@/store/ledger";
+import {
+    extractLibrary,
+    getActiveBook,
+    useLibraryStore,
+} from "@/store/library";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
@@ -57,12 +68,15 @@ export function Settings() {
     const setSettings = useLedgerStore((state) => state.setSettings);
     const importData = useLedgerStore((state) => state.importData);
     const resetData = useLedgerStore((state) => state.resetData);
+    const library = useLibraryStore();
+    const activeBook = getActiveBook(library);
 
     const inputRef = useRef<HTMLInputElement>(null);
     const [pendingImport, setPendingImport] = useState<LedgerData | null>(null);
+    const [pendingLibrary, setPendingLibrary] = useState<LibraryData | null>(null);
     const [resetOpen, setResetOpen] = useState(false);
 
-    function handleExport() {
+    function handleExportCurrent() {
         const payload = createExportPayload({
             accounts,
             categories,
@@ -70,8 +84,16 @@ export function Settings() {
             entries,
             settings,
         });
-        downloadJson(`liangqi-backup-${toDateInputValue(Date.now())}.json`, payload);
-        toast("备份已导出", "success");
+        downloadJson(`liangqi-book-${toDateInputValue(Date.now())}.json`, payload);
+        toast("当前账本已导出", "success");
+    }
+
+    function handleExportLibrary() {
+        const payload = createLibraryExport(
+            extractLibrary(useLibraryStore.getState()),
+        );
+        downloadJson(`liangqi-library-${toDateInputValue(Date.now())}.json`, payload);
+        toast("全部账本已导出", "success");
     }
 
     async function handleFile(event: ChangeEvent<HTMLInputElement>) {
@@ -87,6 +109,20 @@ export function Settings() {
         try {
             const text = await file.text();
             const raw: unknown = JSON.parse(text);
+            if (
+                typeof raw === "object" &&
+                raw !== null &&
+                "version" in raw &&
+                (raw as { version?: unknown }).version === 2
+            ) {
+                const result = parseLibraryBackup(raw);
+                if (!result.ok) {
+                    toast(result.error, "error");
+                    return;
+                }
+                setPendingLibrary(result.library);
+                return;
+            }
             const result = parseBackup(raw);
             if (!result.ok) {
                 toast(result.error, "error");
@@ -99,6 +135,14 @@ export function Settings() {
     }
 
     function handleImport() {
+        if (pendingLibrary) {
+            useLibraryStore.getState().importLibrary(pendingLibrary);
+            const nextLibrary = useLibraryStore.getState();
+            useLedgerStore.setState(getActiveBook(nextLibrary));
+            toast("书库已导入，已切换到备份中的当前账本", "success");
+            setPendingLibrary(null);
+            return;
+        }
         if (!pendingImport) {
             return;
         }
@@ -206,25 +250,60 @@ export function Settings() {
                     </p>
                 </section>
 
+                <section className="card p-5">
+                    <SectionTitle
+                        icon={Cloud}
+                        title="数据源与同步"
+                        description={
+                            activeBook.remote
+                                ? "当前账本已连接远程；打开时会优先使用远程数据。"
+                                : "当前账本只保存在本地，可以连接 GitHub、Gitee 或 WebDAV。"
+                        }
+                    />
+                    <Link
+                        to="/data"
+                        className="mt-4 flex items-center justify-between rounded-xl border border-line bg-surface-2/55 px-4 py-3 text-xs font-semibold text-text transition hover:border-line-strong"
+                    >
+                        打开数据源
+                        <ArrowRight className="size-3.5 text-muted" />
+                    </Link>
+                </section>
+
                 <section className="card p-5 lg:col-span-2">
                     <SectionTitle
                         icon={FileJson}
                         title="数据管理"
-                        description="数据默认保存在浏览器 localStorage。建议定期导出备份。"
+                        description="数据默认保存在浏览器 localStorage；可以导出当前账本或整个书库。"
                     />
-                    <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                         <button
                             type="button"
-                            onClick={handleExport}
+                            onClick={handleExportCurrent}
                             className="flex items-center gap-3 rounded-xl border border-line bg-surface-2/55 p-3 text-left transition hover:border-line-strong"
                         >
                             <span className="grid size-9 place-items-center rounded-lg bg-accent-soft text-accent">
                                 <Download className="size-4" />
                             </span>
                             <span>
-                                <span className="block text-xs font-semibold text-text">导出备份</span>
+                                <span className="block text-xs font-semibold text-text">导出当前账本</span>
                                 <span className="mt-0.5 block text-[10px] text-muted">
-                                    JSON 文件
+                                    单账本 JSON
+                                </span>
+                            </span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={handleExportLibrary}
+                            className="flex items-center gap-3 rounded-xl border border-line bg-surface-2/55 p-3 text-left transition hover:border-line-strong"
+                        >
+                            <span className="grid size-9 place-items-center rounded-lg bg-accent-soft text-accent">
+                                <FileJson className="size-4" />
+                            </span>
+                            <span>
+                                <span className="block text-xs font-semibold text-text">导出全部账本</span>
+                                <span className="mt-0.5 block text-[10px] text-muted">
+                                    整个书库 JSON
                                 </span>
                             </span>
                         </button>
@@ -240,7 +319,7 @@ export function Settings() {
                             <span>
                                 <span className="block text-xs font-semibold text-text">导入备份</span>
                                 <span className="mt-0.5 block text-[10px] text-muted">
-                                    替换当前数据
+                                    自动识别单账本 / 书库
                                 </span>
                             </span>
                         </button>
@@ -254,9 +333,9 @@ export function Settings() {
                                 <RotateCcw className="size-4" />
                             </span>
                             <span>
-                                <span className="block text-xs font-semibold text-text">恢复初始数据</span>
+                                <span className="block text-xs font-semibold text-text">重置当前账本</span>
                                 <span className="mt-0.5 block text-[10px] text-muted">
-                                    清空当前账本
+                                    不影响其他账本
                                 </span>
                             </span>
                         </button>
@@ -273,7 +352,7 @@ export function Settings() {
                     <div className="mt-4 flex gap-2 rounded-xl border border-line bg-surface-2/40 p-3 text-[10px] leading-relaxed text-muted">
                         <Info className="mt-0.5 size-3.5 shrink-0 text-accent" />
                         <span>
-                            导出文件包含账户、分类、账单和全部流水。导入会替换当前全部数据，请先导出备份。
+                            导入单账本会替换当前账本；导入书库会替换全部账本和连接配置。为了安全，书库备份不包含 token 和密码，导入后连接远程时需要重新填写。
                         </span>
                     </div>
                 </section>
@@ -287,7 +366,7 @@ export function Settings() {
                     <div className="mt-4 grid gap-3 text-[11px] leading-relaxed text-muted sm:grid-cols-2">
                         <div className="rounded-xl border border-line bg-surface-2/55 p-3.5">
                             <p className="font-semibold text-text">版本</p>
-                            <p className="mt-1">0.1.0 · 数据格式 v1</p>
+                            <p className="mt-1">0.2.0 · 书库格式 v2</p>
                         </div>
                         <div className="rounded-xl border border-line bg-surface-2/55 p-3.5">
                             <p className="font-semibold text-text">许可证</p>
@@ -325,12 +404,12 @@ export function Settings() {
             <ConfirmDialog
                 open={resetOpen}
                 onClose={() => setResetOpen(false)}
-                title="恢复初始数据？"
-                description="当前账户、账单、流水和分类都会被清空，并恢复为默认账户和分类。建议先导出备份。"
-                confirmLabel="恢复初始数据"
+                title="重置当前账本？"
+                description="当前账本的账户、账单、流水和分类都会被清空，并恢复为默认账户和分类。其他账本不受影响。建议先导出备份。"
+                confirmLabel="重置当前账本"
                 onConfirm={() => {
                     resetData();
-                    toast("已恢复初始数据", "success");
+                    toast("当前账本已重置", "success");
                 }}
             />
 
@@ -340,10 +419,24 @@ export function Settings() {
                 title="导入并替换当前账本？"
                 description={
                     pendingImport
-                        ? `备份包含 ${pendingImport.accounts.length} 个账户、${pendingImport.bills.length} 张账单、${pendingImport.entries.length} 条流水。当前数据会被完全替换。`
+                        ? `备份包含 ${pendingImport.accounts.length} 个账户、${pendingImport.bills.length} 张账单、${pendingImport.entries.length} 条流水。当前账本会被完全替换，其他账本不受影响。`
                         : ""
                 }
                 confirmLabel="导入"
+                tone="primary"
+                onConfirm={handleImport}
+            />
+
+            <ConfirmDialog
+                open={pendingLibrary !== null}
+                onClose={() => setPendingLibrary(null)}
+                title="导入并替换整个书库？"
+                description={
+                    pendingLibrary
+                        ? `备份包含 ${pendingLibrary.books.length} 个账本、${pendingLibrary.connections.length} 个远程连接。当前书库会被完全替换；token 和密码不会从备份中恢复。`
+                        : ""
+                }
+                confirmLabel="导入书库"
                 tone="primary"
                 onConfirm={handleImport}
             />
