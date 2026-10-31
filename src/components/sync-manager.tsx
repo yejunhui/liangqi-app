@@ -2,9 +2,10 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useLibraryStore } from "@/store/library";
 import { useLedgerStore } from "@/store/ledger";
+import { useSyncStatusStore } from "@/store/sync-status";
 import { syncBookNow } from "@/remote/sync";
 import { toast } from "@/store/toast";
 
@@ -24,6 +25,59 @@ export function SyncManager() {
     const syncingRef = useRef(false);
     const lastErrorAtRef = useRef(0);
     const queuedRef = useRef(false);
+    const setSyncing = useSyncStatusStore((state) => state.setSyncing);
+    const setSuccess = useSyncStatusStore((state) => state.setSuccess);
+    const setError = useSyncStatusStore((state) => state.setError);
+
+    const runSync = useCallback(async () => {
+        if (!bookId) {
+            return;
+        }
+        if (typeof navigator !== "undefined" && navigator.onLine === false) {
+            return;
+        }
+        if (syncingRef.current) {
+            queuedRef.current = true;
+            return;
+        }
+        syncingRef.current = true;
+        setSyncing(bookId);
+        try {
+            const result = await syncBookNow(bookId);
+            if (result.action === "local-only") {
+                setError(bookId, result.message);
+            } else {
+                setSuccess(bookId, result.message);
+            }
+            if (result.action === "conflict") {
+                toast(result.message, "info");
+            }
+            useLedgerStore.getState().postDueRecurring();
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message : "远程同步失败";
+            setError(bookId, message);
+            const now = Date.now();
+            if (now - lastErrorAtRef.current > 60_000) {
+                lastErrorAtRef.current = now;
+                toast(message, "error");
+            }
+        } finally {
+            syncingRef.current = false;
+            if (queuedRef.current) {
+                queuedRef.current = false;
+                window.setTimeout(() => {
+                    void runSyncRef.current();
+                }, 800);
+            }
+        }
+    }, [bookId, setError, setSuccess, setSyncing]);
+
+    const runSyncRef = useRef(runSync);
+
+    useEffect(() => {
+        runSyncRef.current = runSync;
+    }, [runSync]);
 
     useEffect(() => {
         if (!bookId || !binding?.autoSync) {
@@ -31,56 +85,21 @@ export function SyncManager() {
         }
 
         let disposed = false;
-
-        const run = async () => {
-            if (disposed) {
-                return;
-            }
-            if (typeof navigator !== "undefined" && navigator.onLine === false) {
-                return;
-            }
-            if (syncingRef.current) {
-                queuedRef.current = true;
-                return;
-            }
-            syncingRef.current = true;
-            try {
-                const result = await syncBookNow(bookId);
-                if (result.action === "conflict") {
-                    toast(result.message, "info");
-                }
-                useLedgerStore.getState().postDueRecurring();
-            } catch (error) {
-                const now = Date.now();
-                if (now - lastErrorAtRef.current > 60_000) {
-                    lastErrorAtRef.current = now;
-                    toast(
-                        error instanceof Error ? error.message : "远程同步失败",
-                        "error",
-                    );
-                }
-            } finally {
-                syncingRef.current = false;
-                if (queuedRef.current) {
-                    queuedRef.current = false;
-                    window.setTimeout(run, 800);
-                }
+        const run = () => {
+            if (!disposed) {
+                void runSyncRef.current();
             }
         };
 
-        const onFocus = () => {
-            void run();
-        };
+        const onFocus = () => run();
         const onVisibility = () => {
             if (document.visibilityState === "visible") {
-                void run();
+                run();
             }
         };
-        const onOnline = () => {
-            void run();
-        };
+        const onOnline = () => run();
 
-        void run();
+        run();
         window.addEventListener("focus", onFocus);
         window.addEventListener("online", onOnline);
         document.addEventListener("visibilitychange", onVisibility);
@@ -101,20 +120,7 @@ export function SyncManager() {
             return;
         }
         const timer = window.setTimeout(() => {
-            if (syncingRef.current) {
-                queuedRef.current = true;
-                return;
-            }
-            void syncBookNow(bookId).catch((error: unknown) => {
-                const now = Date.now();
-                if (now - lastErrorAtRef.current > 60_000) {
-                    lastErrorAtRef.current = now;
-                    toast(
-                        error instanceof Error ? error.message : "远程同步失败",
-                        "error",
-                    );
-                }
-            });
+            void runSyncRef.current();
         }, 1800);
         return () => window.clearTimeout(timer);
     }, [bookId, updatedAt, binding?.autoSync, binding?.lastSyncedAt]);

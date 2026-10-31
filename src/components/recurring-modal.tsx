@@ -10,6 +10,7 @@ import { TagSelector } from "@/components/tag-selector";
 import { parseAmountToCents } from "@/domain/money";
 import { fromDateInputValue, toDateInputValue } from "@/utils/date";
 import { useLedgerStore } from "@/store/ledger";
+import { getActiveMember } from "@/store/member-session";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
@@ -79,7 +80,12 @@ export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
         setIntervalValue(String(rule?.interval ?? 1));
         setStartDate(toDateInputValue(rule?.startDate ?? Date.now()));
         setEndDate(rule?.endDate ? toDateInputValue(rule.endDate) : "");
-        setMemberId(rule?.memberId ?? members[0]?.id ?? "");
+        setMemberId(
+            rule?.memberId ??
+                getActiveMember()?.id ??
+                members[0]?.id ??
+                "",
+        );
         setTagIds(rule?.tagIds ?? []);
         setNote(rule?.note ?? "");
         setError("");

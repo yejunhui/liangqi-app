@@ -334,6 +334,88 @@ describe("net worth", () => {
     });
 });
 
+describe("accounting invariants", () => {
+    it("keeps each liability balance equal to its outstanding bills", () => {
+        const data = buildFixture();
+        const credit = data.accounts.find((account) => account.id === "acc_credit")!;
+
+        expect(getAccountBalance(credit, data.entries)).toBe(
+            getOutstandingTotal(data.bills, data.entries),
+        );
+
+        data.entries.push({
+            id: "entry_repay_invariant",
+            kind: "repayment",
+            amount: 7_000,
+            date: NOW,
+            accountId: "acc_bank",
+            liabilityAccountId: "acc_credit",
+            billId: "bill_1",
+            createdAt: NOW,
+        });
+        expect(getAccountBalance(credit, data.entries)).toBe(
+            getOutstandingTotal(data.bills, data.entries),
+        );
+
+        const secondBill: Bill = {
+            ...data.bills[0],
+            id: "bill_2",
+            title: "第二笔赊账",
+            principal: 8_000,
+        };
+        data.bills.push(secondBill);
+        data.entries.push({
+            id: "entry_credit_2",
+            kind: "expense",
+            amount: 8_000,
+            date: NOW,
+            liabilityAccountId: "acc_credit",
+            billId: secondBill.id,
+            categoryId: "cat_food",
+            createdAt: NOW,
+        });
+        expect(getAccountBalance(credit, data.entries)).toBe(
+            getOutstandingTotal(data.bills, data.entries),
+        );
+    });
+
+    it("changes net worth only by income minus expenses", () => {
+        const data = buildFixture();
+        const initial = getTotals({
+            accounts: data.accounts,
+            entries: [],
+        });
+        const beforeRepayment = getTotals(data);
+        const month = getMonthTotals(data.entries, NOW);
+
+        expect(beforeRepayment.netWorth - initial.netWorth).toBe(
+            month.income - month.expense,
+        );
+
+        data.entries.push({
+            id: "entry_repay_neutral",
+            kind: "repayment",
+            amount: 5_000,
+            date: NOW,
+            accountId: "acc_bank",
+            liabilityAccountId: "acc_credit",
+            billId: "bill_1",
+            createdAt: NOW,
+        });
+        data.entries.push({
+            id: "entry_transfer_neutral",
+            kind: "transfer",
+            amount: 9_000,
+            date: NOW,
+            accountId: "acc_cash",
+            toAccountId: "acc_bank",
+            createdAt: NOW,
+        });
+
+        expect(getTotals(data).netWorth).toBe(beforeRepayment.netWorth);
+    });
+});
+
 describe("summaries", () => {
     it("computes month totals and category shares", () => {
         const data = buildFixture();

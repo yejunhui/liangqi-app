@@ -334,7 +334,7 @@ const createActions = (
         if (!category || category.kind !== "expense") {
             return fail("请选择支出分类");
         }
-        const memberId = input.memberId ?? state.members[0]?.id;
+        const memberId = input.memberId ?? getActiveMember()?.id ?? state.members[0]?.id;
         if (!memberId || !state.members.some((member) => member.id === memberId)) {
             return fail("请选择成员");
         }
@@ -443,7 +443,7 @@ const createActions = (
         if (!account || account.kind !== "asset") {
             return fail("请选择收款账户");
         }
-        const memberId = input.memberId ?? state.members[0]?.id;
+        const memberId = input.memberId ?? getActiveMember()?.id ?? state.members[0]?.id;
         if (!memberId || !state.members.some((member) => member.id === memberId)) {
             return fail("请选择成员");
         }
@@ -493,7 +493,11 @@ const createActions = (
         if (error) {
             return fail(error);
         }
-        const memberId = input.memberId ?? bill.memberId ?? state.members[0]?.id;
+        const memberId =
+            input.memberId ??
+            bill.memberId ??
+            getActiveMember()?.id ??
+            state.members[0]?.id;
         if (!memberId || !state.members.some((member) => member.id === memberId)) {
             return fail("请选择成员");
         }
@@ -542,7 +546,7 @@ const createActions = (
         if (from.id === to.id) {
             return fail("转出账户和转入账户不能相同");
         }
-        const memberId = input.memberId ?? state.members[0]?.id;
+        const memberId = input.memberId ?? getActiveMember()?.id ?? state.members[0]?.id;
         if (!memberId || !state.members.some((member) => member.id === memberId)) {
             return fail("请选择成员");
         }
@@ -1624,6 +1628,7 @@ const createActions = (
         const state = get();
         const currentActor = getActiveMember();
         let posted = 0;
+        let changedAny = false;
         const errors: string[] = [];
         const nextRules = state.recurringRules.map((rule) => {
             if (!rule.enabled) {
@@ -1640,6 +1645,7 @@ const createActions = (
             let enabled = true;
             let lastPostedAt = rule.lastPostedAt;
             let guard = 0;
+            let postedForRule = 0;
             while (next <= now && guard < 500) {
                 if (rule.endDate !== undefined && next > rule.endDate) {
                     enabled = false;
@@ -1649,7 +1655,14 @@ const createActions = (
                     (entry) => entry.recurringId === rule.id && entry.date === next,
                 );
                 if (!exists) {
-                    const memberId = rule.memberId ?? get().members[0]?.id;
+                    const memberId =
+                        rule.memberId ??
+                        (rule.ownerId &&
+                        get().members.some((member) => member.id === rule.ownerId)
+                            ? rule.ownerId
+                            : undefined) ??
+                        getActiveMember()?.id ??
+                        get().members[0]?.id;
                     const result =
                         rule.kind === "income"
                             ? get().addIncome({
@@ -1688,6 +1701,7 @@ const createActions = (
                         break;
                     }
                     posted += 1;
+                    postedForRule += 1;
                 }
                 lastPostedAt = next;
                 next = advanceRecurringDate(next, rule);
@@ -1696,6 +1710,19 @@ const createActions = (
             if (rule.endDate !== undefined && next > rule.endDate) {
                 enabled = false;
             }
+            const ownerChanged =
+                rule.ownerId !== ruleActor.id ||
+                rule.ownerName !== ruleActor.name;
+            if (
+                postedForRule === 0 &&
+                next === rule.nextDueDate &&
+                enabled === rule.enabled &&
+                lastPostedAt === rule.lastPostedAt &&
+                !ownerChanged
+            ) {
+                return rule;
+            }
+            changedAny = true;
             return {
                 ...rule,
                 nextDueDate: next,
@@ -1707,7 +1734,9 @@ const createActions = (
             };
         });
 
-        set({ recurringRules: nextRules });
+        if (changedAny) {
+            set({ recurringRules: nextRules });
+        }
         if (errors.length > 0 && posted === 0) {
             return fail(errors[0]);
         }

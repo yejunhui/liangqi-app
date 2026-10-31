@@ -43,6 +43,7 @@ import {
 } from "@/domain/exchange-rates";
 import { fromDateInputValue, toDateInputValue } from "@/utils/date";
 import { useCurrency, useLedgerStore } from "@/store/ledger";
+import { getActiveMember } from "@/store/member-session";
 import { useUIStore } from "@/store/ui";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
@@ -176,6 +177,7 @@ export function EntryModal() {
         setMemberId(
             initialBill?.memberId ??
                 prefill?.memberId ??
+                getActiveMember()?.id ??
                 state.members[0]?.id ??
                 "",
         );

@@ -21,6 +21,7 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/button";
 import { EntryRow } from "@/components/entry-row";
+import { SyncStatusBadge } from "@/components/sync-status-badge";
 import { MiniBarChart } from "@/components/mini-bar-chart";
 import { CategoryBars } from "@/components/category-bars";
 import {
@@ -114,10 +115,13 @@ export function Dashboard() {
                 title="把两边的账，记清楚。"
                 description="现金支出直接扣存款；赊账先记负债，之后还款。左边右边都算清楚。"
                 action={
-                    <Button onClick={() => openEntryModal()}>
-                        <Plus className="size-4" />
-                        记一笔
-                    </Button>
+                    <>
+                        <SyncStatusBadge />
+                        <Button onClick={() => openEntryModal()}>
+                            <Plus className="size-4" />
+                            记一笔
+                        </Button>
+                    </>
                 }
             />
 
