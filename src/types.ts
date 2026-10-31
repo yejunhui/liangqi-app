@@ -19,11 +19,13 @@ export interface Member {
     createdAt: number;
 }
 
-export interface RemoteUser {
-    /** Stable provider user id, or a local fallback id. */
+export interface Actor {
     id: string;
     name: string;
     color?: string;
+}
+
+export interface RemoteUser extends Actor {
     provider?: RemoteProvider;
 }
 

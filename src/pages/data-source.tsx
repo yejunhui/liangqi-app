@@ -29,11 +29,9 @@ import { Button } from "@/components/button";
 import { Tabs, type TabItem } from "@/components/tabs";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
-import {
-    getActiveBook,
-    getConnectionById,
-    useLibraryStore,
-} from "@/store/library";
+import { useLibraryStore, getActiveBook, getConnectionById } from "@/store/library";
+import { useActiveMember } from "@/store/member-session";
+import { useUIStore } from "@/store/ui";
 import { setActiveBookRemote } from "@/store/book-actions";
 import { toast } from "@/store/toast";
 import { downloadJson } from "@/utils/download";
@@ -46,7 +44,6 @@ import {
     disconnectBook,
 } from "@/remote/sync";
 import { listRemoteBooks, testRemoteConnection } from "@/remote/repository";
-import { resolveConnectionUser } from "@/remote/identity";
 import { providerLabel } from "@/remote/index";
 import { startOAuth } from "@/remote/oauth";
 import {
@@ -91,6 +88,8 @@ export function DataSource() {
     const boundConnection = binding
         ? getConnectionById(library, binding.connectionId)
         : undefined;
+    const activeMember = useActiveMember();
+    const openMemberModal = useUIStore((state) => state.openMemberModal);
 
     const [provider, setProvider] = useState<RemoteProvider>("github");
     const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -138,16 +137,6 @@ export function DataSource() {
             username: target.username ?? "",
             password: target.password ?? "",
         }));
-        if (!target.user) {
-            void resolveConnectionUser(target)
-                .then((user) => {
-                    useLibraryStore.getState().updateConnection(target.id, { user });
-                    setConnection((current) =>
-                        current?.id === target.id ? { ...current, user } : current,
-                    );
-                })
-                .catch(() => undefined);
-        }
         listRemoteBooks(target)
             .then(setRemoteBooks)
             .catch(() => {
@@ -187,16 +176,10 @@ export function DataSource() {
             if (item.provider !== candidate.provider) {
                 return false;
             }
-            const sameUser =
-                (item.user?.id ?? "") === (candidate.user?.id ?? "");
             if (candidate.provider === "webdav") {
-                return item.url === candidate.url && sameUser;
+                return item.url === candidate.url;
             }
-            return (
-                item.owner === candidate.owner &&
-                item.repo === candidate.repo &&
-                sameUser
-            );
+            return item.owner === candidate.owner && item.repo === candidate.repo;
         });
     }
 
@@ -210,7 +193,6 @@ export function DataSource() {
                 ...candidate,
                 branch: candidate.branch || tested.defaultBranch,
             };
-            resolved.user = await resolveConnectionUser(resolved);
             const existing = findMatchingConnection(resolved);
             if (existing) {
                 useLibraryStore.getState().updateConnection(existing.id, resolved);
@@ -263,6 +245,7 @@ export function DataSource() {
             toast(result.message, result.action === "conflict" ? "info" : "success");
             setRemoteBooks(await listRemoteBooks(connection));
             setConflicts(getConflictBackups());
+            openMemberModal();
         } catch (cause) {
             setError(cause instanceof Error ? cause.message : "上传失败");
         } finally {
@@ -274,12 +257,16 @@ export function DataSource() {
         if (!connection) {
             return;
         }
+        const wasCurrent = binding?.remoteBookId === remoteBookId;
         setError("");
         setBusy(`open:${remoteBookId}`);
         try {
             const book = await openRemoteBook(connection, remoteBookId);
             toast(`已打开“${book.name}”`, "success");
             setConflicts(getConflictBackups());
+            if (!wasCurrent) {
+                openMemberModal();
+            }
         } catch (cause) {
             setError(cause instanceof Error ? cause.message : "打开远程账本失败");
         } finally {
@@ -376,7 +363,7 @@ export function DataSource() {
                                           boundConnection.owner
                                               ? `${boundConnection.owner}/${boundConnection.repo}`
                                               : boundConnection.url
-                                      } · 当前用户 ${boundConnection.user?.name ?? "未识别"}`
+                                      } · 当前成员 ${activeMember?.name ?? "未选择"}`
                                     : "数据只保存在这个浏览器里。连接远程后，同一仓库的所有用户共享这一本账。"}
                             </p>
                         </div>
@@ -442,8 +429,8 @@ export function DataSource() {
                             value={currentRemoteBook?.name ?? binding.remoteBookId}
                         />
                         <InfoCell
-                            label="当前用户"
-                            value={boundConnection?.user?.name ?? "未识别"}
+                            label="记账成员"
+                            value={activeMember?.name ?? "未选择"}
                         />
                         <InfoCell
                             label="上次同步"
@@ -463,6 +450,23 @@ export function DataSource() {
                         />
                     </div>
                 )}
+
+                {binding && (
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-surface-2/35 px-3 py-2.5">
+                        <p className="text-[11px] text-muted">
+                            当前登录成员：
+                            <span className="font-semibold text-text">
+                                {activeMember?.name ?? "未选择"}
+                            </span>
+                            <span className="ml-1 text-[10px]">
+                                · 新流水会记在这个成员名下
+                            </span>
+                        </p>
+                        <Button size="sm" variant="secondary" onClick={openMemberModal}>
+                            切换成员
+                        </Button>
+                    </div>
+                )}
             </section>
 
             <section className="card mt-4 p-5 sm:p-6">
@@ -471,7 +475,7 @@ export function DataSource() {
                         <h2 className="text-sm font-bold text-text">连接共享仓库</h2>
                         <p className="mt-1 text-[11px] leading-relaxed text-muted">
                             使用 GitHub / Gitee 私钥（Access Token）或 WebDAV
-                            连接到仓库。一个仓库只保存一本账；其他用户用各自的私钥连接同一个仓库，就会进入同一套账。
+                            连接到仓库。一个仓库只保存一本账；多个人可以共用同一个私钥连接同一个仓库，然后各自选择自己的成员登录，就会进入同一套账。
                         </p>
                     </div>
                 </div>
@@ -570,9 +574,7 @@ export function DataSource() {
 
                 {!isWebDav && (
                     <p className="mt-3 text-[10px] leading-relaxed text-muted">
-                        每个用户应使用自己的 GitHub / Gitee 私钥（Token）连接；应用会解析 token
-                        所属账号作为记账人。请先在仓库设置里把对方加为 Collaborator。若所有用户共用一个
-                        token，系统会认为它们是同一个人。
+                        多个人可以共用同一个私钥（Token）连接这个仓库。连接后在左上角或「数据源」里选择自己的成员，新流水就会记在该成员名下；记账作者按登录成员判断，不按 token。
                     </p>
                 )}
 
@@ -625,7 +627,7 @@ export function DataSource() {
                     {connection && (
                         <span className="flex items-center gap-1 text-[10px] text-success">
                             <CheckCircle2 className="size-3" />
-                            已连接 · {connection.user?.name ?? "身份未知"}
+                            已连接 · 成员 {activeMember?.name ?? "未选择"}
                         </span>
                     )}
                 </div>

@@ -50,10 +50,8 @@ import {
 } from "@/store/library";
 import { useAuthStore } from "@/store/auth";
 import { isAiConfigured, useAiStore } from "@/store/ai";
-import {
-    useCurrentActor,
-    useLocalUserStore,
-} from "@/store/identity";
+import { useActiveMember } from "@/store/member-session";
+import { useUIStore } from "@/store/ui";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
@@ -85,15 +83,13 @@ export function Settings() {
     const authEnabled = useAuthStore((state) => state.enabled);
     const lock = useAuthStore((state) => state.lock);
     const ai = useAiStore();
-    const actor = useCurrentActor();
-    const localUser = useLocalUserStore((state) => state.user);
-    const setLocalUserName = useLocalUserStore((state) => state.setName);
+    const activeMember = useActiveMember();
+    const openMemberModal = useUIStore((state) => state.openMemberModal);
 
     const [aiEndpoint, setAiEndpoint] = useState(ai.endpoint);
     const [aiModel, setAiModel] = useState(ai.model);
     const [aiApiKey, setAiApiKey] = useState(ai.apiKey);
     const [customCurrency, setCustomCurrency] = useState("");
-    const [displayName, setDisplayName] = useState(localUser.name);
 
     const inputRef = useRef<HTMLInputElement>(null);
     const [pendingImport, setPendingImport] = useState<LedgerData | null>(null);
@@ -408,50 +404,33 @@ export function Settings() {
                 <section className="card p-5">
                     <SectionTitle
                         icon={UserRound}
-                        title="当前用户"
-                        description={
-                            actor.provider
-                                ? "远程身份由当前连接的私钥决定，用来标记你记的账。"
-                                : "本机身份，用来标记你记的账；连接远程后会被私钥所属账号替换。"
-                        }
+                        title="当前记账成员"
+                        description="作者按当前登录成员记录；成员信息会随账本同步到仓库。同一个私钥可以由多人共用。"
                     />
-                    {actor.provider ? (
-                        <div className="mt-4 flex items-center gap-3 rounded-xl border border-line bg-surface-2/55 p-3">
-                            <span
-                                className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold text-white"
-                                style={{ backgroundColor: actor.color ?? "#0f766e" }}
-                            >
-                                {actor.name.slice(0, 1)}
-                            </span>
-                            <div className="min-w-0">
-                                <p className="truncate text-xs font-semibold text-text">
-                                    {actor.name}
-                                </p>
-                                <p className="text-[10px] text-muted">
-                                    {actor.provider.toUpperCase()} · {actor.id}
-                                </p>
-                            </div>
+                    <div className="mt-4 flex items-center gap-3 rounded-xl border border-line bg-surface-2/55 p-3">
+                        <span
+                            className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold text-white"
+                            style={{ backgroundColor: activeMember?.color ?? "#a8a29e" }}
+                        >
+                            {activeMember?.name.slice(0, 1) ?? "?"}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-semibold text-text">
+                                {activeMember?.name ?? "还没有选择成员"}
+                            </p>
+                            <p className="mt-0.5 text-[10px] text-muted">
+                                {activeMember
+                                    ? "新流水和账单会记在这个成员名下"
+                                    : "选择成员后才能开始记账"}
+                            </p>
                         </div>
-                    ) : (
-                        <div className="mt-4 flex gap-2">
-                            <input
-                                className="field text-xs"
-                                value={displayName}
-                                onChange={(event) => setDisplayName(event.target.value)}
-                                placeholder="你的显示名"
-                            />
-                            <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => {
-                                    setLocalUserName(displayName);
-                                    toast("显示名已保存", "success");
-                                }}
-                            >
-                                保存
-                            </Button>
-                        </div>
-                    )}
+                        <Button size="sm" variant="secondary" onClick={openMemberModal}>
+                            切换成员
+                        </Button>
+                    </div>
+                    <p className="mt-3 text-[10px] leading-relaxed text-muted">
+                        其他人连接同一个仓库后，也需要选择自己的成员；不能直接修改或删除你记的账。成员列表会同步到仓库，新增成员后所有设备可见。
+                    </p>
                 </section>
 
                 <section className="card p-5">

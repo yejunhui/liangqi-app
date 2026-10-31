@@ -8,11 +8,11 @@
  */
 
 import type {
+    Actor,
     Bill,
     Book,
     Entry,
     RecurringRule,
-    RemoteUser,
     Tombstone,
 } from "@/types";
 
@@ -154,7 +154,7 @@ export function bookContentSignature(book: Book): string {
 export function reassignOwner(
     book: Book,
     fromId: string,
-    actor: RemoteUser,
+    actor: Actor,
 ): Book {
     const at = Date.now();
     const reassign = <
@@ -185,7 +185,7 @@ export function reassignOwner(
 }
 
 /** Claims legacy unowned records for the first user who connects a repo. */
-export function claimUnownedRecords(book: Book, actor: RemoteUser): Book {
+export function claimUnownedRecords(book: Book, actor: Actor): Book {
     const at = Date.now();
     const claim = <T extends { ownerId?: string; ownerName?: string; updatedAt?: number; createdAt?: number }>(
         item: T,

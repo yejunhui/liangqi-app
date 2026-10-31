@@ -18,7 +18,7 @@ import {
 } from "@/domain/recurring";
 import { formatDateFull } from "@/utils/date";
 import { useCurrency, useLedgerStore } from "@/store/ledger";
-import { useCurrentActor } from "@/store/identity";
+import { useActiveMember } from "@/store/member-session";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
@@ -31,7 +31,8 @@ export function Recurring() {
     const deleteRecurringRule = useLedgerStore((state) => state.deleteRecurringRule);
     const postDueRecurring = useLedgerStore((state) => state.postDueRecurring);
     const currency = useCurrency();
-    const actor = useCurrentActor();
+    const activeMember = useActiveMember();
+    const remote = useLedgerStore((state) => state.remote);
 
     const [now] = useState(() => Date.now());
     const [modalOpen, setModalOpen] = useState(false);
@@ -184,7 +185,10 @@ export function Recurring() {
                             const member = members.find((item) => item.id === rule.memberId);
                             const next = getNextRecurringDate(rule, now);
                             const due = getDueOccurrences(rule, now).length;
-                            const canEdit = !rule.ownerId || rule.ownerId === actor.id;
+                            const canEdit =
+                                !remote ||
+                                Boolean(activeMember) &&
+                                    (!rule.ownerId || rule.ownerId === activeMember?.id);
                             return (
                                 <article
                                     key={rule.id}

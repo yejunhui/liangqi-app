@@ -14,10 +14,11 @@ import { cn } from "@/utils/cn";
 interface MemberModalProps {
     open: boolean;
     member: Member | null;
+    onCreated?: (id: string) => void;
     onClose: () => void;
 }
 
-export function MemberModal({ open, member, onClose }: MemberModalProps) {
+export function MemberModal({ open, member, onCreated, onClose }: MemberModalProps) {
     const addMember = useLedgerStore((state) => state.addMember);
     const updateMember = useLedgerStore((state) => state.updateMember);
     const [name, setName] = useState("");
@@ -56,6 +57,9 @@ export function MemberModal({ open, member, onClose }: MemberModalProps) {
         if (!result.ok) {
             setError(result.error);
             return;
+        }
+        if (result.id) {
+            onCreated?.(result.id);
         }
         toast("成员已添加", "success");
         onClose();

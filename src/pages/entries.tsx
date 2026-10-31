@@ -15,7 +15,7 @@ import { EmptyState } from "@/components/empty-state";
 import { formatCents } from "@/domain/money";
 import { formatDate, formatRelativeDay, formatWeekday, startOfDay } from "@/utils/date";
 import { useCurrency, useLedgerStore } from "@/store/ledger";
-import { useCurrentActor } from "@/store/identity";
+import { useActiveMember } from "@/store/member-session";
 import { useUIStore } from "@/store/ui";
 
 type Filter = "all" | EntryKind;
@@ -28,7 +28,8 @@ export function Entries() {
     const members = useLedgerStore((state) => state.members);
     const tags = useLedgerStore((state) => state.tags);
     const currency = useCurrency();
-    const actor = useCurrentActor();
+    const activeMember = useActiveMember();
+    const remote = useLedgerStore((state) => state.remote);
     const openEntryModal = useUIStore((state) => state.openEntryModal);
 
     const [filter, setFilter] = useState<Filter>("all");
@@ -126,9 +127,12 @@ export function Entries() {
     const selectableVisible = useMemo(
         () =>
             filtered.filter(
-                (entry) => !entry.ownerId || entry.ownerId === actor.id,
+                (entry) =>
+                    !remote ||
+                    (activeMember &&
+                        (!entry.ownerId || entry.ownerId === activeMember.id)),
             ),
-        [filtered, actor.id],
+        [filtered, activeMember, remote],
     );
 
     function toggleSelection(entryId: string) {
@@ -154,7 +158,10 @@ export function Entries() {
 
     function selectVisible() {
         const selectable = filtered.filter(
-            (entry) => !entry.ownerId || entry.ownerId === actor.id,
+            (entry) =>
+                !remote ||
+                (activeMember &&
+                    (!entry.ownerId || entry.ownerId === activeMember.id)),
         );
         setSelectedIds((current) => {
             const next = new Set(current);
@@ -341,7 +348,11 @@ export function Entries() {
                                             currency={currency}
                                             selectable={
                                                 selectMode &&
-                                                (!entry.ownerId || entry.ownerId === actor.id)
+                                                (!remote ||
+                                                    (activeMember &&
+                                                        (!entry.ownerId ||
+                                                            entry.ownerId ===
+                                                                activeMember.id)))
                                             }
                                             selected={selectedIds.has(entry.id)}
                                             onToggle={() => toggleSelection(entry.id)}

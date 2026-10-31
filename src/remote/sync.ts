@@ -20,16 +20,13 @@ import {
     readRemoteManifest,
     RemoteNewerError,
 } from "@/remote/repository";
-import { resolveConnectionUser } from "@/remote/identity";
 import {
     bookContentSignature,
     claimUnownedRecords,
     mergeBooks,
-    reassignOwner,
 } from "@/domain/merge";
 import { RemoteError } from "@/remote/errors";
-import { getCurrentActor } from "@/store/identity";
-import { useLocalUserStore } from "@/store/identity";
+import { getMemberForBook, useMemberSessionStore } from "@/store/member-session";
 
 export type SyncAction = "push" | "pull" | "conflict" | "noop" | "local-only";
 
@@ -84,14 +81,20 @@ export function getActiveBinding(): {
     return { book, connection, binding: book.remote };
 }
 
-async function ensureConnectionUser(connection: Connection): Promise<Connection> {
-    if (connection.user) {
-        return connection;
-    }
-    const user = await resolveConnectionUser(connection);
-    const updated = { ...connection, user };
-    useLibraryStore.getState().updateConnection(connection.id, { user });
-    return updated;
+function mergeForUser(
+    local: Book,
+    remote: Book | undefined,
+    _connection: Connection,
+): Book {
+    const actor = getMemberForBook(local);
+    const base = remote ? mergeBooks(local, remote) : local;
+    return {
+        ...(actor ? claimUnownedRecords(base, actor) : base),
+        id: local.id,
+        name: local.name || base.name,
+        createdAt: Math.min(local.createdAt, base.createdAt),
+        remote: local.remote,
+    };
 }
 
 function applyBook(
@@ -115,22 +118,6 @@ function applyBook(
         useLedgerStore.setState(syncedBook);
     }
     return syncedBook;
-}
-
-function mergeForUser(
-    local: Book,
-    remote: Book | undefined,
-    connection: Connection,
-): Book {
-    const actor = connection.user ?? getCurrentActor();
-    const base = remote ? mergeBooks(local, remote) : local;
-    return {
-        ...claimUnownedRecords(base, actor),
-        id: local.id,
-        name: local.name || base.name,
-        createdAt: Math.min(local.createdAt, base.createdAt),
-        remote: local.remote,
-    };
 }
 
 async function pushWithRetry(
@@ -191,14 +178,9 @@ export async function syncBookNow(bookId?: string): Promise<SyncResult> {
         return { action: "local-only", message: "这个账本还没有连接远程" };
     }
     const binding = book.remote;
-    let connection = getConnectionById(library, binding.connectionId);
+    const connection = getConnectionById(library, binding.connectionId);
     if (!connection) {
         return { action: "local-only", message: "远程连接配置已丢失，请重新连接" };
-    }
-    connection = await ensureConnectionUser(connection);
-    const localUserId = useLocalUserStore.getState().user.id;
-    if (connection.user && connection.user.id !== localUserId) {
-        book = reassignOwner(book, localUserId, connection.user);
     }
 
     const last = binding.lastSyncedAt ?? 0;
@@ -315,11 +297,7 @@ export async function openRemoteBook(
     connection: Connection,
     remoteBookId?: string,
 ): Promise<Book> {
-    const resolvedConnection = await ensureConnectionUser(connection);
-    const remote = await pullRemoteBook(
-        resolvedConnection,
-        remoteBookId ?? "",
-    );
+    const remote = await pullRemoteBook(connection, remoteBookId ?? "");
     if (!remote) {
         throw new RemoteError("远程账本不存在");
     }
@@ -328,12 +306,7 @@ export async function openRemoteBook(
     let localBook: Book;
     if (existing && bookContentSignature(existing) !== bookContentSignature(remote.book)) {
         saveConflictBackup(existing);
-        const localUserId = useLocalUserStore.getState().user.id;
-        const preparedExisting =
-            resolvedConnection.user && resolvedConnection.user.id !== localUserId
-                ? reassignOwner(existing, localUserId, resolvedConnection.user)
-                : existing;
-        const merged = mergeForUser(preparedExisting, remote.book, resolvedConnection);
+        const merged = mergeForUser(existing, remote.book, connection);
         const pushed =
             bookContentSignature(merged) === bookContentSignature(remote.book)
                 ? {
@@ -341,10 +314,10 @@ export async function openRemoteBook(
                       revision: remote.revision,
                       manifest: remote.manifest,
                   }
-                : await pushWithRetry(resolvedConnection, merged, remote.book);
+                : await pushWithRetry(connection, merged, remote.book);
         localBook = withBinding(
             pushed.book,
-            resolvedConnection,
+            connection,
             pushed.book.id,
             pushed.revision,
             pushed.book.updatedAt,
@@ -352,12 +325,10 @@ export async function openRemoteBook(
             pushed.manifest,
         );
     } else {
-        const actor = resolvedConnection.user ?? getCurrentActor();
-        const claimed = claimUnownedRecords(remote.book, actor);
         localBook = withBinding(
-            claimed,
-            resolvedConnection,
-            claimed.id,
+            remote.book,
+            connection,
+            remote.book.id,
             remote.revision,
             remote.book.updatedAt,
             true,
@@ -376,23 +347,20 @@ export async function uploadCurrentBook(connection: Connection): Promise<SyncRes
     if (!book) {
         throw new RemoteError("没有当前账本");
     }
-    const resolvedConnection = await ensureConnectionUser(connection);
-    const existingRemote = await pullRemoteBook(resolvedConnection, book.id);
+    const existingRemote = await pullRemoteBook(connection, book.id);
     if (existingRemote) {
         throw new RemoteError("这个仓库已经有一本账，请直接打开共享账本");
     }
-    const actor = resolvedConnection.user ?? getCurrentActor();
-    const localUserId = useLocalUserStore.getState().user.id;
-    const prepared =
-        resolvedConnection.user && resolvedConnection.user.id !== localUserId
-            ? reassignOwner(book, localUserId, resolvedConnection.user)
-            : book;
-    const claimed = claimUnownedRecords(prepared, actor);
+    const actor = getMemberForBook(book);
+    if (!actor) {
+        throw new RemoteError("请先选择当前记账成员，再上传账本");
+    }
+    const claimed = claimUnownedRecords(book, actor);
     try {
-        const pushed = await pushRemoteBook(resolvedConnection, claimed);
+        const pushed = await pushRemoteBook(connection, claimed);
         const bound = withBinding(
             claimed,
-            resolvedConnection,
+            connection,
             claimed.id,
             pushed.revision,
             claimed.updatedAt,
@@ -401,6 +369,7 @@ export async function uploadCurrentBook(connection: Connection): Promise<SyncRes
         );
         useLibraryStore.getState().upsertBook(bound);
         useLedgerStore.setState(bound);
+        useMemberSessionStore.getState().setActiveMember(bound.id, actor.id);
         return {
             action: "push",
             book: bound,

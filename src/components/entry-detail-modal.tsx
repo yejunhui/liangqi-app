@@ -18,7 +18,7 @@ import {
 } from "@/domain/ledger";
 import { formatDateFull } from "@/utils/date";
 import { useCurrency, useLedgerStore } from "@/store/ledger";
-import { useCurrentActor } from "@/store/identity";
+import { useCanModifyOwner } from "@/store/member-session";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
@@ -36,7 +36,7 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
     const entries = useLedgerStore((state) => state.entries);
     const deleteEntry = useLedgerStore((state) => state.deleteEntry);
     const currency = useCurrency();
-    const actor = useCurrentActor();
+    const canEdit = useCanModifyOwner(entry?.ownerId);
     const [confirmOpen, setConfirmOpen] = useState(false);
 
     const bill = entry?.billId ? bills.find((item) => item.id === entry.billId) : undefined;
@@ -55,7 +55,6 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
     const member = entry?.memberId
         ? members.find((item) => item.id === entry.memberId)
         : undefined;
-    const canEdit = !entry?.ownerId || entry.ownerId === actor.id;
     const entryTags = (entry?.tagIds ?? [])
         .map((tagId) => tags.find((item) => item.id === tagId))
         .filter((tag): tag is (typeof tags)[number] => tag !== undefined);

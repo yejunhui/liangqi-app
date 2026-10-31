@@ -32,6 +32,8 @@ import { useLedgerStore, useCurrency } from "@/store/ledger";
 import { useLibraryStore, getActiveBook } from "@/store/library";
 import { useAuthStore } from "@/store/auth";
 import { useUIStore } from "@/store/ui";
+import { useActiveMember } from "@/store/member-session";
+import { MemberSessionModal } from "@/components/member-session-modal";
 import { getTotals } from "@/domain/ledger";
 import { formatCents } from "@/domain/money";
 import { cn } from "@/utils/cn";
@@ -74,6 +76,8 @@ export function Layout() {
     const openQuickEntry = useUIStore((state) => state.openQuickEntry);
     const closeEntryModal = useUIStore((state) => state.closeEntryModal);
     const openBookSwitcher = useUIStore((state) => state.openBookSwitcher);
+    const openMemberModal = useUIStore((state) => state.openMemberModal);
+    const activeMember = useActiveMember();
     const activeBook = useLibraryStore((state) => getActiveBook(state));
     const authEnabled = useAuthStore((state) => state.enabled);
     const lock = useAuthStore((state) => state.lock);
@@ -104,6 +108,28 @@ export function Layout() {
                             </span>
                             <span className="mt-0.5 block truncate text-xs font-semibold text-text">
                                 {activeBook.name}
+                            </span>
+                        </span>
+                        <ChevronDown className="size-3.5 shrink-0 text-muted" />
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={openMemberModal}
+                        className="mt-2 flex w-full items-center gap-2 rounded-xl border border-line bg-surface-2/55 px-3 py-2 text-left transition hover:border-line-strong"
+                    >
+                        <span
+                            className="grid size-6 shrink-0 place-items-center rounded-full text-[10px] font-bold text-white"
+                            style={{ backgroundColor: activeMember?.color ?? "#a8a29e" }}
+                        >
+                            {activeMember?.name.slice(0, 1) ?? "?"}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                            <span className="block text-[9px] font-medium uppercase tracking-[0.12em] text-muted">
+                                当前记账成员
+                            </span>
+                            <span className="mt-0.5 block truncate text-xs font-semibold text-text">
+                                {activeMember?.name ?? "选择成员"}
                             </span>
                         </span>
                         <ChevronDown className="size-3.5 shrink-0 text-muted" />
@@ -195,6 +221,17 @@ export function Layout() {
                             </button>
                         </div>
                         <div className="flex shrink-0 items-center gap-1.5">
+                            <button
+                                type="button"
+                                onClick={openMemberModal}
+                                className="grid size-9 place-items-center rounded-full text-[10px] font-bold text-white"
+                                style={{
+                                    backgroundColor: activeMember?.color ?? "#a8a29e",
+                                }}
+                                aria-label={`当前成员 ${activeMember?.name ?? "未选择"}`}
+                            >
+                                {activeMember?.name.slice(0, 1) ?? "?"}
+                            </button>
                             {authEnabled && (
                                 <button
                                     type="button"
@@ -225,6 +262,16 @@ export function Layout() {
                 </header>
 
                 <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 sm:px-6 md:px-8 md:pb-12 md:pt-10">
+                    {!activeMember && activeBook.remote && (
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-liability/25 bg-liability-soft/45 px-4 py-3">
+                            <p className="text-xs font-medium text-liability">
+                                这本共享账还没有选择当前记账成员。请选择你登录的成员后再记账。
+                            </p>
+                            <Button size="sm" onClick={openMemberModal}>
+                                选择成员
+                            </Button>
+                        </div>
+                    )}
                     <div key={location.pathname} className="animate-rise">
                         <Outlet />
                     </div>
@@ -280,6 +327,7 @@ export function Layout() {
             </nav>
 
             <BookSwitcher />
+            <MemberSessionModal />
         </div>
     );
 }

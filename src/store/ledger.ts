@@ -6,6 +6,7 @@ import { create } from "zustand";
 import type {
     Account,
     AccountKind,
+    Actor,
     Attachment,
     Bill,
     Book,
@@ -20,7 +21,6 @@ import type {
     OriginalAmount,
     RecurringFrequency,
     RecurringRule,
-    RemoteUser,
     Settings,
     Tag,
     TagGroup,
@@ -34,7 +34,7 @@ import {
     validateRepayment,
 } from "@/domain/ledger";
 import { getActiveBook, useLibraryStore } from "@/store/library";
-import { getCurrentActor } from "@/store/identity";
+import { getActiveMember, canModifyOwner } from "@/store/member-session";
 import { advanceRecurringDate } from "@/domain/recurring";
 import { newId } from "@/utils/id";
 
@@ -53,7 +53,7 @@ export interface ExpenseInput {
     originalAmount?: OriginalAmount;
     note?: string;
     recurringId?: string;
-    actor?: RemoteUser;
+    actor?: Actor;
     source:
         | { type: "asset"; accountId: string }
         | {
@@ -75,7 +75,7 @@ export interface IncomeInput {
     originalAmount?: OriginalAmount;
     note?: string;
     recurringId?: string;
-    actor?: RemoteUser;
+    actor?: Actor;
 }
 
 export interface RepaymentInput {
@@ -271,13 +271,10 @@ function fail(error: string): { ok: false; error: string } {
 }
 
 function canModify(record: { ownerId?: string }): boolean {
-    if (!record.ownerId) {
-        return true;
-    }
-    return record.ownerId === getCurrentActor().id;
+    return canModifyOwner(record.ownerId);
 }
 
-function actorFields(actor: RemoteUser, at: number) {
+function actorFields(actor: Actor, at: number) {
     return {
         ownerId: actor.id,
         ownerName: actor.name,
@@ -327,7 +324,10 @@ const createActions = (
         const tagIds = tagResult.tagIds;
 
         const createdAt = Date.now();
-        const actor = input.actor ?? getCurrentActor();
+        const actor = input.actor ?? getActiveMember();
+        if (!actor) {
+            return fail("请先选择当前记账成员");
+        }
         const note = cleanNote(input.note);
 
         if (input.source.type === "asset") {
@@ -431,6 +431,12 @@ const createActions = (
             return fail(tagResult.error);
         }
 
+        const actor = input.actor ?? getActiveMember();
+        if (!actor) {
+            return fail("请先选择当前记账成员");
+        }
+        const createdAt = Date.now();
+
         const entry: Entry = {
             id: newId("entry"),
             kind: "income",
@@ -444,8 +450,8 @@ const createActions = (
             recurringId: input.recurringId,
             location: input.location,
             originalAmount: input.originalAmount,
-            ...actorFields(input.actor ?? getCurrentActor(), Date.now()),
-            createdAt: Date.now(),
+            ...actorFields(actor, createdAt),
+            createdAt,
         };
         set({ entries: [...state.entries, entry] });
         return { ok: true, entryId: entry.id };
@@ -474,6 +480,10 @@ const createActions = (
         if (!tagResult.ok) {
             return fail(tagResult.error);
         }
+        const actor = getActiveMember();
+        if (!actor) {
+            return fail("请先选择当前记账成员");
+        }
 
         const entry: Entry = {
             id: newId("entry"),
@@ -488,7 +498,7 @@ const createActions = (
             note: cleanNote(input.note),
             location: input.location,
             originalAmount: input.originalAmount,
-            ...actorFields(getCurrentActor(), Date.now()),
+            ...actorFields(actor, Date.now()),
             createdAt: Date.now(),
         };
         set({ entries: [...state.entries, entry] });
@@ -519,6 +529,10 @@ const createActions = (
         if (!tagResult.ok) {
             return fail(tagResult.error);
         }
+        const actor = getActiveMember();
+        if (!actor) {
+            return fail("请先选择当前记账成员");
+        }
         const entry: Entry = {
             id: newId("entry"),
             kind: "transfer",
@@ -531,7 +545,7 @@ const createActions = (
             note: cleanNote(input.note),
             location: input.location,
             originalAmount: input.originalAmount,
-            ...actorFields(getCurrentActor(), Date.now()),
+            ...actorFields(actor, Date.now()),
             createdAt: Date.now(),
         };
         set({ entries: [...state.entries, entry] });
@@ -548,7 +562,10 @@ const createActions = (
             return fail("不能修改其他成员的记账");
         }
         const deletedAt = Date.now();
-        const actor = getCurrentActor();
+        const actor = getActiveMember();
+        if (!actor) {
+            return fail("请先选择当前记账成员");
+        }
         const entryTombstones = [
             ...state.deletedEntries.filter((item) => item.id !== entryId),
             { id: entryId, deletedAt, ownerId: actor.id },
@@ -695,7 +712,10 @@ const createActions = (
             return fail("不能修改其他成员的记账");
         }
         const deletedAt = Date.now();
-        const actor = getCurrentActor();
+        const actor = getActiveMember();
+        if (!actor) {
+            return fail("请先选择当前记账成员");
+        }
         set({
             bills: state.bills.filter((item) => item.id !== bill.id),
             entries: linkedExpense
@@ -1047,8 +1067,14 @@ const createActions = (
         const usedByBudget = state.budgets.some((budget) =>
             budget.memberIds.includes(memberId),
         );
-        if (usedByEntry || usedByBill || usedByBudget) {
-            return fail("该成员已有流水、账单或预算，不能删除");
+        const ownedRecords = [
+            ...state.entries,
+            ...state.bills,
+            ...state.recurringRules,
+            ...state.attachments,
+        ].some((item) => item.ownerId === memberId);
+        if (usedByEntry || usedByBill || usedByBudget || ownedRecords) {
+            return fail("该成员已有记账、流水、账单或预算，不能删除");
         }
         set({ members: state.members.filter((item) => item.id !== memberId) });
         return { ok: true };
@@ -1325,6 +1351,10 @@ const createActions = (
         if (!tagResult.ok) {
             return fail(tagResult.error);
         }
+        const actor = getActiveMember();
+        if (!actor) {
+            return fail("请先选择当前记账成员");
+        }
 
         const rule: RecurringRule = {
             id: newId("recurring"),
@@ -1346,7 +1376,7 @@ const createActions = (
             memberId: input.memberId,
             tagIds: tagResult.tagIds,
             note: cleanNote(input.note),
-            ...actorFields(getCurrentActor(), Date.now()),
+            ...actorFields(actor, Date.now()),
             createdAt: Date.now(),
         };
         set({ recurringRules: [...state.recurringRules, rule] });
@@ -1458,16 +1488,19 @@ const createActions = (
 
     postDueRecurring(now = Date.now()) {
         const state = get();
-        const currentActor = getCurrentActor();
+        const currentActor = getActiveMember();
         let posted = 0;
         const errors: string[] = [];
         const nextRules = state.recurringRules.map((rule) => {
             if (!rule.enabled) {
                 return rule;
             }
+            if (!rule.ownerId && !currentActor) {
+                return rule;
+            }
             const ruleActor = {
-                id: rule.ownerId ?? currentActor.id,
-                name: rule.ownerName ?? currentActor.name,
+                id: rule.ownerId ?? currentActor?.id ?? "",
+                name: rule.ownerName ?? currentActor?.name ?? "",
             };
             let next = rule.nextDueDate;
             let enabled = true;
@@ -1568,7 +1601,10 @@ const createActions = (
             return fail("不能修改其他成员的记账");
         }
         const existing = new Set(state.attachments.map((item) => item.id));
-        const actor = getCurrentActor();
+        const actor = getActiveMember();
+        if (!actor) {
+            return fail("请先选择当前记账成员");
+        }
         const additions = items
             .filter((item) => !existing.has(item.id))
             .map((item) => ({
@@ -1627,7 +1663,7 @@ const createActions = (
         if (!attachment) {
             return fail("附件不存在");
         }
-        if (attachment.ownerId && attachment.ownerId !== getCurrentActor().id) {
+        if (attachment.ownerId && attachment.ownerId !== getActiveMember()?.id) {
             return fail("不能删除其他成员添加的附件");
         }
         const changedAt = Date.now();
