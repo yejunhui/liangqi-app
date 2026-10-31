@@ -10,6 +10,7 @@ import type {
     RemoteBinding,
 } from "@/types";
 import { createSeedBook } from "@/domain/seed";
+import { createDefaultMember } from "@/domain/members";
 import { newId } from "@/utils/id";
 
 export const LIBRARY_STORAGE_KEY = "liangqi-library-v2";
@@ -48,7 +49,15 @@ function normalizeLibrary(raw: unknown): LibraryData | null {
     if (!isObject(raw) || !Array.isArray(raw.books)) {
         return null;
     }
-    const books = raw.books.filter(isBook);
+    const books = raw.books
+        .filter(isBook)
+        .map((book) => ({
+            ...book,
+            members:
+                Array.isArray(book.members) && book.members.length > 0
+                    ? book.members
+                    : [createDefaultMember()],
+        }));
     if (books.length === 0) {
         return null;
     }
@@ -114,6 +123,7 @@ function migrateLegacyLedger(): LibraryData | null {
                 updatedAt: now,
                 accounts: ledger.accounts as Book["accounts"],
                 categories: ledger.categories as Book["categories"],
+                members: [createDefaultMember(now)],
                 bills: ledger.bills as Book["bills"],
                 entries: ledger.entries as Book["entries"],
                 settings: ledger.settings as Book["settings"],

@@ -12,6 +12,13 @@ export type BillStatus = "open" | "partial" | "paid";
 
 export type ThemeMode = "light" | "dark" | "system";
 
+export interface Member {
+    id: string;
+    name: string;
+    color: string;
+    createdAt: number;
+}
+
 export interface Account {
     id: string;
     name: string;
@@ -37,6 +44,8 @@ export interface Bill {
     liabilityAccountId: string;
     /** Opening-balance bills do not have a category. */
     categoryId?: string;
+    /** Optional family member this bill belongs to. */
+    memberId?: string;
     title: string;
     /** Original amount in cents. */
     principal: number;
@@ -61,6 +70,8 @@ export interface Entry {
     /** Links a credit expense or a repayment to a bill. */
     billId?: string;
     categoryId?: string;
+    /** Optional family member this entry belongs to. */
+    memberId?: string;
     note?: string;
     createdAt: number;
 }
@@ -73,6 +84,7 @@ export interface Settings {
 export interface LedgerData {
     accounts: Account[];
     categories: Category[];
+    members: Member[];
     bills: Bill[];
     entries: Entry[];
     settings: Settings;

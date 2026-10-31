@@ -56,6 +56,7 @@ export function Dashboard() {
     const entries = useLedgerStore((state) => state.entries);
     const bills = useLedgerStore((state) => state.bills);
     const categories = useLedgerStore((state) => state.categories);
+    const members = useLedgerStore((state) => state.members);
     const currency = useCurrency();
     const openEntryModal = useUIStore((state) => state.openEntryModal);
     const [month, setMonth] = useState(() => startOfMonth(Date.now()));
@@ -394,6 +395,7 @@ export function Dashboard() {
                                 accounts={accounts}
                                 bills={bills}
                                 categories={categories}
+                                members={members}
                                 currency={currency}
                             />
                         ))}

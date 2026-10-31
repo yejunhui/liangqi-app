@@ -17,6 +17,7 @@ interface EditBillModalProps {
 
 export function EditBillModal({ bill, onClose }: EditBillModalProps) {
     const categories = useLedgerStore((state) => state.categories);
+    const members = useLedgerStore((state) => state.members);
     const expenseCategories = useMemo(
         () => categories.filter((category) => category.kind === "expense"),
         [categories],
@@ -25,6 +26,7 @@ export function EditBillModal({ bill, onClose }: EditBillModalProps) {
 
     const [title, setTitle] = useState("");
     const [categoryId, setCategoryId] = useState("");
+    const [memberId, setMemberId] = useState("");
     const [dueDate, setDueDate] = useState("");
     const [note, setNote] = useState("");
     const [error, setError] = useState("");
@@ -35,6 +37,7 @@ export function EditBillModal({ bill, onClose }: EditBillModalProps) {
         }
         setTitle(bill.title);
         setCategoryId(bill.categoryId ?? "");
+        setMemberId(bill.memberId ?? "");
         setDueDate(bill.dueDate ? toDateInputValue(bill.dueDate) : "");
         setNote(bill.note ?? "");
         setError("");
@@ -59,6 +62,7 @@ export function EditBillModal({ bill, onClose }: EditBillModalProps) {
             dueDate: dueTimestamp,
             note,
             ...(bill.opening ? {} : { categoryId }),
+            memberId,
         });
         if (!result.ok) {
             setError(result.error);
@@ -119,6 +123,24 @@ export function EditBillModal({ bill, onClose }: EditBillModalProps) {
                             </select>
                         </label>
                     )}
+
+                    <label className="block">
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">
+                            成员
+                        </span>
+                        <select
+                            className="field"
+                            value={memberId}
+                            onChange={(event) => setMemberId(event.target.value)}
+                        >
+                            <option value="">未指定</option>
+                            {members.map((member) => (
+                                <option key={member.id} value={member.id}>
+                                    {member.name}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
 
                     <label className="block">
                         <span className="mb-1.5 block text-xs font-semibold text-muted">

@@ -13,9 +13,11 @@ import type {
     LedgerData,
     LibraryData,
     LibraryExportPayload,
+    Member,
     RemoteBinding,
     Settings,
 } from "@/types";
+import { createDefaultMember } from "@/domain/members";
 
 type Rec = Record<string, unknown>;
 
@@ -104,11 +106,27 @@ function parseCategory(raw: unknown, index: number): Category {
     };
 }
 
+function parseMember(raw: unknown, index: number): Member {
+    if (!isObject(raw)) {
+        throw new Error(`第 ${index + 1} 个成员格式不正确`);
+    }
+    return {
+        id: requiredString(raw.id, "成员 id"),
+        name: requiredString(raw.name, "成员名称"),
+        color: requiredString(raw.color, "成员颜色"),
+        createdAt: requiredTimestamp(raw.createdAt, "成员创建时间"),
+    };
+}
+
 function parseBill(raw: unknown, index: number): Bill {
     if (!isObject(raw)) {
         throw new Error(`第 ${index + 1} 张账单格式不正确`);
     }
-    if (!optionalString(raw.categoryId) || !optionalString(raw.note)) {
+    if (
+        !optionalString(raw.categoryId) ||
+        !optionalString(raw.memberId) ||
+        !optionalString(raw.note)
+    ) {
         throw new Error(`第 ${index + 1} 张账单字段格式不正确`);
     }
     if (!optionalNumber(raw.dueDate)) {
@@ -124,6 +142,7 @@ function parseBill(raw: unknown, index: number): Bill {
         id: requiredString(raw.id, "账单 id"),
         liabilityAccountId: requiredString(raw.liabilityAccountId, "账单负债账户"),
         categoryId: raw.categoryId as string | undefined,
+        memberId: raw.memberId as string | undefined,
         title: requiredString(raw.title, "账单名称"),
         principal: requiredInteger(raw.principal, "账单金额", 1),
         purchasedAt: requiredTimestamp(raw.purchasedAt, "账单消费时间"),
@@ -142,7 +161,14 @@ function parseEntry(raw: unknown, index: number): Entry {
     if (kind !== "expense" && kind !== "income" && kind !== "repayment") {
         throw new Error(`第 ${index + 1} 条流水类型不正确`);
     }
-    for (const key of ["accountId", "liabilityAccountId", "billId", "categoryId", "note"] as const) {
+    for (const key of [
+        "accountId",
+        "liabilityAccountId",
+        "billId",
+        "categoryId",
+        "memberId",
+        "note",
+    ] as const) {
         if (!optionalString(raw[key])) {
             throw new Error(`第 ${index + 1} 条流水 ${key} 格式不正确`);
         }
@@ -156,6 +182,7 @@ function parseEntry(raw: unknown, index: number): Entry {
         liabilityAccountId: raw.liabilityAccountId as string | undefined,
         billId: raw.billId as string | undefined,
         categoryId: raw.categoryId as string | undefined,
+        memberId: raw.memberId as string | undefined,
         note: raw.note as string | undefined,
         createdAt: requiredTimestamp(raw.createdAt, "流水创建时间"),
     };
@@ -178,6 +205,7 @@ function parseSettings(raw: unknown): Settings {
 function validateReferences(data: LedgerData): void {
     const accounts = new Map(data.accounts.map((account) => [account.id, account]));
     const categories = new Map(data.categories.map((category) => [category.id, category]));
+    const members = new Map(data.members.map((member) => [member.id, member]));
     const bills = new Map(data.bills.map((bill) => [bill.id, bill]));
     const entriesByBill = new Map<string, Entry[]>();
     for (const entry of data.entries) {
@@ -208,6 +236,9 @@ function validateReferences(data: LedgerData): void {
     }
 
     for (const bill of data.bills) {
+        if (bill.memberId && !members.has(bill.memberId)) {
+            throw new Error(`账单“${bill.title}”关联的成员不存在`);
+        }
         const liability = accounts.get(bill.liabilityAccountId);
         if (!liability || liability.kind !== "liability") {
             throw new Error(`账单“${bill.title}”关联的负债账户不存在`);
@@ -238,6 +269,9 @@ function validateReferences(data: LedgerData): void {
     }
 
     for (const entry of data.entries) {
+        if (entry.memberId && !members.has(entry.memberId)) {
+            throw new Error("流水关联的成员不存在");
+        }
         if (entry.kind === "expense") {
             if (entry.billId) {
                 const bill = bills.get(entry.billId);
@@ -332,19 +366,30 @@ export function parseBackup(raw: unknown): { ok: true; data: LedgerData } | { ok
 
         const accounts = raw.accounts.map(parseAccount);
         const categories = raw.categories.map(parseCategory);
+        const members =
+            Array.isArray(raw.members) && raw.members.length > 0
+                ? raw.members.map(parseMember)
+                : [createDefaultMember()];
         const bills = raw.bills.map(parseBill);
         const entries = raw.entries.map(parseEntry);
         const settings = parseSettings(raw.settings);
 
         const ids = new Set<string>();
-        for (const item of [...accounts, ...categories, ...bills, ...entries]) {
+        for (const item of [...accounts, ...categories, ...members, ...bills, ...entries]) {
             if (ids.has(item.id)) {
                 throw new Error(`存在重复 id：${item.id}`);
             }
             ids.add(item.id);
         }
 
-        const data: LedgerData = { accounts, categories, bills, entries, settings };
+        const data: LedgerData = {
+            accounts,
+            categories,
+            members,
+            bills,
+            entries,
+            settings,
+        };
         validateReferences(data);
         return { ok: true, data };
     } catch (error) {

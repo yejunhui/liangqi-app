@@ -14,6 +14,7 @@ import {
     ChevronDown,
     Database,
     Cloud,
+    Users,
 } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Logo } from "@/components/logo";
@@ -35,6 +36,7 @@ const primaryNav = [
 
 const secondaryNav = [
     { to: "/categories", label: "分类", icon: Tags },
+    { to: "/members", label: "成员", icon: Users },
     { to: "/data", label: "数据源", icon: Cloud },
     { to: "/settings", label: "设置", icon: Settings },
 ];

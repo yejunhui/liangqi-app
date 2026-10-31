@@ -4,6 +4,7 @@
 
 import type { Account, Book, Category, LedgerData } from "@/types";
 import { newId } from "@/utils/id";
+import { createDefaultMember } from "@/domain/members";
 
 const CATEGORY_COLORS = {
     food: "#e07a5f",
@@ -153,6 +154,7 @@ export function createSeedData(now = Date.now()): LedgerData {
     return {
         accounts,
         categories,
+        members: [createDefaultMember(now)],
         bills: [],
         entries: [],
         settings: {

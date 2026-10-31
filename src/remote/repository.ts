@@ -10,6 +10,7 @@ import type {
     RemoteIndex,
 } from "@/types";
 import { createRemoteAdapter } from "@/remote/index";
+import { ensureMembers } from "@/domain/members";
 import {
     REMOTE_INDEX_PATH,
     remoteBookPath,
@@ -85,7 +86,10 @@ export function parseRemoteBookFile(text: string): RemoteBookFile {
     return {
         app: "liangqi",
         version: 1,
-        book: raw.book,
+        book: {
+            ...raw.book,
+            members: ensureMembers(raw.book).members,
+        },
         updatedAt:
             typeof raw.updatedAt === "number" ? raw.updatedAt : raw.book.updatedAt,
     };

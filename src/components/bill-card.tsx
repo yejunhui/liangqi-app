@@ -3,7 +3,7 @@
  */
 
 import { Pencil, Trash2 } from "lucide-react";
-import type { Account, Bill, Category, Entry } from "@/types";
+import type { Account, Bill, Category, Entry, Member } from "@/types";
 import { getBillDueInfo, getBillProgress, getBillRemaining, getBillStatus } from "@/domain/ledger";
 import { formatCents } from "@/domain/money";
 import { Button } from "@/components/button";
@@ -14,6 +14,7 @@ interface BillCardProps {
     entries: Entry[];
     accounts: Account[];
     categories: Category[];
+    members: Member[];
     currency: string;
     onRepay: () => void;
     onEdit: () => void;
@@ -44,6 +45,7 @@ export function BillCard({
     entries,
     accounts,
     categories,
+    members,
     currency,
     onRepay,
     onEdit,
@@ -56,6 +58,7 @@ export function BillCard({
     const repaid = bill.principal - remaining;
     const category = categories.find((item) => item.id === bill.categoryId);
     const liability = accounts.find((item) => item.id === bill.liabilityAccountId);
+    const member = members.find((item) => item.id === bill.memberId);
     const canDelete = !bill.opening && repaid === 0;
 
     return (
@@ -80,6 +83,17 @@ export function BillCard({
                         </span>
                         {bill.opening && (
                             <span className="chip bg-surface-3 text-muted">期初</span>
+                        )}
+                        {member && (
+                            <span
+                                className="chip"
+                                style={{
+                                    backgroundColor: `${member.color}20`,
+                                    color: member.color,
+                                }}
+                            >
+                                {member.name}
+                            </span>
                         )}
                     </div>
                     <p className="mt-0.5 truncate text-[11px] text-muted">

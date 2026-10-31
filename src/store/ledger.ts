@@ -12,6 +12,7 @@ import type {
     CategoryKind,
     Entry,
     LedgerData,
+    Member,
     Settings,
     ThemeMode,
 } from "@/types";
@@ -32,6 +33,7 @@ export interface ExpenseInput {
     amount: number;
     date: number;
     categoryId: string;
+    memberId?: string;
     note?: string;
     source:
         | { type: "asset"; accountId: string }
@@ -48,6 +50,7 @@ export interface IncomeInput {
     date: number;
     categoryId: string;
     accountId: string;
+    memberId?: string;
     note?: string;
 }
 
@@ -56,6 +59,7 @@ export interface RepaymentInput {
     date: number;
     billId: string;
     accountId: string;
+    memberId?: string;
     note?: string;
 }
 
@@ -82,8 +86,14 @@ export interface LedgerActions {
     deleteBill: (billId: string) => Result;
     updateBill: (
         billId: string,
-        patch: Partial<Pick<Bill, "title" | "dueDate" | "note" | "categoryId">>,
+        patch: Partial<Pick<Bill, "title" | "dueDate" | "note" | "categoryId" | "memberId">>,
     ) => Result;
+    addMember: (input: { name: string; color: string }) => Result & { id?: string };
+    updateMember: (
+        memberId: string,
+        patch: Partial<Pick<Member, "name" | "color">>,
+    ) => Result;
+    deleteMember: (memberId: string) => Result;
     addAccount: (input: AccountInput) => Result & { id?: string };
     updateAccount: (
         accountId: string,
@@ -141,6 +151,10 @@ const createActions = (
         if (!category || category.kind !== "expense") {
             return fail("请选择支出分类");
         }
+        const memberId = input.memberId ?? state.members[0]?.id;
+        if (!memberId || !state.members.some((member) => member.id === memberId)) {
+            return fail("请选择成员");
+        }
 
         const createdAt = Date.now();
         const note = cleanNote(input.note);
@@ -158,6 +172,7 @@ const createActions = (
                 date: input.date,
                 accountId: account.id,
                 categoryId: category.id,
+                memberId,
                 note,
                 createdAt,
             };
@@ -178,6 +193,7 @@ const createActions = (
             id: billId,
             liabilityAccountId: liability.id,
             categoryId: category.id,
+            memberId,
             title: input.source.title?.trim() || category.name,
             principal: input.amount,
             purchasedAt: input.date,
@@ -193,6 +209,7 @@ const createActions = (
             liabilityAccountId: liability.id,
             billId,
             categoryId: category.id,
+            memberId,
             note,
             createdAt,
         };
@@ -221,6 +238,10 @@ const createActions = (
         if (!account || account.kind !== "asset") {
             return fail("请选择收款账户");
         }
+        const memberId = input.memberId ?? state.members[0]?.id;
+        if (!memberId || !state.members.some((member) => member.id === memberId)) {
+            return fail("请选择成员");
+        }
 
         const entry: Entry = {
             id: newId("entry"),
@@ -229,6 +250,7 @@ const createActions = (
             date: input.date,
             accountId: account.id,
             categoryId: category.id,
+            memberId,
             note: cleanNote(input.note),
             createdAt: Date.now(),
         };
@@ -251,6 +273,10 @@ const createActions = (
         if (error) {
             return fail(error);
         }
+        const memberId = input.memberId ?? bill.memberId ?? state.members[0]?.id;
+        if (!memberId || !state.members.some((member) => member.id === memberId)) {
+            return fail("请选择成员");
+        }
 
         const entry: Entry = {
             id: newId("entry"),
@@ -260,6 +286,7 @@ const createActions = (
             accountId: input.accountId,
             liabilityAccountId: bill.liabilityAccountId,
             billId: bill.id,
+            memberId,
             note: cleanNote(input.note),
             createdAt: Date.now(),
         };
@@ -342,6 +369,18 @@ const createActions = (
                 return fail("请选择支出分类");
             }
         }
+        const nextMemberId =
+            patch.memberId === undefined || patch.memberId === ""
+                ? undefined
+                : patch.memberId;
+        if (
+            nextMemberId !== undefined &&
+            !state.members.some((member) => member.id === nextMemberId)
+        ) {
+            return fail("请选择成员");
+        }
+
+        const updateEntries = patch.categoryId !== undefined || patch.memberId !== undefined;
 
         set({
             bills: state.bills.map((item) =>
@@ -355,17 +394,28 @@ const createActions = (
                               patch.categoryId !== undefined
                                   ? nextCategoryId
                                   : item.categoryId,
+                          memberId:
+                              patch.memberId !== undefined
+                                  ? nextMemberId
+                                  : item.memberId,
                       }
                     : item,
             ),
-            entries:
-                patch.categoryId !== undefined
-                    ? state.entries.map((entry) =>
-                          entry.billId === billId && entry.kind === "expense"
-                              ? { ...entry, categoryId: nextCategoryId }
-                              : entry,
-                      )
-                    : state.entries,
+            entries: updateEntries
+                ? state.entries.map((entry) =>
+                      entry.billId === billId && entry.kind === "expense"
+                          ? {
+                                ...entry,
+                                ...(patch.categoryId !== undefined
+                                    ? { categoryId: nextCategoryId }
+                                    : {}),
+                                ...(patch.memberId !== undefined
+                                    ? { memberId: nextMemberId }
+                                    : {}),
+                            }
+                          : entry,
+                  )
+                : state.entries,
         });
         return { ok: true };
     },
@@ -396,6 +446,7 @@ const createActions = (
             openingBill = {
                 id: newId("bill"),
                 liabilityAccountId: account.id,
+                memberId: state.members[0]?.id,
                 title: "期初负债",
                 principal: input.openingBalance,
                 purchasedAt: createdAt,
@@ -511,6 +562,64 @@ const createActions = (
         return { ok: true };
     },
 
+    addMember(input) {
+        const name = input.name.trim();
+        if (!name) {
+            return fail("成员名称不能为空");
+        }
+        const state = get();
+        const member: Member = {
+            id: newId("member"),
+            name,
+            color: input.color || "#0f766e",
+            createdAt: Date.now(),
+        };
+        set({ members: [...state.members, member] });
+        return { ok: true, id: member.id };
+    },
+
+    updateMember(memberId, patch) {
+        const state = get();
+        const member = state.members.find((item) => item.id === memberId);
+        if (!member) {
+            return fail("成员不存在");
+        }
+        if (patch.name !== undefined && patch.name.trim() === "") {
+            return fail("成员名称不能为空");
+        }
+        set({
+            members: state.members.map((item) =>
+                item.id === memberId
+                    ? {
+                          ...item,
+                          ...patch,
+                          name: patch.name?.trim() ?? item.name,
+                          color: patch.color || item.color,
+                      }
+                    : item,
+            ),
+        });
+        return { ok: true };
+    },
+
+    deleteMember(memberId) {
+        const state = get();
+        const member = state.members.find((item) => item.id === memberId);
+        if (!member) {
+            return fail("成员不存在");
+        }
+        if (state.members.length <= 1) {
+            return fail("至少保留一个成员");
+        }
+        const usedByEntry = state.entries.some((entry) => entry.memberId === memberId);
+        const usedByBill = state.bills.some((bill) => bill.memberId === memberId);
+        if (usedByEntry || usedByBill) {
+            return fail("该成员已有流水或账单，不能删除");
+        }
+        set({ members: state.members.filter((item) => item.id !== memberId) });
+        return { ok: true };
+    },
+
     setSettings(patch) {
         set((state) => ({ settings: { ...state.settings, ...patch } }));
     },
@@ -522,6 +631,7 @@ const createActions = (
         set({
             accounts: data.accounts,
             categories: data.categories,
+            members: data.members,
             bills: data.bills,
             entries: data.entries,
             settings: data.settings,
@@ -544,6 +654,7 @@ export function extractBook(state: LedgerState): Book {
         updatedAt: state.updatedAt,
         accounts: state.accounts,
         categories: state.categories,
+        members: state.members,
         bills: state.bills,
         entries: state.entries,
         settings: state.settings,

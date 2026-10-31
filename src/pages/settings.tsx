@@ -10,6 +10,7 @@ import {
     Download,
     FileJson,
     Info,
+    LockKeyhole,
     Monitor,
     Moon,
     RotateCcw,
@@ -17,10 +18,13 @@ import {
     Sun,
     Tags,
     Upload,
+    Users,
 } from "lucide-react";
 import type { LedgerData, LibraryData, ThemeMode } from "@/types";
 import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/button";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { PasswordModal, type PasswordMode } from "@/components/password-modal";
 import {
     createExportPayload,
     createLibraryExport,
@@ -35,6 +39,7 @@ import {
     getActiveBook,
     useLibraryStore,
 } from "@/store/library";
+import { useAuthStore } from "@/store/auth";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
@@ -62,6 +67,7 @@ const THEMES: Array<{ value: ThemeMode; label: string; icon: typeof Sun }> = [
 export function Settings() {
     const accounts = useLedgerStore((state) => state.accounts);
     const categories = useLedgerStore((state) => state.categories);
+    const members = useLedgerStore((state) => state.members);
     const bills = useLedgerStore((state) => state.bills);
     const entries = useLedgerStore((state) => state.entries);
     const settings = useLedgerStore((state) => state.settings);
@@ -70,16 +76,20 @@ export function Settings() {
     const resetData = useLedgerStore((state) => state.resetData);
     const library = useLibraryStore();
     const activeBook = getActiveBook(library);
+    const authEnabled = useAuthStore((state) => state.enabled);
+    const lock = useAuthStore((state) => state.lock);
 
     const inputRef = useRef<HTMLInputElement>(null);
     const [pendingImport, setPendingImport] = useState<LedgerData | null>(null);
     const [pendingLibrary, setPendingLibrary] = useState<LibraryData | null>(null);
     const [resetOpen, setResetOpen] = useState(false);
+    const [passwordMode, setPasswordMode] = useState<PasswordMode | null>(null);
 
     function handleExportCurrent() {
         const payload = createExportPayload({
             accounts,
             categories,
+            members,
             bills,
             entries,
             settings,
@@ -236,6 +246,21 @@ export function Settings() {
 
                 <section className="card p-5">
                     <SectionTitle
+                        icon={Users}
+                        title="成员管理"
+                        description={`当前有 ${members.length} 个成员，用于标记账单和流水归属。`}
+                    />
+                    <Link
+                        to="/members"
+                        className="mt-4 flex items-center justify-between rounded-xl border border-line bg-surface-2/55 px-4 py-3 text-xs font-semibold text-text transition hover:border-line-strong"
+                    >
+                        打开成员管理
+                        <ArrowRight className="size-3.5 text-muted" />
+                    </Link>
+                </section>
+
+                <section className="card p-5">
+                    <SectionTitle
                         icon={ShieldCheck}
                         title="账务规则"
                         description="两讫只做三件事，保证支出不被重复计算。"
@@ -267,6 +292,57 @@ export function Settings() {
                         打开数据源
                         <ArrowRight className="size-3.5 text-muted" />
                     </Link>
+                </section>
+
+                <section className="card p-5">
+                    <SectionTitle
+                        icon={LockKeyhole}
+                        title="本地密码"
+                        description={
+                            authEnabled
+                                ? "已开启。打开两讫时需要输入本地密码。"
+                                : "未设置。设置后打开两讫需要输入密码。"
+                        }
+                    />
+                    <div className="mt-4 flex flex-wrap gap-2">
+                        {authEnabled ? (
+                            <>
+                                <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => setPasswordMode("change")}
+                                >
+                                    修改密码
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => setPasswordMode("disable")}
+                                >
+                                    关闭密码
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                        lock();
+                                        toast("已锁定", "success");
+                                    }}
+                                >
+                                    <LockKeyhole className="size-3.5" />
+                                    立即锁定
+                                </Button>
+                            </>
+                        ) : (
+                            <Button size="sm" onClick={() => setPasswordMode("set")}>
+                                <LockKeyhole className="size-3.5" />
+                                设置密码
+                            </Button>
+                        )}
+                    </div>
+                    <p className="mt-3 text-[10px] leading-relaxed text-muted">
+                        密码使用 PBKDF2 哈希后保存在本机，仅保护界面访问，不加密 localStorage 里的账本数据。忘记密码只能清除浏览器数据。
+                    </p>
                 </section>
 
                 <section className="card p-5 lg:col-span-2">
@@ -366,7 +442,7 @@ export function Settings() {
                     <div className="mt-4 grid gap-3 text-[11px] leading-relaxed text-muted sm:grid-cols-2">
                         <div className="rounded-xl border border-line bg-surface-2/55 p-3.5">
                             <p className="font-semibold text-text">版本</p>
-                            <p className="mt-1">0.2.0 · 书库格式 v2</p>
+                            <p className="mt-1">0.3.0 · 书库格式 v2</p>
                         </div>
                         <div className="rounded-xl border border-line bg-surface-2/55 p-3.5">
                             <p className="font-semibold text-text">许可证</p>
@@ -439,6 +515,12 @@ export function Settings() {
                 confirmLabel="导入书库"
                 tone="primary"
                 onConfirm={handleImport}
+            />
+
+            <PasswordModal
+                open={passwordMode !== null}
+                mode={passwordMode ?? "set"}
+                onClose={() => setPasswordMode(null)}
             />
         </div>
     );

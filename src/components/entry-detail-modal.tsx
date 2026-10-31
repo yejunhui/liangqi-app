@@ -29,6 +29,7 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
     const accounts = useLedgerStore((state) => state.accounts);
     const bills = useLedgerStore((state) => state.bills);
     const categories = useLedgerStore((state) => state.categories);
+    const members = useLedgerStore((state) => state.members);
     const entries = useLedgerStore((state) => state.entries);
     const deleteEntry = useLedgerStore((state) => state.deleteEntry);
     const currency = useCurrency();
@@ -43,6 +44,9 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
         : undefined;
     const liability = entry?.liabilityAccountId
         ? accounts.find((item) => item.id === entry.liabilityAccountId)
+        : undefined;
+    const member = entry?.memberId
+        ? members.find((item) => item.id === entry.memberId)
         : undefined;
 
     const kindLabel =
@@ -119,6 +123,19 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                                     <span className="inline-flex items-center gap-1.5">
                                         <span>{category.emoji}</span>
                                         {category.name}
+                                    </span>
+                                </DetailRow>
+                            )}
+                            {member && (
+                                <DetailRow label="成员">
+                                    <span
+                                        className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                                        style={{
+                                            backgroundColor: `${member.color}20`,
+                                            color: member.color,
+                                        }}
+                                    >
+                                        {member.name}
                                     </span>
                                 </DetailRow>
                             )}

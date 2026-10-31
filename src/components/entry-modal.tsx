@@ -44,6 +44,7 @@ export function EntryModal() {
 
     const accounts = useLedgerStore((state) => state.accounts);
     const categories = useLedgerStore((state) => state.categories);
+    const members = useLedgerStore((state) => state.members);
     const bills = useLedgerStore((state) => state.bills);
     const entries = useLedgerStore((state) => state.entries);
     const addExpense = useLedgerStore((state) => state.addExpense);
@@ -55,6 +56,7 @@ export function EntryModal() {
     const [amount, setAmount] = useState("");
     const [date, setDate] = useState(() => toDateInputValue(Date.now()));
     const [categoryId, setCategoryId] = useState("");
+    const [memberId, setMemberId] = useState("");
     const [paymentMode, setPaymentMode] = useState<"asset" | "liability">("asset");
     const [assetAccountId, setAssetAccountId] = useState("");
     const [liabilityAccountId, setLiabilityAccountId] = useState("");
@@ -116,6 +118,7 @@ export function EntryModal() {
                 ? (incomeList[0]?.id ?? "")
                 : (expenseList[0]?.id ?? ""),
         );
+        setMemberId(initialBill?.memberId ?? state.members[0]?.id ?? "");
         setPaymentMode(initialPaymentMode ?? "asset");
         setAssetAccountId(assetList[0]?.id ?? "");
         setLiabilityAccountId(liabilityList[0]?.id ?? "");
@@ -146,6 +149,7 @@ export function EntryModal() {
         }
         const remaining = getBillRemaining(bill, useLedgerStore.getState().entries);
         setAmount((remaining / 100).toFixed(2));
+        setMemberId(bill.memberId ?? useLedgerStore.getState().members[0]?.id ?? "");
     }, [kind, billId]);
 
     function switchKind(next: EntryKind) {
@@ -167,6 +171,10 @@ export function EntryModal() {
             setError("请选择有效日期");
             return;
         }
+        if (!memberId) {
+            setError("请选择成员");
+            return;
+        }
 
         if (kind === "expense") {
             if (!categoryId) {
@@ -182,6 +190,7 @@ export function EntryModal() {
                     amount: cents,
                     date: timestamp,
                     categoryId,
+                    memberId,
                     note,
                     source: { type: "asset", accountId: assetAccountId },
                 });
@@ -208,6 +217,7 @@ export function EntryModal() {
                     amount: cents,
                     date: timestamp,
                     categoryId,
+                    memberId,
                     note,
                     source: {
                         type: "liability",
@@ -236,6 +246,7 @@ export function EntryModal() {
                 date: timestamp,
                 categoryId,
                 accountId: assetAccountId,
+                memberId,
                 note,
             });
             if (!result.ok) {
@@ -257,6 +268,7 @@ export function EntryModal() {
                 date: timestamp,
                 billId,
                 accountId: assetAccountId,
+                memberId,
                 note,
             });
             if (!result.ok) {
@@ -349,6 +361,8 @@ export function EntryModal() {
                         </p>
                     )}
                 </div>
+
+                <MemberPicker members={members} value={memberId} onChange={setMemberId} />
 
                 {kind === "expense" && (
                     <div className="space-y-4">
@@ -735,6 +749,54 @@ function CategoryPicker({
                                 >
                                     {category.name}
                                 </span>
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function MemberPicker({
+    members,
+    value,
+    onChange,
+}: {
+    members: Array<{ id: string; name: string; color: string }>;
+    value: string;
+    onChange: (value: string) => void;
+}) {
+    return (
+        <div>
+            <p className="mb-2 text-xs font-semibold text-muted">成员</p>
+            {members.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-line bg-surface-2/50 px-3 py-3 text-[11px] text-muted">
+                    还没有成员，请先到成员页添加。
+                </p>
+            ) : (
+                <div className="flex flex-wrap gap-2">
+                    {members.map((member) => {
+                        const active = value === member.id;
+                        return (
+                            <button
+                                key={member.id}
+                                type="button"
+                                onClick={() => onChange(member.id)}
+                                className={cn(
+                                    "inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-medium transition",
+                                    active
+                                        ? "border-accent bg-accent-soft text-accent"
+                                        : "border-line bg-surface text-text hover:border-line-strong",
+                                )}
+                            >
+                                <span
+                                    className="grid size-5 place-items-center rounded-full text-[9px] font-bold text-white"
+                                    style={{ backgroundColor: member.color }}
+                                >
+                                    {member.name.slice(0, 1)}
+                                </span>
+                                {member.name}
                             </button>
                         );
                     })}

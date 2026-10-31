@@ -23,6 +23,7 @@ export function Entries() {
     const entries = useLedgerStore((state) => state.entries);
     const bills = useLedgerStore((state) => state.bills);
     const categories = useLedgerStore((state) => state.categories);
+    const members = useLedgerStore((state) => state.members);
     const currency = useCurrency();
     const openEntryModal = useUIStore((state) => state.openEntryModal);
 
@@ -53,12 +54,14 @@ export function Entries() {
                 const liability = accounts.find(
                     (item) => item.id === entry.liabilityAccountId,
                 );
+                const member = members.find((item) => item.id === entry.memberId);
                 const haystack = [
                     entry.note,
                     category?.name,
                     bill?.title,
                     asset?.name,
                     liability?.name,
+                    member?.name,
                     (entry.amount / 100).toFixed(2),
                     entry.kind === "expense" ? "支出" : entry.kind === "income" ? "收入" : "还款",
                 ]
@@ -68,7 +71,7 @@ export function Entries() {
                 return haystack.includes(keyword);
             })
             .sort((a, b) => b.date - a.date || b.createdAt - a.createdAt);
-    }, [entries, filter, query, categories, bills, accounts]);
+    }, [entries, filter, query, categories, bills, accounts, members]);
 
     const groups = useMemo(() => {
         const map = new Map<number, Entry[]>();
@@ -212,6 +215,7 @@ export function Entries() {
                                             accounts={accounts}
                                             bills={bills}
                                             categories={categories}
+                                            members={members}
                                             currency={currency}
                                             onClick={() => setSelectedEntry(entry)}
                                         />

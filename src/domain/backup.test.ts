@@ -181,6 +181,34 @@ describe("backup validation", () => {
         const parsed = parseBackup(createExportPayload(data));
         expect(parsed.ok).toBe(false);
     });
+
+    it("round-trips member ids and rejects unknown members", () => {
+        const data = buildData();
+        data.members.push({
+            id: "member_family",
+            name: "家人",
+            color: "#e07a5f",
+            createdAt: NOW,
+        });
+        data.bills[0].memberId = "member_family";
+        data.entries[0].memberId = "member_family";
+
+        const parsed = parseBackup(createExportPayload(data));
+        expect(parsed.ok).toBe(true);
+        if (parsed.ok) {
+            expect(parsed.data.members).toHaveLength(2);
+            expect(parsed.data.bills[0].memberId).toBe("member_family");
+            expect(parsed.data.entries[0].memberId).toBe("member_family");
+        }
+
+        const broken = buildData();
+        broken.bills[0].memberId = "missing_member";
+        const rejected = parseBackup(createExportPayload(broken));
+        expect(rejected.ok).toBe(false);
+        if (!rejected.ok) {
+            expect(rejected.error).toContain("成员");
+        }
+    });
 });
 
 describe("library backup", () => {

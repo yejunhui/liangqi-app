@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { Account, Bill, Category, Entry } from "@/types";
+import type { Account, Bill, Category, Entry, Member } from "@/types";
 import { Money } from "@/components/money";
 import { cn } from "@/utils/cn";
 
@@ -11,15 +11,25 @@ interface EntryRowProps {
     accounts: Account[];
     bills: Bill[];
     categories: Category[];
+    members: Member[];
     currency: string;
     onClick?: () => void;
 }
 
-export function EntryRow({ entry, accounts, bills, categories, currency, onClick }: EntryRowProps) {
+export function EntryRow({
+    entry,
+    accounts,
+    bills,
+    categories,
+    members,
+    currency,
+    onClick,
+}: EntryRowProps) {
     const category = categories.find((item) => item.id === entry.categoryId);
     const bill = bills.find((item) => item.id === entry.billId);
     const asset = accounts.find((item) => item.id === entry.accountId);
     const liability = accounts.find((item) => item.id === entry.liabilityAccountId);
+    const member = members.find((item) => item.id === entry.memberId);
 
     let emoji = category?.emoji ?? "📦";
     let title = category?.name ?? "未分类";
@@ -65,6 +75,17 @@ export function EntryRow({ entry, accounts, bills, categories, currency, onClick
             <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-center gap-1.5">
                     <span className="truncate text-sm font-semibold text-text">{title}</span>
+                    {member && (
+                        <span
+                            className="chip"
+                            style={{
+                                backgroundColor: `${member.color}20`,
+                                color: member.color,
+                            }}
+                        >
+                            {member.name}
+                        </span>
+                    )}
                     {badge && <span className={cn("chip", badge.className)}>{badge.label}</span>}
                 </span>
                 <span className="mt-0.5 block truncate text-[11px] text-muted">{subtitle}</span>

@@ -31,6 +31,7 @@ export function Bills() {
     const entries = useLedgerStore((state) => state.entries);
     const accounts = useLedgerStore((state) => state.accounts);
     const categories = useLedgerStore((state) => state.categories);
+    const members = useLedgerStore((state) => state.members);
     const deleteBill = useLedgerStore((state) => state.deleteBill);
     const currency = useCurrency();
     const openEntryModal = useUIStore((state) => state.openEntryModal);
@@ -210,6 +211,7 @@ export function Bills() {
                             entries={entries}
                             accounts={accounts}
                             categories={categories}
+                            members={members}
                             currency={currency}
                             onRepay={() =>
                                 openEntryModal({ kind: "repayment", billId: bill.id })
