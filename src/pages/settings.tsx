@@ -40,6 +40,7 @@ import {
 import { downloadJson } from "@/utils/download";
 import { toDateInputValue } from "@/utils/date";
 import { CURRENCIES } from "@/domain/currencies";
+import { clearExchangeRateCache } from "@/domain/exchange-rates";
 import { useLedgerStore } from "@/store/ledger";
 import {
     extractLibrary,
@@ -215,7 +216,7 @@ export function Settings() {
                     <SectionTitle
                         icon={FileJson}
                         title="货币"
-                        description="账本使用一种货币作为本位币；记账时可以按外币录入，并按你填的汇率换算成本位币保存。"
+                        description="账本使用一种货币作为本位币；记账时会自动获取实时汇率，也可以手动修改。"
                     />
                     <select
                         className="field mt-4"
@@ -234,8 +235,21 @@ export function Settings() {
                         ))}
                     </select>
                     <p className="mt-2 text-[10px] text-muted">
-                        记账表单里可以切换外币并填写汇率；所有余额和统计仍统一换算成本位币。
+                        记账表单里可以切换外币；应用会先读取缓存，再向公开汇率源请求最新汇率。请求失败时保留手动汇率。
                     </p>
+                    <div className="mt-3 flex items-center justify-between gap-2 text-[10px] text-muted">
+                        <span>汇率缓存有效期 30 分钟</span>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                clearExchangeRateCache();
+                                toast("汇率缓存已清除", "success");
+                            }}
+                            className="font-medium text-accent hover:underline"
+                        >
+                            清除汇率缓存
+                        </button>
+                    </div>
                     <div className="mt-3 flex gap-2">
                         <input
                             className="field text-xs"

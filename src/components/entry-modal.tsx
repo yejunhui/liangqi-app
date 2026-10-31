@@ -13,6 +13,7 @@ import {
     Paperclip,
     Plus,
     ReceiptText,
+    RefreshCw,
     Wallet,
     X,
 } from "lucide-react";
@@ -35,6 +36,11 @@ import {
 } from "@/domain/ledger";
 import { formatCents, parseAmountToCents, currencySymbol } from "@/domain/money";
 import { CURRENCIES } from "@/domain/currencies";
+import {
+    formatExchangeRate,
+    getExchangeRate,
+    type ExchangeRateQuote,
+} from "@/domain/exchange-rates";
 import { fromDateInputValue, toDateInputValue } from "@/utils/date";
 import { useCurrency, useLedgerStore } from "@/store/ledger";
 import { useUIStore } from "@/store/ui";
@@ -73,6 +79,11 @@ export function EntryModal() {
     const [amount, setAmount] = useState("");
     const [entryCurrency, setEntryCurrency] = useState(currency);
     const [exchangeRate, setExchangeRate] = useState("1");
+    const [rateStatus, setRateStatus] = useState<
+        "idle" | "loading" | "live" | "cached" | "manual" | "unavailable"
+    >("idle");
+    const [rateFetchedAt, setRateFetchedAt] = useState<number | null>(null);
+    const [autoRate, setAutoRate] = useState(true);
     const [date, setDate] = useState(() => toDateInputValue(Date.now()));
     const [categoryId, setCategoryId] = useState("");
     const [memberId, setMemberId] = useState("");
@@ -89,6 +100,7 @@ export function EntryModal() {
     const [files, setFiles] = useState<File[]>([]);
     const [error, setError] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const manualRateRef = useRef(false);
 
     const assetAccounts = useMemo(
         () => accounts.filter((account) => account.kind === "asset"),
@@ -150,6 +162,10 @@ export function EntryModal() {
         );
         setEntryCurrency(currency);
         setExchangeRate("1");
+        setRateStatus("idle");
+        setRateFetchedAt(null);
+        setAutoRate(true);
+        manualRateRef.current = false;
         setDate(toDateInputValue(prefill?.date ?? Date.now()));
         const initialCategories = initialKind === "income" ? incomeList : expenseList;
         setCategoryId(
@@ -196,6 +212,62 @@ export function EntryModal() {
     }, [kind, open, incomeCategories, expenseCategories]);
 
     useEffect(() => {
+        if (!open) {
+            return;
+        }
+        if (entryCurrency === currency) {
+            setRateStatus("idle");
+            setRateFetchedAt(null);
+            setAutoRate(true);
+            return;
+        }
+        let cancelled = false;
+        setRateStatus("loading");
+        setExchangeRate("");
+        setAutoRate(true);
+        manualRateRef.current = false;
+        void getExchangeRate(currency, entryCurrency).then((quote) => {
+            if (cancelled || manualRateRef.current) {
+                return;
+            }
+            if (!quote) {
+                setRateStatus("unavailable");
+                setAutoRate(false);
+                return;
+            }
+            setExchangeRate(formatExchangeRate(quote.rate));
+            setRateStatus(quote.stale ? "cached" : "live");
+            setRateFetchedAt(quote.fetchedAt);
+            setAutoRate(true);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [open, entryCurrency, currency]);
+
+    async function refreshExchangeRate(): Promise<ExchangeRateQuote | null> {
+        if (entryCurrency === currency) {
+            return null;
+        }
+        manualRateRef.current = false;
+        setRateStatus("loading");
+        const quote = await getExchangeRate(currency, entryCurrency, { force: true });
+        if (!quote) {
+            setRateStatus("unavailable");
+            setAutoRate(false);
+            return null;
+        }
+        if (manualRateRef.current) {
+            return null;
+        }
+        setExchangeRate(formatExchangeRate(quote.rate));
+        setRateStatus(quote.stale ? "cached" : "live");
+        setRateFetchedAt(quote.fetchedAt);
+        setAutoRate(true);
+        return quote;
+    }
+
+    useEffect(() => {
         if (kind !== "repayment" || !billId) {
             return;
         }
@@ -218,13 +290,26 @@ export function EntryModal() {
         event.preventDefault();
         setError("");
 
-        const cents = parsedAmount;
+        const rawForeignCents = parseAmountToCents(amount);
+        if (rawForeignCents === null || rawForeignCents <= 0) {
+            setError("请输入大于 0 的金额");
+            return;
+        }
+
+        let effectiveRate = isForeign ? rateNumber : 1;
+        if (isForeign && autoRate) {
+            const quote = await refreshExchangeRate();
+            if (quote) {
+                effectiveRate = quote.rate;
+            }
+        }
+        const cents = isForeign
+            ? Number.isFinite(effectiveRate) && effectiveRate > 0
+                ? Math.round(rawForeignCents * effectiveRate)
+                : null
+            : rawForeignCents;
         if (cents === null || cents <= 0) {
-            setError(
-                isForeign && !(Number.isFinite(rateNumber) && rateNumber > 0)
-                    ? "请输入有效汇率"
-                    : "请输入大于 0 的金额",
-            );
+            setError("请输入有效汇率");
             return;
         }
         const timestamp = fromDateInputValue(date);
@@ -237,14 +322,13 @@ export function EntryModal() {
             return;
         }
 
-        const originalAmount =
-            isForeign && foreignCents !== null
-                ? {
-                      currency: entryCurrency,
-                      amount: foreignCents,
-                      rate: rateNumber,
-                  }
-                : undefined;
+        const originalAmount = isForeign
+            ? {
+                  currency: entryCurrency,
+                  amount: rawForeignCents,
+                  rate: effectiveRate,
+              }
+            : undefined;
 
         let createdEntryId: string | undefined;
 
@@ -498,6 +582,9 @@ export function EntryModal() {
                             onChange={(event) => {
                                 setEntryCurrency(event.target.value);
                                 setExchangeRate("1");
+                                setAutoRate(true);
+                                setRateStatus("loading");
+                                manualRateRef.current = false;
                             }}
                             className="rounded-lg border border-line bg-surface px-2 py-1 text-[10px] font-medium text-text"
                             aria-label="记账币种"
@@ -516,15 +603,70 @@ export function EntryModal() {
                                 1 {entryCurrency} =
                                 <input
                                     value={exchangeRate}
-                                    onChange={(event) => setExchangeRate(event.target.value)}
+                                    onChange={(event) => {
+                                        setExchangeRate(event.target.value);
+                                        setRateStatus("manual");
+                                        setAutoRate(false);
+                                        manualRateRef.current = true;
+                                    }}
                                     inputMode="decimal"
-                                    className="w-16 rounded-md border border-line bg-surface px-1.5 py-1 text-center text-[10px] text-text outline-none"
+                                    className="w-20 rounded-md border border-line bg-surface px-1.5 py-1 text-center text-[10px] text-text outline-none"
                                     aria-label="汇率"
                                 />
                                 {currency}
                             </label>
                         )}
+                        {isForeign && (
+                            <button
+                                type="button"
+                                onClick={() => void refreshExchangeRate()}
+                                className="inline-flex items-center gap-1 rounded-md border border-line bg-surface px-1.5 py-1 text-[10px] font-medium text-muted transition hover:text-text"
+                            >
+                                <RefreshCw
+                                    className={cn(
+                                        "size-3",
+                                        rateStatus === "loading" && "animate-spin",
+                                    )}
+                                />
+                                实时
+                            </button>
+                        )}
                     </div>
+                    {isForeign && (
+                        <p
+                            className={cn(
+                                "mt-1.5 text-[10px]",
+                                rateStatus === "live"
+                                    ? "text-success"
+                                    : rateStatus === "cached" ||
+                                        rateStatus === "unavailable"
+                                      ? "text-liability"
+                                      : "text-muted",
+                            )}
+                        >
+                            {rateStatus === "loading"
+                                ? "正在获取实时汇率…"
+                                : rateStatus === "live"
+                                  ? `实时汇率${
+                                        rateFetchedAt
+                                            ? ` · ${new Date(rateFetchedAt).toLocaleTimeString(
+                                                  "zh-CN",
+                                                  {
+                                                      hour: "2-digit",
+                                                      minute: "2-digit",
+                                                  },
+                                              )} 更新`
+                                            : ""
+                                    }`
+                                  : rateStatus === "cached"
+                                    ? "实时汇率源不可用，使用本机缓存汇率，可手动修改"
+                                    : rateStatus === "unavailable"
+                                      ? "实时汇率不可用，请手动填写汇率"
+                                      : rateStatus === "manual"
+                                        ? "手动汇率；保存时不会自动刷新"
+                                        : ""}
+                        </p>
+                    )}
                     {isForeign && parsedAmount !== null && foreignCents !== null && (
                         <p className="mt-1.5 text-[10px] text-accent">
                             折合 {formatCents(parsedAmount, currency)}
