@@ -176,7 +176,7 @@ export function Dashboard() {
                                 {formatCents(totals.disposable, currency)}
                             </p>
                             <p className="mt-0.5 text-[9px] text-white/40">
-                                流动资产 − 负债
+                                流动资产
                             </p>
                         </div>
                     </div>

@@ -233,7 +233,7 @@ describe("net worth", () => {
         expect(totals.assets).toBe(10_600_000);
         expect(totals.liabilities).toBe(50_000);
         expect(totals.netWorth).toBe(10_550_000);
-        expect(totals.disposable).toBe(550_000);
+        expect(totals.disposable).toBe(600_000);
     });
 
     it("counts an opening liability and lets it be repaid", () => {

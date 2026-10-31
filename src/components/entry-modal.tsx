@@ -786,7 +786,7 @@ export function EntryModal() {
                                             className="field"
                                             value={billTitle}
                                             onChange={(event) => setBillTitle(event.target.value)}
-                                            placeholder={selectedCategory?.name ?? "例如：信用卡消费"}
+                                            placeholder={selectedCategory?.name ?? "例如：这笔赊账"}
                                         />
                                     </label>
                                     <label className="block">

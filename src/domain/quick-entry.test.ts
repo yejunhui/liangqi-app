@@ -60,6 +60,14 @@ const accounts: Account[] = [
         openingBalance: 0,
         createdAt: NOW,
     },
+    {
+        id: "acc_loan",
+        name: "装修贷",
+        kind: "liability",
+        emoji: "🧾",
+        openingBalance: 0,
+        createdAt: NOW,
+    },
 ];
 
 function parse(text: string) {
@@ -93,6 +101,15 @@ describe("quick entry parsing", () => {
             amount: 2850,
             categoryId: "cat_taxi",
             liabilityAccountId: "acc_credit",
+        });
+    });
+
+    it("selects a liability account by its kind, not only credit-card keywords", () => {
+        expect(parse("装修贷 午饭 35").suggestion).toMatchObject({
+            kind: "expense",
+            paymentMode: "liability",
+            amount: 3500,
+            liabilityAccountId: "acc_loan",
         });
     });
 

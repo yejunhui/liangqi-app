@@ -187,7 +187,7 @@ export function QuickEntryModal() {
                         className="field min-h-28 resize-none pr-12 text-sm"
                         value={text}
                         onChange={(event) => updateText(event.target.value)}
-                        placeholder="例如：昨天午饭 35 元 现金"
+                        placeholder="例如：信用卡 打车 28.5，或 借呗 午饭 35"
                         autoFocus
                     />
                     <button
@@ -294,7 +294,7 @@ export function QuickEntryModal() {
                     <p className="rounded-xl border border-dashed border-line bg-surface-2/40 px-3 py-3 text-[11px] leading-relaxed text-muted">
                         {text.trim()
                             ? parsed.error
-                            : "支持：金额、分类名、账户名、昨天 / 前天、收入 / 工资、信用卡 / 花呗。"}                    </p>
+                            : "支持：金额、分类名、账户名、昨天 / 前天、收入 / 工资、信用卡 / 花呗 / 借呗等负债账户。"}                    </p>
                 )}
 
                 <p className="text-[10px] leading-relaxed text-muted">

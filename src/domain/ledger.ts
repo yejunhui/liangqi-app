@@ -64,7 +64,7 @@ export interface Totals {
     assets: number;
     liabilities: number;
     netWorth: number;
-    /** Liquid assets minus all liabilities. */
+    /** Liquid assets only; liabilities are not subtracted here. */
     disposable: number;
 }
 
@@ -89,7 +89,7 @@ export function getTotals(data: Pick<LedgerData, "accounts" | "entries">): Total
         assets,
         liabilities,
         netWorth: assets - liabilities,
-        disposable: liquidAssets - liabilities,
+        disposable: liquidAssets,
     };
 }
 

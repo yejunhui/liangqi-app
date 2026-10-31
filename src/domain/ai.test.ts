@@ -44,6 +44,14 @@ const accounts: Account[] = [
         openingBalance: 0,
         createdAt: NOW,
     },
+    {
+        id: "acc_loan",
+        name: "装修贷",
+        kind: "liability",
+        emoji: "🧾",
+        openingBalance: 0,
+        createdAt: NOW,
+    },
 ];
 
 function mockResponse(content: unknown, status = 200) {
@@ -94,6 +102,34 @@ describe("AI quick entry", () => {
             liabilityAccountId: "acc_credit",
         });
         expect(new Date(result.date).getDate()).toBe(30);
+    });
+
+    it("uses the matched liability account even if AI says asset", async () => {
+        vi.stubGlobal(
+            "fetch",
+            mockResponse({
+                amount: 88,
+                kind: "expense",
+                paymentMode: "asset",
+                categoryName: "餐饮",
+                accountName: "装修贷",
+                date: "2026-10-31",
+                note: "装修贷午饭",
+            }),
+        );
+        const result = await parseQuickEntryWithAi({
+            text: "装修贷午饭 88",
+            categories,
+            accounts,
+            config: { endpoint: "https://example.com", model: "m", apiKey: "k" },
+            now: NOW,
+        });
+        expect(result).toMatchObject({
+            kind: "expense",
+            paymentMode: "liability",
+            liabilityAccountId: "acc_loan",
+        });
+        expect(result.accountId).toBeUndefined();
     });
 
     it("uses defaults for unknown category and account", async () => {

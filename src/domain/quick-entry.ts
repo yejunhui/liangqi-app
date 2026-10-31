@@ -160,9 +160,16 @@ export function parseQuickEntry(input: {
         return { ok: false, error: "没有识别到金额，例如「午饭 35」" };
     }
     const income = /收入|工资|奖金|报销|退款|收到|进账|利息|分红|卖了/.test(text);
-    const liability = /信用卡|花呗|白条|赊账|赊|负债|分期/.test(text);
+    const namedAccount = findName(input.accounts, text);
+    const liabilityWord = /信用卡|花呗|白条|借呗|借款|赊账|赊|负债|分期/.test(text);
     const kind: EntryKind = income ? "income" : "expense";
-    const paymentMode = !income && liability ? "liability" : "asset";
+    const paymentMode =
+        !income &&
+        (namedAccount
+            ? namedAccount.kind === "liability"
+            : liabilityWord)
+            ? "liability"
+            : "asset";
     const categoryPool = input.categories.filter((category) => category.kind === kind);
     const accountPool = input.accounts.filter((account) =>
         paymentMode === "liability"
@@ -170,7 +177,13 @@ export function parseQuickEntry(input: {
             : account.kind === "asset",
     );
     const category = findCategory(categoryPool, text);
-    const account = findName(accountPool, text);
+    const account =
+        namedAccount &&
+        (paymentMode === "liability"
+            ? namedAccount.kind === "liability"
+            : namedAccount.kind === "asset")
+            ? namedAccount
+            : findName(accountPool, text);
 
     return {
         ok: true,

@@ -107,7 +107,7 @@ export function EditBillModal({ bill, onClose }: EditBillModalProps) {
                             className="field"
                             value={title}
                             onChange={(event) => setTitle(event.target.value)}
-                            placeholder="例如：信用卡消费"
+                            placeholder="例如：花呗消费"
                         />
                     </label>
 

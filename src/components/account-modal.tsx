@@ -191,7 +191,7 @@ export function AccountModal({ open, account, defaultKind, onClose }: AccountMod
                         className="field"
                         value={name}
                         onChange={(event) => setName(event.target.value)}
-                        placeholder={kind === "liability" ? "例如：信用卡" : "例如：工资卡"}
+                        placeholder={kind === "liability" ? "例如：信用卡、花呗、借款" : "例如：工资卡"}
                         autoFocus
                     />
                 </label>

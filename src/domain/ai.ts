@@ -129,7 +129,7 @@ export async function parseQuickEntryWithAi(input: {
         '只返回 JSON，不要解释或 Markdown。字段：{"amount": number, "kind": "expense"|"income", "paymentMode": "asset"|"liability", "categoryName": string|null, "accountName": string|null, "date": "YYYY-MM-DD", "note": string}。',
         "amount 使用元，必须大于 0。",
         "kind=expense 表示支出，kind=income 表示收入。",
-        "paymentMode=liability 仅用于信用卡 / 花呗 / 赊账支出，否则用 asset。",
+        "如果 accountName 对应负债账户，paymentMode 用 liability；对应资产账户用 asset；只有账户不确定时才根据信用卡 / 花呗 / 赊账等语义判断。",
         "categoryName 必须从给定分类里选，accountName 必须从给定账户里选；不确定就填 null。",
         `今天是 ${toDateInputValue(now)}。`,
         `分类：${JSON.stringify(categoryList)}`,
@@ -158,14 +158,30 @@ export async function parseQuickEntryWithAi(input: {
         throw new Error("AI 没有识别到有效金额");
     }
     const kind = parsed.kind === "income" ? "income" : "expense";
-    const paymentMode =
-        kind === "expense" && parsed.paymentMode === "liability"
-            ? "liability"
-            : "asset";
     const categoryName =
         typeof parsed.categoryName === "string" ? parsed.categoryName.trim() : "";
     const accountName =
         typeof parsed.accountName === "string" ? parsed.accountName.trim() : "";
+    const namedAccount = accountName
+        ? input.accounts
+              .slice()
+              .sort((a, b) => b.name.length - a.name.length)
+              .find(
+                  (item) =>
+                      item.name === accountName ||
+                      accountName.includes(item.name),
+              )
+        : undefined;
+    const paymentMode =
+        kind === "income"
+            ? "asset"
+            : namedAccount?.kind === "liability"
+              ? "liability"
+              : namedAccount?.kind === "asset"
+                ? "asset"
+                : parsed.paymentMode === "liability"
+                  ? "liability"
+                  : "asset";
     const category = input.categories
         .filter((item) => item.kind === kind)
         .sort((a, b) => b.name.length - a.name.length)
@@ -175,18 +191,24 @@ export async function parseQuickEntryWithAi(input: {
                 categoryName.split(/[\/>]/).pop()?.trim() === item.name ||
                 categoryName.includes(item.name),
         );
-    const account = input.accounts
-        .filter((item) =>
-            paymentMode === "liability"
-                ? item.kind === "liability"
-                : item.kind === "asset",
-        )
-        .sort((a, b) => b.name.length - a.name.length)
-        .find(
-            (item) =>
-                item.name === accountName ||
-                accountName.includes(item.name),
-        );
+    const account =
+        namedAccount &&
+        (paymentMode === "liability"
+            ? namedAccount.kind === "liability"
+            : namedAccount.kind === "asset")
+            ? namedAccount
+            : input.accounts
+                  .filter((item) =>
+                      paymentMode === "liability"
+                          ? item.kind === "liability"
+                          : item.kind === "asset",
+                  )
+                  .sort((a, b) => b.name.length - a.name.length)
+                  .find(
+                      (item) =>
+                          item.name === accountName ||
+                          accountName.includes(item.name),
+                  );
     const date =
         typeof parsed.date === "string"
             ? fromDateInputValue(parsed.date.slice(0, 10)) ?? now
