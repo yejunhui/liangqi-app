@@ -19,13 +19,14 @@ import { cn } from "@/utils/cn";
 interface MemberModalProps {
     open: boolean;
     member: Member | null;
-    onCreated?: (id: string) => void;
+    onCreated?: (id: string, pin?: string) => void;
     onClose: () => void;
 }
 
 export function MemberModal({ open, member, onCreated, onClose }: MemberModalProps) {
     const addMember = useLedgerStore((state) => state.addMember);
     const updateMember = useLedgerStore((state) => state.updateMember);
+    const remote = useLedgerStore((state) => state.remote);
     const [name, setName] = useState("");
     const [color, setColor] = useState<string>(MEMBER_COLORS[0]);
     const [pin, setPin] = useState("");
@@ -51,6 +52,14 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
         setError("");
         if (!name.trim()) {
             setError("成员名称不能为空");
+            return;
+        }
+        if (remote && !pin.trim() && (!editing || !existingPin)) {
+            setError("共享账本的成员必须设置 PIN");
+            return;
+        }
+        if (remote && removePin) {
+            setError("共享账本的成员不能清除 PIN");
             return;
         }
         const pinValue = pin.trim();
@@ -103,7 +112,7 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
             return;
         }
         if (result.id) {
-            onCreated?.(result.id);
+            onCreated?.(result.id, pinValue || undefined);
         }
         toast("成员已添加", "success");
         onClose();
@@ -165,7 +174,9 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
                         <div>
                             <p className="text-xs font-semibold text-text">成员 PIN</p>
                             <p className="mt-0.5 text-[10px] text-muted">
-                                可选，4–12 位数字；切换成员时需要输入
+                                {remote
+                                    ? "共享账本必须设置 PIN；4–12 位数字，切换成员时验证"
+                                    : "可选，4–12 位数字；切换成员时需要输入"}
                             </p>
                         </div>
                         {existingPin && !removePin && (
