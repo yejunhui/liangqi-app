@@ -1,0 +1,178 @@
+/**
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+import { describe, expect, it } from "vitest";
+import type { Bill, Entry, LedgerData } from "@/types";
+import { createSeedData } from "@/domain/seed";
+import { createExportPayload, parseBackup } from "@/domain/backup";
+
+const NOW = new Date(2026, 9, 31, 12).getTime();
+
+function buildData(): LedgerData {
+    const data = createSeedData(NOW);
+    const bill: Bill = {
+        id: "bill_test",
+        liabilityAccountId: "acc_credit",
+        categoryId: "cat_food",
+        title: "聚餐",
+        principal: 20_000,
+        purchasedAt: NOW,
+        dueDate: new Date(2026, 10, 10, 12).getTime(),
+        createdAt: NOW,
+    };
+    const creditExpense: Entry = {
+        id: "entry_credit",
+        kind: "expense",
+        amount: 20_000,
+        date: NOW,
+        liabilityAccountId: "acc_credit",
+        billId: bill.id,
+        categoryId: "cat_food",
+        createdAt: NOW,
+    };
+    const repayment: Entry = {
+        id: "entry_repay",
+        kind: "repayment",
+        amount: 5_000,
+        date: NOW,
+        accountId: "acc_bank",
+        liabilityAccountId: "acc_credit",
+        billId: bill.id,
+        createdAt: NOW,
+    };
+    const cashExpense: Entry = {
+        id: "entry_cash",
+        kind: "expense",
+        amount: 1_000,
+        date: NOW,
+        accountId: "acc_cash",
+        categoryId: "cat_food",
+        createdAt: NOW,
+    };
+    data.bills.push(bill);
+    data.entries.push(creditExpense, repayment, cashExpense);
+    return data;
+}
+
+describe("backup round trip", () => {
+    it("accepts its own export after JSON serialization", () => {
+        const data = buildData();
+        const payload = createExportPayload(data);
+        const parsed = parseBackup(JSON.parse(JSON.stringify(payload)));
+        expect(parsed.ok).toBe(true);
+        if (parsed.ok) {
+            expect(parsed.data.accounts).toHaveLength(data.accounts.length);
+            expect(parsed.data.bills).toHaveLength(1);
+            expect(parsed.data.entries).toHaveLength(3);
+            expect(parsed.data.settings.currency).toBe("CNY");
+        }
+    });
+
+    it("accepts an opening-balance bill without a linked expense", () => {
+        const data = createSeedData(NOW);
+        const liability = {
+            ...data.accounts[2],
+            id: "acc_huabei",
+            name: "花呗",
+            openingBalance: 50_000,
+        };
+        data.accounts.push(liability);
+        data.bills.push({
+            id: "bill_opening",
+            liabilityAccountId: liability.id,
+            title: "期初负债",
+            principal: 50_000,
+            purchasedAt: NOW,
+            opening: true,
+            createdAt: NOW,
+        });
+
+        const parsed = parseBackup(createExportPayload(data));
+        expect(parsed.ok).toBe(true);
+    });
+
+    it("rejects a liability opening balance without a matching opening bill", () => {
+        const data = createSeedData(NOW);
+        data.accounts.push({
+            ...data.accounts[2],
+            id: "acc_huabei",
+            name: "花呗",
+            openingBalance: 50_000,
+        });
+
+        const parsed = parseBackup(createExportPayload(data));
+        expect(parsed.ok).toBe(false);
+        if (!parsed.ok) {
+            expect(parsed.error).toContain("期初账单");
+        }
+    });
+});
+
+describe("backup validation", () => {
+    it("accepts a legacy Zhaibu export", () => {
+        const payload = createExportPayload(buildData());
+        const parsed = parseBackup({ ...payload, app: "zhaibu" });
+        expect(parsed.ok).toBe(true);
+    });
+
+    it("rejects a different app or version", () => {
+        const payload = createExportPayload(buildData());
+        expect(parseBackup({ ...payload, app: "cent" }).ok).toBe(false);
+        expect(parseBackup({ ...payload, version: 2 }).ok).toBe(false);
+    });
+
+    it("rejects duplicate ids", () => {
+        const payload = createExportPayload(buildData());
+        payload.accounts.push({ ...payload.accounts[0] });
+        const parsed = parseBackup(payload);
+        expect(parsed.ok).toBe(false);
+        if (!parsed.ok) {
+            expect(parsed.error).toContain("重复");
+        }
+    });
+
+    it("rejects a repayment larger than the bill principal", () => {
+        const data = buildData();
+        data.entries.push({
+            ...data.entries[1],
+            id: "entry_overpay",
+            amount: 20_000,
+        });
+        const parsed = parseBackup(createExportPayload(data));
+        expect(parsed.ok).toBe(false);
+        if (!parsed.ok) {
+            expect(parsed.error).toContain("超过本金");
+        }
+    });
+
+    it("rejects a bill without its credit expense", () => {
+        const data = buildData();
+        data.entries = data.entries.filter((entry) => entry.id !== "entry_credit");
+        const parsed = parseBackup(createExportPayload(data));
+        expect(parsed.ok).toBe(false);
+        if (!parsed.ok) {
+            expect(parsed.error).toContain("缺少对应");
+        }
+    });
+
+    it("rejects a cash expense that also points at a liability", () => {
+        const data = buildData();
+        const cash = data.entries.find((entry) => entry.id === "entry_cash");
+        if (cash) {
+            cash.liabilityAccountId = "acc_credit";
+        }
+        const parsed = parseBackup(createExportPayload(data));
+        expect(parsed.ok).toBe(false);
+        if (!parsed.ok) {
+            expect(parsed.error).toContain("负债");
+        }
+    });
+
+    it("rejects invalid settings", () => {
+        const data = buildData();
+        data.settings.currency = "rmb";
+        const parsed = parseBackup(createExportPayload(data));
+        expect(parsed.ok).toBe(false);
+    });
+});

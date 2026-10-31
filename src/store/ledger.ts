@@ -1,0 +1,630 @@
+/**
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
+import type {
+    Account,
+    AccountKind,
+    Bill,
+    Category,
+    CategoryKind,
+    Entry,
+    LedgerData,
+    Settings,
+    ThemeMode,
+} from "@/types";
+import { createSeedData } from "@/domain/seed";
+import {
+    getBillRepaid,
+    getBillRemaining,
+    getLinkedExpense,
+    validateRepayment,
+} from "@/domain/ledger";
+
+export type Result = { ok: true } | { ok: false; error: string };
+export type AddExpenseResult = { ok: true; billId?: string } | { ok: false; error: string };
+
+export interface ExpenseInput {
+    amount: number;
+    date: number;
+    categoryId: string;
+    note?: string;
+    source:
+        | { type: "asset"; accountId: string }
+        | {
+              type: "liability";
+              accountId: string;
+              title?: string;
+              dueDate?: number;
+          };
+}
+
+export interface IncomeInput {
+    amount: number;
+    date: number;
+    categoryId: string;
+    accountId: string;
+    note?: string;
+}
+
+export interface RepaymentInput {
+    amount: number;
+    date: number;
+    billId: string;
+    accountId: string;
+    note?: string;
+}
+
+export interface AccountInput {
+    name: string;
+    kind: AccountKind;
+    emoji: string;
+    openingBalance: number;
+    note?: string;
+}
+
+export interface CategoryInput {
+    name: string;
+    kind: CategoryKind;
+    emoji: string;
+    color: string;
+}
+
+export interface LedgerActions {
+    addExpense: (input: ExpenseInput) => AddExpenseResult;
+    addIncome: (input: IncomeInput) => Result;
+    addRepayment: (input: RepaymentInput) => Result;
+    deleteEntry: (entryId: string) => Result;
+    deleteBill: (billId: string) => Result;
+    updateBill: (
+        billId: string,
+        patch: Partial<Pick<Bill, "title" | "dueDate" | "note" | "categoryId">>,
+    ) => Result;
+    addAccount: (input: AccountInput) => Result & { id?: string };
+    updateAccount: (
+        accountId: string,
+        patch: Partial<Pick<Account, "name" | "emoji" | "note">>,
+    ) => Result;
+    deleteAccount: (accountId: string) => Result;
+    addCategory: (input: CategoryInput) => Result & { id?: string };
+    updateCategory: (
+        categoryId: string,
+        patch: Partial<Pick<Category, "name" | "emoji" | "color">>,
+    ) => Result;
+    deleteCategory: (categoryId: string) => Result;
+    setSettings: (patch: Partial<Settings>) => void;
+    importData: (data: LedgerData) => Result;
+    resetData: () => void;
+}
+
+export type LedgerState = LedgerData & LedgerActions;
+
+function newId(prefix: string): string {
+    const uuid =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+            ? crypto.randomUUID()
+            : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    return `${prefix}_${uuid}`;
+}
+
+function cleanNote(note?: string): string | undefined {
+    const value = note?.trim();
+    return value ? value : undefined;
+}
+
+function isPositiveInteger(value: number): boolean {
+    return Number.isInteger(value) && value > 0;
+}
+
+function isNonNegativeInteger(value: number): boolean {
+    return Number.isInteger(value) && value >= 0;
+}
+
+function isValidDate(value: number): boolean {
+    return Number.isFinite(value) && value > 0;
+}
+
+function fail(error: string): { ok: false; error: string } {
+    return { ok: false, error };
+}
+
+const createActions = (
+    set: (partial: Partial<LedgerState> | ((state: LedgerState) => Partial<LedgerState>)) => void,
+    get: () => LedgerState,
+): LedgerActions => ({
+    addExpense(input) {
+        if (!isPositiveInteger(input.amount)) {
+            return fail("金额必须大于 0");
+        }
+        if (!isValidDate(input.date)) {
+            return fail("请选择有效日期");
+        }
+
+        const state = get();
+        const category = state.categories.find((item) => item.id === input.categoryId);
+        if (!category || category.kind !== "expense") {
+            return fail("请选择支出分类");
+        }
+
+        const createdAt = Date.now();
+        const note = cleanNote(input.note);
+
+        if (input.source.type === "asset") {
+            const account = state.accounts.find((item) => item.id === input.source.accountId);
+            if (!account || account.kind !== "asset") {
+                return fail("请选择储蓄账户");
+            }
+
+            const entry: Entry = {
+                id: newId("entry"),
+                kind: "expense",
+                amount: input.amount,
+                date: input.date,
+                accountId: account.id,
+                categoryId: category.id,
+                note,
+                createdAt,
+            };
+            set({ entries: [...state.entries, entry] });
+            return { ok: true };
+        }
+
+        const liability = state.accounts.find((item) => item.id === input.source.accountId);
+        if (!liability || liability.kind !== "liability") {
+            return fail("请选择负债账户");
+        }
+        if (input.source.dueDate !== undefined && !isValidDate(input.source.dueDate)) {
+            return fail("请选择有效到期日");
+        }
+
+        const billId = newId("bill");
+        const bill: Bill = {
+            id: billId,
+            liabilityAccountId: liability.id,
+            categoryId: category.id,
+            title: input.source.title?.trim() || category.name,
+            principal: input.amount,
+            purchasedAt: input.date,
+            dueDate: input.source.dueDate,
+            note,
+            createdAt,
+        };
+        const entry: Entry = {
+            id: newId("entry"),
+            kind: "expense",
+            amount: input.amount,
+            date: input.date,
+            liabilityAccountId: liability.id,
+            billId,
+            categoryId: category.id,
+            note,
+            createdAt,
+        };
+
+        set({
+            bills: [...state.bills, bill],
+            entries: [...state.entries, entry],
+        });
+        return { ok: true, billId };
+    },
+
+    addIncome(input) {
+        if (!isPositiveInteger(input.amount)) {
+            return fail("金额必须大于 0");
+        }
+        if (!isValidDate(input.date)) {
+            return fail("请选择有效日期");
+        }
+
+        const state = get();
+        const category = state.categories.find((item) => item.id === input.categoryId);
+        if (!category || category.kind !== "income") {
+            return fail("请选择收入分类");
+        }
+        const account = state.accounts.find((item) => item.id === input.accountId);
+        if (!account || account.kind !== "asset") {
+            return fail("请选择收款账户");
+        }
+
+        const entry: Entry = {
+            id: newId("entry"),
+            kind: "income",
+            amount: input.amount,
+            date: input.date,
+            accountId: account.id,
+            categoryId: category.id,
+            note: cleanNote(input.note),
+            createdAt: Date.now(),
+        };
+        set({ entries: [...state.entries, entry] });
+        return { ok: true };
+    },
+
+    addRepayment(input) {
+        if (!isValidDate(input.date)) {
+            return fail("请选择有效日期");
+        }
+
+        const state = get();
+        const bill = state.bills.find((item) => item.id === input.billId);
+        if (!bill) {
+            return fail("账单不存在");
+        }
+        const account = state.accounts.find((item) => item.id === input.accountId);
+        const error = validateRepayment(bill, state.entries, input.amount, account);
+        if (error) {
+            return fail(error);
+        }
+
+        const entry: Entry = {
+            id: newId("entry"),
+            kind: "repayment",
+            amount: input.amount,
+            date: input.date,
+            accountId: input.accountId,
+            liabilityAccountId: bill.liabilityAccountId,
+            billId: bill.id,
+            note: cleanNote(input.note),
+            createdAt: Date.now(),
+        };
+        set({ entries: [...state.entries, entry] });
+        return { ok: true };
+    },
+
+    deleteEntry(entryId) {
+        const state = get();
+        const entry = state.entries.find((item) => item.id === entryId);
+        if (!entry) {
+            return fail("流水不存在");
+        }
+
+        if (entry.kind === "expense" && entry.billId) {
+            const bill = state.bills.find((item) => item.id === entry.billId);
+            if (!bill) {
+                set({ entries: state.entries.filter((item) => item.id !== entryId) });
+                return { ok: true };
+            }
+            if (bill.opening) {
+                return fail("期初负债不能直接删除");
+            }
+            if (getBillRepaid(bill.id, state.entries) > 0) {
+                return fail("这笔赊账已有还款记录，请先删除对应的还款");
+            }
+            set({
+                entries: state.entries.filter((item) => item.id !== entryId),
+                bills: state.bills.filter((item) => item.id !== bill.id),
+            });
+            return { ok: true };
+        }
+
+        set({ entries: state.entries.filter((item) => item.id !== entryId) });
+        return { ok: true };
+    },
+
+    deleteBill(billId) {
+        const state = get();
+        const bill = state.bills.find((item) => item.id === billId);
+        if (!bill) {
+            return fail("账单不存在");
+        }
+        if (bill.opening) {
+            return fail("期初负债不能删除，请通过还款结清");
+        }
+        if (getBillRepaid(bill.id, state.entries) > 0) {
+            return fail("这笔账单已有还款记录，请先删除对应的还款");
+        }
+
+        const linkedExpense = getLinkedExpense(bill.id, state.entries);
+        set({
+            bills: state.bills.filter((item) => item.id !== bill.id),
+            entries: linkedExpense
+                ? state.entries.filter((item) => item.id !== linkedExpense.id)
+                : state.entries,
+        });
+        return { ok: true };
+    },
+
+    updateBill(billId, patch) {
+        const state = get();
+        const bill = state.bills.find((item) => item.id === billId);
+        if (!bill) {
+            return fail("账单不存在");
+        }
+        if (patch.title !== undefined && patch.title.trim() === "") {
+            return fail("账单名称不能为空");
+        }
+        if (patch.dueDate !== undefined && !isValidDate(patch.dueDate)) {
+            return fail("请选择有效到期日");
+        }
+        const nextCategoryId =
+            patch.categoryId === undefined || patch.categoryId === ""
+                ? undefined
+                : patch.categoryId;
+        if (nextCategoryId !== undefined) {
+            const category = state.categories.find((item) => item.id === nextCategoryId);
+            if (!category || category.kind !== "expense") {
+                return fail("请选择支出分类");
+            }
+        }
+
+        set({
+            bills: state.bills.map((item) =>
+                item.id === billId
+                    ? {
+                          ...item,
+                          ...patch,
+                          title: patch.title?.trim() ?? item.title,
+                          note: patch.note !== undefined ? cleanNote(patch.note) : item.note,
+                          categoryId:
+                              patch.categoryId !== undefined
+                                  ? nextCategoryId
+                                  : item.categoryId,
+                      }
+                    : item,
+            ),
+            entries:
+                patch.categoryId !== undefined
+                    ? state.entries.map((entry) =>
+                          entry.billId === billId && entry.kind === "expense"
+                              ? { ...entry, categoryId: nextCategoryId }
+                              : entry,
+                      )
+                    : state.entries,
+        });
+        return { ok: true };
+    },
+
+    addAccount(input) {
+        const name = input.name.trim();
+        if (!name) {
+            return fail("账户名称不能为空");
+        }
+        if (!isNonNegativeInteger(input.openingBalance)) {
+            return fail("期初余额必须是非负整数");
+        }
+
+        const state = get();
+        const createdAt = Date.now();
+        const account: Account = {
+            id: newId("acc"),
+            name,
+            kind: input.kind,
+            emoji: input.emoji.trim() || (input.kind === "liability" ? "💳" : "💵"),
+            openingBalance: input.openingBalance,
+            note: cleanNote(input.note),
+            createdAt,
+        };
+
+        let openingBill: Bill | undefined;
+        if (input.kind === "liability" && input.openingBalance > 0) {
+            openingBill = {
+                id: newId("bill"),
+                liabilityAccountId: account.id,
+                title: "期初负债",
+                principal: input.openingBalance,
+                purchasedAt: createdAt,
+                note: "创建账户时带入的期初余额",
+                opening: true,
+                createdAt,
+            };
+        }
+
+        set({
+            accounts: [...state.accounts, account],
+            bills: openingBill ? [...state.bills, openingBill] : state.bills,
+        });
+        return { ok: true, id: account.id };
+    },
+
+    updateAccount(accountId, patch) {
+        const state = get();
+        const account = state.accounts.find((item) => item.id === accountId);
+        if (!account) {
+            return fail("账户不存在");
+        }
+        if (patch.name !== undefined && patch.name.trim() === "") {
+            return fail("账户名称不能为空");
+        }
+        set({
+            accounts: state.accounts.map((item) =>
+                item.id === accountId
+                    ? {
+                          ...item,
+                          ...patch,
+                          name: patch.name?.trim() ?? item.name,
+                          emoji: patch.emoji?.trim() || item.emoji,
+                          note: patch.note !== undefined ? cleanNote(patch.note) : item.note,
+                      }
+                    : item,
+            ),
+        });
+        return { ok: true };
+    },
+
+    deleteAccount(accountId) {
+        const state = get();
+        const account = state.accounts.find((item) => item.id === accountId);
+        if (!account) {
+            return fail("账户不存在");
+        }
+        const usedByEntry = state.entries.some(
+            (entry) => entry.accountId === accountId || entry.liabilityAccountId === accountId,
+        );
+        const usedByBill = state.bills.some((bill) => bill.liabilityAccountId === accountId);
+        if (usedByEntry || usedByBill) {
+            return fail("该账户已有流水或账单，不能删除");
+        }
+        set({ accounts: state.accounts.filter((item) => item.id !== accountId) });
+        return { ok: true };
+    },
+
+    addCategory(input) {
+        const name = input.name.trim();
+        if (!name) {
+            return fail("分类名称不能为空");
+        }
+        const state = get();
+        const category: Category = {
+            id: newId("cat"),
+            name,
+            kind: input.kind,
+            emoji: input.emoji.trim() || "📦",
+            color: input.color || "#a8a29e",
+            createdAt: Date.now(),
+        };
+        set({ categories: [...state.categories, category] });
+        return { ok: true, id: category.id };
+    },
+
+    updateCategory(categoryId, patch) {
+        const state = get();
+        const category = state.categories.find((item) => item.id === categoryId);
+        if (!category) {
+            return fail("分类不存在");
+        }
+        if (patch.name !== undefined && patch.name.trim() === "") {
+            return fail("分类名称不能为空");
+        }
+        set({
+            categories: state.categories.map((item) =>
+                item.id === categoryId
+                    ? {
+                          ...item,
+                          ...patch,
+                          name: patch.name?.trim() ?? item.name,
+                          emoji: patch.emoji?.trim() || item.emoji,
+                      }
+                    : item,
+            ),
+        });
+        return { ok: true };
+    },
+
+    deleteCategory(categoryId) {
+        const state = get();
+        const category = state.categories.find((item) => item.id === categoryId);
+        if (!category) {
+            return fail("分类不存在");
+        }
+        const used = state.entries.some((entry) => entry.categoryId === categoryId);
+        const usedByBill = state.bills.some((bill) => bill.categoryId === categoryId);
+        if (used || usedByBill) {
+            return fail("该分类已有流水或账单，不能删除");
+        }
+        set({ categories: state.categories.filter((item) => item.id !== categoryId) });
+        return { ok: true };
+    },
+
+    setSettings(patch) {
+        set((state) => ({ settings: { ...state.settings, ...patch } }));
+    },
+
+    importData(data) {
+        if (!data.accounts.length) {
+            return fail("导入文件里没有账户");
+        }
+        set({
+            accounts: data.accounts,
+            categories: data.categories,
+            bills: data.bills,
+            entries: data.entries,
+            settings: data.settings,
+        });
+        return { ok: true };
+    },
+
+    resetData() {
+        set(createSeedData());
+    },
+});
+
+const STORAGE_KEY = "liangqi-ledger-v1";
+const LEGACY_STORAGE_KEY = "zhaibu-ledger-v1";
+
+/**
+ * The project was renamed from Zhaibu to Liangqi. Copy an existing local
+ * ledger to the new key once, so current users do not lose their data.
+ */
+function migrateLegacyStorage(): void {
+    if (typeof window === "undefined") {
+        return;
+    }
+    try {
+        if (window.localStorage.getItem(STORAGE_KEY)) {
+            return;
+        }
+        const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+        if (legacy) {
+            window.localStorage.setItem(STORAGE_KEY, legacy);
+        }
+    } catch {
+        // localStorage may be unavailable (private mode, disabled storage).
+    }
+}
+
+migrateLegacyStorage();
+
+const initial = createSeedData();
+
+export const useLedgerStore = create<LedgerState>()(
+    persist(
+        (set, get) => ({
+            ...initial,
+            ...createActions(set, get),
+        }),
+        {
+            name: STORAGE_KEY,
+            version: 1,
+            storage: createJSONStorage(() => localStorage),
+            partialize: (state) => ({
+                accounts: state.accounts,
+                categories: state.categories,
+                bills: state.bills,
+                entries: state.entries,
+                settings: state.settings,
+            }),
+            merge: (persisted, current) => {
+                const data = persisted as Partial<LedgerData> | undefined;
+                if (!data) {
+                    return current;
+                }
+                return {
+                    ...current,
+                    ...data,
+                    settings: {
+                        ...current.settings,
+                        ...(data.settings ?? {}),
+                    },
+                };
+            },
+        },
+    ),
+);
+
+export function useCurrency(): string {
+    return useLedgerStore((state) => state.settings.currency);
+}
+
+export function useTheme(): ThemeMode {
+    return useLedgerStore((state) => state.settings.theme);
+}
+
+export function getAccountName(accounts: Account[], accountId?: string): string {
+    if (!accountId) {
+        return "未指定账户";
+    }
+    return accounts.find((account) => account.id === accountId)?.name ?? "已删除账户";
+}
+
+export function getCategoryName(categories: Category[], categoryId?: string): string {
+    if (!categoryId) {
+        return "未分类";
+    }
+    return categories.find((category) => category.id === categoryId)?.name ?? "未分类";
+}
+
+export function getBillRemainingForState(bill: Bill, state: LedgerData): number {
+    return getBillRemaining(bill, state.entries);
+}
