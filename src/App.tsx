@@ -22,6 +22,7 @@ import { Budgets } from "@/pages/budgets";
 import { Recurring } from "@/pages/recurring";
 import { CsvImport } from "@/pages/csv-import";
 import { Analytics } from "@/pages/analytics";
+import { AiAssistant } from "@/pages/ai-assistant";
 import { Settings } from "@/pages/settings";
 import { DataSource } from "@/pages/data-source";
 import { Members } from "@/pages/members";
@@ -42,6 +43,7 @@ export default function App() {
                         <Route path="tags" element={<TagsPage />} />
                         <Route path="budgets" element={<Budgets />} />
                         <Route path="analytics" element={<Analytics />} />
+                        <Route path="ai" element={<AiAssistant />} />
                         <Route path="recurring" element={<Recurring />} />
                         <Route path="import" element={<CsvImport />} />
                         <Route path="members" element={<Members />} />

@@ -367,6 +367,13 @@ export function Settings() {
                             支持 OpenAI、DeepSeek、Moonshot 等兼容
                             /chat/completions 的服务。请求从浏览器直接发往你填写的地址，不经过两讫服务器。
                         </p>
+                        <Link
+                            to="/ai"
+                            className="flex items-center justify-between rounded-xl border border-line bg-surface-2/55 px-4 py-3 text-xs font-semibold text-text transition hover:border-line-strong"
+                        >
+                            打开 AI 助手
+                            <ArrowRight className="size-3.5 text-muted" />
+                        </Link>
                     </div>
                 </section>
 

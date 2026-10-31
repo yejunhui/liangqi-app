@@ -22,6 +22,7 @@ import {
     Upload,
     Mic,
     ChartNoAxesColumn,
+    Bot,
 } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Logo } from "@/components/logo";
@@ -47,6 +48,7 @@ const secondaryNav = [
     { to: "/tags", label: "标签", icon: Tag },
     { to: "/budgets", label: "预算", icon: Target },
     { to: "/analytics", label: "分析", icon: ChartNoAxesColumn },
+    { to: "/ai", label: "AI 助手", icon: Bot },
     { to: "/recurring", label: "周期", icon: Repeat },
     { to: "/import", label: "导入", icon: Upload },
     { to: "/members", label: "成员", icon: Users },

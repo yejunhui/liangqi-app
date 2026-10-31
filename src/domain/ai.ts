@@ -23,6 +23,88 @@ function extractJson(text: string): unknown {
     return JSON.parse(cleaned);
 }
 
+export interface AiMessage {
+    role: "system" | "user" | "assistant";
+    content: string;
+}
+
+export interface AiChatOptions {
+    temperature?: number;
+    maxTokens?: number;
+    timeoutMs?: number;
+}
+
+export async function requestAiChat(
+    config: AiConfig,
+    messages: AiMessage[],
+    options: AiChatOptions = {},
+): Promise<string> {
+    const controller = new AbortController();
+    const timer = globalThis.setTimeout(
+        () => controller.abort(),
+        options.timeoutMs ?? 45_000,
+    );
+    let response: Response;
+    try {
+        response = await fetch(chatEndpoint(config.endpoint), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${config.apiKey}`,
+            },
+            body: JSON.stringify({
+                model: config.model,
+                temperature: options.temperature ?? 0.4,
+                ...(options.maxTokens ? { max_tokens: options.maxTokens } : {}),
+                messages,
+            }),
+            signal: controller.signal,
+        });
+    } finally {
+        globalThis.clearTimeout(timer);
+    }
+
+    const data: unknown = await response.json().catch(() => null);
+    if (!response.ok) {
+        const message =
+            typeof data === "object" && data !== null
+                ? (data as { error?: { message?: string } }).error?.message
+                : undefined;
+        throw new Error(message ?? `AI 请求失败（${response.status}）`);
+    }
+    const choices =
+        typeof data === "object" && data !== null
+            ? (
+                  data as {
+                      choices?: Array<{
+                          message?: {
+                              content?: unknown;
+                          };
+                      }>;
+                  }
+              ).choices
+            : undefined;
+    const rawContent = choices?.[0]?.message?.content;
+    if (typeof rawContent === "string") {
+        return rawContent;
+    }
+    if (Array.isArray(rawContent)) {
+        const text = rawContent
+            .map((item) =>
+                typeof item === "object" &&
+                item !== null &&
+                typeof (item as { text?: unknown }).text === "string"
+                    ? (item as { text: string }).text
+                    : "",
+            )
+            .join("");
+        if (text) {
+            return text;
+        }
+    }
+    throw new Error("AI 返回内容为空");
+}
+
 export async function parseQuickEntryWithAi(input: {
     text: string;
     categories: Category[];
@@ -54,46 +136,14 @@ export async function parseQuickEntryWithAi(input: {
         `账户：${JSON.stringify(accountList)}`,
     ].join("\n");
 
-    const controller = new AbortController();
-    const timer = globalThis.setTimeout(() => controller.abort(), 20_000);
-    let response: Response;
-    try {
-        response = await fetch(chatEndpoint(input.config.endpoint), {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${input.config.apiKey}`,
-            },
-            body: JSON.stringify({
-                model: input.config.model,
-                temperature: 0,
-                messages: [
-                    { role: "system", content: system },
-                    { role: "user", content: input.text },
-                ],
-            }),
-            signal: controller.signal,
-        });
-    } finally {
-        globalThis.clearTimeout(timer);
-    }
-
-    const data: unknown = await response.json().catch(() => null);
-    if (!response.ok) {
-        const message =
-            typeof data === "object" && data !== null
-                ? (data as { error?: { message?: string } }).error?.message
-                : undefined;
-        throw new Error(message ?? `AI 请求失败（${response.status}）`);
-    }
-    const choices =
-        typeof data === "object" && data !== null
-            ? (data as { choices?: Array<{ message?: { content?: unknown } }> }).choices
-            : undefined;
-    const content = choices?.[0]?.message?.content;
-    if (typeof content !== "string") {
-        throw new Error("AI 返回内容为空");
-    }
+    const content = await requestAiChat(
+        input.config,
+        [
+            { role: "system", content: system },
+            { role: "user", content: input.text },
+        ],
+        { temperature: 0, timeoutMs: 20_000 },
+    );
     const parsed = extractJson(content) as {
         amount?: unknown;
         kind?: unknown;
