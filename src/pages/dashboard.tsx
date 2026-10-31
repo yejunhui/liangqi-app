@@ -130,12 +130,12 @@ export function Dashboard() {
                         资产减去负债，才是真正属于你的钱
                     </p>
 
-                    <div className="mt-6 grid max-w-md grid-cols-2 gap-4">
+                    <div className="mt-6 grid max-w-lg grid-cols-3 gap-3">
                         <div>
                             <p className="text-[10px] font-medium tracking-wide text-white/50">
                                 总资产
                             </p>
-                            <p className="mt-1 text-lg font-semibold tabular-nums text-white/95">
+                            <p className="mt-1 text-base font-semibold tabular-nums text-white/95 sm:text-lg">
                                 {formatCents(totals.assets, currency)}
                             </p>
                         </div>
@@ -143,8 +143,26 @@ export function Dashboard() {
                             <p className="text-[10px] font-medium tracking-wide text-white/50">
                                 总负债
                             </p>
-                            <p className="mt-1 text-lg font-semibold tabular-nums text-[#fbbf24]">
+                            <p className="mt-1 text-base font-semibold tabular-nums text-[#fbbf24] sm:text-lg">
                                 {formatCents(totals.liabilities, currency)}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-medium tracking-wide text-white/50">
+                                可支配
+                            </p>
+                            <p
+                                className={cn(
+                                    "mt-1 text-base font-semibold tabular-nums sm:text-lg",
+                                    totals.disposable < 0
+                                        ? "text-[#fca5a5]"
+                                        : "text-[#5eead4]",
+                                )}
+                            >
+                                {formatCents(totals.disposable, currency)}
+                            </p>
+                            <p className="mt-0.5 text-[9px] text-white/40">
+                                流动资产 − 负债
                             </p>
                         </div>
                     </div>

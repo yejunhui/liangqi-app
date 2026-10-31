@@ -179,6 +179,37 @@ describe("bill lifecycle", () => {
 });
 
 describe("net worth", () => {
+    it("computes disposable from liquid assets only", () => {
+        const data = createSeedData(NOW);
+        data.accounts = data.accounts.map((account) => {
+            if (account.id === "acc_cash") {
+                return { ...account, openingBalance: 100_000 };
+            }
+            if (account.id === "acc_bank") {
+                return { ...account, openingBalance: 500_000 };
+            }
+            if (account.id === "acc_credit") {
+                return { ...account, openingBalance: 50_000 };
+            }
+            return account;
+        });
+        data.accounts.push({
+            id: "acc_house",
+            name: "房产",
+            kind: "asset",
+            emoji: "🏠",
+            openingBalance: 10_000_000,
+            liquid: false,
+            createdAt: NOW,
+        });
+
+        const totals = getTotals(data);
+        expect(totals.assets).toBe(10_600_000);
+        expect(totals.liabilities).toBe(50_000);
+        expect(totals.netWorth).toBe(10_550_000);
+        expect(totals.disposable).toBe(550_000);
+    });
+
     it("counts an opening liability and lets it be repaid", () => {
         const data = createSeedData(NOW);
         const liability: Account = {

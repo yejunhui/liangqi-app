@@ -68,6 +68,7 @@ export interface AccountInput {
     kind: AccountKind;
     emoji: string;
     openingBalance: number;
+    liquid?: boolean;
     note?: string;
 }
 
@@ -97,7 +98,7 @@ export interface LedgerActions {
     addAccount: (input: AccountInput) => Result & { id?: string };
     updateAccount: (
         accountId: string,
-        patch: Partial<Pick<Account, "name" | "emoji" | "note">>,
+        patch: Partial<Pick<Account, "name" | "emoji" | "note" | "liquid">>,
     ) => Result;
     deleteAccount: (accountId: string) => Result;
     addCategory: (input: CategoryInput) => Result & { id?: string };
@@ -437,6 +438,7 @@ const createActions = (
             kind: input.kind,
             emoji: input.emoji.trim() || (input.kind === "liability" ? "💳" : "💵"),
             openingBalance: input.openingBalance,
+            liquid: input.kind === "asset" ? (input.liquid ?? true) : undefined,
             note: cleanNote(input.note),
             createdAt,
         };
@@ -480,6 +482,10 @@ const createActions = (
                           ...patch,
                           name: patch.name?.trim() ?? item.name,
                           emoji: patch.emoji?.trim() || item.emoji,
+                          liquid:
+                              item.kind === "asset" && patch.liquid !== undefined
+                                  ? patch.liquid
+                                  : item.liquid,
                           note: patch.note !== undefined ? cleanNote(patch.note) : item.note,
                       }
                     : item,

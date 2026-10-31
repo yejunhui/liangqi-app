@@ -42,7 +42,9 @@ export function AccountCard({
                     <p className="mt-0.5 text-[11px] text-muted">
                         {isLiability
                             ? `${billCount ?? 0} 笔待还账单`
-                            : (account.note ?? "储蓄账户")}
+                            : `${account.note ?? "储蓄账户"}${
+                                  account.liquid === false ? " · 非流动" : ""
+                              }`}
                     </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-0.5 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">

@@ -55,16 +55,22 @@ export interface Totals {
     assets: number;
     liabilities: number;
     netWorth: number;
+    /** Liquid assets minus all liabilities. */
+    disposable: number;
 }
 
 export function getTotals(data: Pick<LedgerData, "accounts" | "entries">): Totals {
     let assets = 0;
     let liabilities = 0;
+    let liquidAssets = 0;
 
     for (const account of data.accounts) {
         const balance = getAccountBalance(account, data.entries);
         if (account.kind === "asset") {
             assets += balance;
+            if (account.liquid !== false) {
+                liquidAssets += balance;
+            }
         } else {
             liabilities += balance;
         }
@@ -74,6 +80,7 @@ export function getTotals(data: Pick<LedgerData, "accounts" | "entries">): Total
         assets,
         liabilities,
         netWorth: assets - liabilities,
+        disposable: liquidAssets - liabilities,
     };
 }
 

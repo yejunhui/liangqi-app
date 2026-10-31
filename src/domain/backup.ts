@@ -77,12 +77,16 @@ function parseAccount(raw: unknown, index: number): Account {
     if (!optionalString(raw.note)) {
         throw new Error(`第 ${index + 1} 个账户备注格式不正确`);
     }
+    if (raw.liquid !== undefined && typeof raw.liquid !== "boolean") {
+        throw new Error(`第 ${index + 1} 个账户流动资产标记格式不正确`);
+    }
     return {
         id: requiredString(raw.id, "账户 id"),
         name: requiredString(raw.name, "账户名称"),
         kind,
         emoji: requiredString(raw.emoji, "账户图标"),
         openingBalance: requiredInteger(raw.openingBalance, "账户期初余额"),
+        liquid: raw.liquid as boolean | undefined,
         note: raw.note as string | undefined,
         createdAt: requiredTimestamp(raw.createdAt, "账户创建时间"),
     };

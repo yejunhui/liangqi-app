@@ -42,6 +42,7 @@ export function AccountModal({ open, account, defaultKind, onClose }: AccountMod
     const [kind, setKind] = useState<AccountKind>("asset");
     const [emoji, setEmoji] = useState("💵");
     const [openingBalance, setOpeningBalance] = useState("");
+    const [liquid, setLiquid] = useState(true);
     const [note, setNote] = useState("");
     const [error, setError] = useState("");
 
@@ -54,12 +55,14 @@ export function AccountModal({ open, account, defaultKind, onClose }: AccountMod
             setKind(account.kind);
             setEmoji(account.emoji);
             setOpeningBalance((account.openingBalance / 100).toFixed(2));
+            setLiquid(account.liquid !== false);
             setNote(account.note ?? "");
         } else {
             setName("");
             setKind(defaultKind);
             setEmoji(defaultKind === "liability" ? "💳" : "💵");
             setOpeningBalance("");
+            setLiquid(true);
             setNote("");
         }
         setError("");
@@ -72,7 +75,12 @@ export function AccountModal({ open, account, defaultKind, onClose }: AccountMod
         setError("");
 
         if (editing) {
-            const result = updateAccount(account.id, { name, emoji, note });
+            const result = updateAccount(account.id, {
+                name,
+                emoji,
+                note,
+                ...(account.kind === "asset" ? { liquid } : {}),
+            });
             if (!result.ok) {
                 setError(result.error);
                 return;
@@ -93,6 +101,7 @@ export function AccountModal({ open, account, defaultKind, onClose }: AccountMod
             kind,
             emoji,
             openingBalance: openingCents,
+            liquid: kind === "asset" ? liquid : undefined,
             note,
         });
         if (!result.ok) {
@@ -207,6 +216,25 @@ export function AccountModal({ open, account, defaultKind, onClose }: AccountMod
                         ))}
                     </div>
                 </div>
+
+                {(editing ? account.kind : kind) === "asset" && (
+                    <label className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-2/55 p-3">
+                        <span>
+                            <span className="block text-xs font-semibold text-text">
+                                计入可支配资产
+                            </span>
+                            <span className="mt-0.5 block text-[10px] leading-relaxed text-muted">
+                                现金、银行卡等流动资产。房产、投资等可以关闭。
+                            </span>
+                        </span>
+                        <input
+                            type="checkbox"
+                            checked={liquid}
+                            onChange={(event) => setLiquid(event.target.checked)}
+                            className="size-4 shrink-0 accent-[var(--accent)]"
+                        />
+                    </label>
+                )}
 
                 <label className="block">
                     <span className="mb-1.5 block text-xs font-semibold text-muted">

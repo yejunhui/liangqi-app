@@ -26,6 +26,8 @@ export interface Account {
     emoji: string;
     /** Opening balance in cents. For liabilities this is the amount owed. */
     openingBalance: number;
+    /** Whether an asset account counts toward disposable assets. Defaults to true. */
+    liquid?: boolean;
     note?: string;
     createdAt: number;
 }
