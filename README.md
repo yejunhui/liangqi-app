@@ -84,6 +84,13 @@ repo/
 - **冲突处理**：MVP 按账本 `updatedAt` 判断，远程版本优先；被覆盖的本地版本保存在「数据源 → 冲突备份」，最多 10 份。
 - **不做逐条合并**：多人同时编辑同一账本时，后同步的一方会以远程版本为准。需要 CRDT / 逐条合并可以后续扩展。
 
+## 部署形态
+
+- **纯静态前端**：`pnpm build` 产出 `dist/`，可部署到 Cloudflare Pages、GitHub Pages、Netlify 等；没有数据库、没有 API 服务。
+- **完全无后端**：使用 GitHub / Gitee PAT 或 WebDAV；不启用 OAuth。
+- **可选 OAuth**：只有 OAuth 需要 `server/oauth-worker` 做 code exchange，它不保存账本数据；不想部署就只用 PAT。
+- **WebDAV 注意**：浏览器直连要求服务器允许 CORS；不支持 CORS 的 WebDAV 需要额外代理，那种情况下才需要后端。
+
 ## 登录方式
 
 ### PAT Token
