@@ -77,7 +77,10 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
 
     function headers(): Record<string, string> {
         const result: Record<string, string> = {
-            Accept: "application/vnd.github+json",
+            Accept:
+                config.provider === "github"
+                    ? "application/vnd.github+json"
+                    : "application/json",
             "Content-Type": "application/json",
         };
         if (config.provider === "github") {
@@ -245,6 +248,35 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
         }
     }
 
+    async function readFileRevision(path: string): Promise<string | undefined> {
+        const response = await request(contentsUrl(path, config.branch));
+        if (response.status === 404) {
+            return undefined;
+        }
+        if (response.status === 401 || response.status === 403) {
+            throw new RemoteError(
+                `${label} 认证失败，或 token 没有仓库读写权限`,
+                response.status,
+            );
+        }
+        if (!response.ok) {
+            const data: unknown = await response.json().catch(() => null);
+            throw new RemoteError(
+                errorMessage(data, `读取 ${path} 失败（HTTP ${response.status}）`),
+                response.status,
+            );
+        }
+        const data = (await response.json()) as unknown;
+        if (Array.isArray(data)) {
+            throw new RemoteError(`${path} 是目录，不是文件`);
+        }
+        if (typeof data !== "object" || data === null) {
+            return undefined;
+        }
+        const sha = (data as Record<string, unknown>).sha;
+        return typeof sha === "string" ? sha : undefined;
+    }
+
     return {
         provider: config.provider,
 
@@ -309,6 +341,18 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
             revision?: string,
         ): Promise<{ revision?: string }> {
             const url = contentsUrl(path);
+
+            // GitHub always uses PUT. Gitee uses POST for a new file and PUT
+            // with the current sha when updating an existing file.
+            let method: "POST" | "PUT" = "PUT";
+            let currentRevision = revision;
+            if (config.provider === "gitee" && !currentRevision) {
+                currentRevision = await readFileRevision(path);
+                if (!currentRevision) {
+                    method = "POST";
+                }
+            }
+
             const body: Record<string, unknown> = {
                 message: `liangqi: update ${path}`,
                 content: encodeBase64Utf8(text),
@@ -316,17 +360,36 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
             if (config.branch) {
                 body.branch = config.branch;
             }
-            if (revision) {
-                body.sha = revision;
+            if (currentRevision) {
+                body.sha = currentRevision;
             }
             if (config.provider === "gitee") {
                 body.access_token = config.token;
             }
 
-            const response = await request(url, {
-                method: "PUT",
+            let response = await request(url, {
+                method,
                 body: JSON.stringify(body),
             });
+
+            // The file may have been created after the existence check.
+            if (
+                config.provider === "gitee" &&
+                !revision &&
+                !currentRevision &&
+                (response.status === 400 ||
+                    response.status === 404 ||
+                    response.status === 409)
+            ) {
+                const latest = await readFileRevision(path);
+                if (latest) {
+                    body.sha = latest;
+                    response = await request(url, {
+                        method: "PUT",
+                        body: JSON.stringify(body),
+                    });
+                }
+            }
 
             if (response.status === 409) {
                 throw new RemoteConflictError();
@@ -339,7 +402,10 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
             }
             if (!response.ok) {
                 const data: unknown = await response.json().catch(() => null);
-                const message = errorMessage(data, `写入 ${path} 失败`);
+                const message = errorMessage(
+                    data,
+                    `写入 ${path} 失败（HTTP ${response.status}）`,
+                );
                 if (response.status === 422 && /sha|conflict|does not match/i.test(message)) {
                     throw new RemoteConflictError(message);
                 }

@@ -104,4 +104,41 @@ describe("Gitee contents adapter", () => {
         expect(url).toContain("https://gitee.com/api/v5/repos/me/ledger");
         expect(url).toContain("access_token=gitee-token");
     });
+
+    it("creates a new file with POST", async () => {
+        fetchMock
+            .mockResolvedValueOnce(jsonResponse({ message: "not found" }, 404))
+            .mockResolvedValueOnce(
+                jsonResponse({ content: { sha: "new-sha" } }, 201),
+            );
+
+        const result = await adapter.writeFile("liangqi/meta.json", "hello");
+        expect(result.revision).toBe("new-sha");
+
+        expect(fetchMock.mock.calls[0][1]?.method ?? "GET").toBe("GET");
+        const [url, init] = fetchMock.mock.calls[1];
+        expect(String(url)).toContain("/contents/liangqi/meta.json");
+        expect(init?.method).toBe("POST");
+        const body = JSON.parse(String(init?.body));
+        expect(decodeBase64Utf8(body.content)).toBe("hello");
+        expect(body.sha).toBeUndefined();
+        expect(body.access_token).toBe("gitee-token");
+    });
+
+    it("updates an existing file with PUT and its sha", async () => {
+        fetchMock
+            .mockResolvedValueOnce(jsonResponse({ sha: "old-sha" }))
+            .mockResolvedValueOnce(
+                jsonResponse({ content: { sha: "next-sha" } }),
+            );
+
+        const result = await adapter.writeFile("liangqi/meta.json", "hello");
+        expect(result.revision).toBe("next-sha");
+
+        const [url, init] = fetchMock.mock.calls[1];
+        expect(String(url)).toContain("/contents/liangqi/meta.json");
+        expect(init?.method).toBe("PUT");
+        const body = JSON.parse(String(init?.body));
+        expect(body.sha).toBe("old-sha");
+    });
 });
