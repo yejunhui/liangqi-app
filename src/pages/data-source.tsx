@@ -245,7 +245,6 @@ export function DataSource() {
             toast(result.message, result.action === "conflict" ? "info" : "success");
             setRemoteBooks(await listRemoteBooks(connection));
             setConflicts(getConflictBackups());
-            openMemberModal();
         } catch (cause) {
             setError(cause instanceof Error ? cause.message : "上传失败");
         } finally {
@@ -257,16 +256,12 @@ export function DataSource() {
         if (!connection) {
             return;
         }
-        const wasCurrent = binding?.remoteBookId === remoteBookId;
         setError("");
         setBusy(`open:${remoteBookId}`);
         try {
             const book = await openRemoteBook(connection, remoteBookId);
             toast(`已打开“${book.name}”`, "success");
             setConflicts(getConflictBackups());
-            if (!wasCurrent) {
-                openMemberModal();
-            }
         } catch (cause) {
             setError(cause instanceof Error ? cause.message : "打开远程账本失败");
         } finally {
