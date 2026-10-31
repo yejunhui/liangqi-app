@@ -107,7 +107,7 @@ describe("Gitee contents adapter", () => {
 
     it("creates a new file with POST", async () => {
         fetchMock
-            .mockResolvedValueOnce(jsonResponse({ message: "not found" }, 404))
+            .mockResolvedValueOnce(jsonResponse([]))
             .mockResolvedValueOnce(
                 jsonResponse({ content: { sha: "new-sha" } }, 201),
             );
@@ -123,6 +123,11 @@ describe("Gitee contents adapter", () => {
         expect(decodeBase64Utf8(body.content)).toBe("hello");
         expect(body.sha).toBeUndefined();
         expect(body.access_token).toBe("gitee-token");
+    });
+
+    it("treats an empty Gitee listing as a missing file", async () => {
+        fetchMock.mockResolvedValueOnce(jsonResponse([]));
+        await expect(adapter.readFile("liangqi/manifest.json")).resolves.toBeNull();
     });
 
     it("updates an existing file with PUT and its sha", async () => {

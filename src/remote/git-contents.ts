@@ -268,6 +268,9 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
         }
         const data = (await response.json()) as unknown;
         if (Array.isArray(data)) {
+            if (data.length === 0) {
+                return undefined;
+            }
             throw new RemoteError(`${path} 是目录，不是文件`);
         }
         if (typeof data !== "object" || data === null) {
@@ -320,6 +323,13 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
                 );
             }
             const data = (await response.json()) as Record<string, unknown>;
+            if (Array.isArray(data)) {
+                // Gitee returns 200 with [] for a missing path instead of 404.
+                if (data.length === 0) {
+                    return null;
+                }
+                throw new RemoteError(`${path} 是目录，不是文件`);
+            }
             if (
                 typeof data.content !== "string" ||
                 (typeof data.type === "string" && data.type !== "file")
