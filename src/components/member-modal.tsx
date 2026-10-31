@@ -55,11 +55,11 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
             return;
         }
         if (remote && !pin.trim() && (!editing || !existingPin)) {
-            setError("共享账本的成员必须设置 PIN");
+            setError("共享账本的成员必须设置密码");
             return;
         }
         if (remote && removePin) {
-            setError("共享账本的成员不能清除 PIN");
+            setError("共享账本的成员不能清除密码");
             return;
         }
         const pinValue = pin.trim();
@@ -88,7 +88,7 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
                 };
             }
         } catch (cause) {
-            setError(cause instanceof Error ? cause.message : "PIN 处理失败");
+            setError(cause instanceof Error ? cause.message : "密码处理失败");
             return;
         }
 
@@ -172,11 +172,11 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
                 <div className="rounded-xl border border-line bg-surface-2/40 p-3">
                     <div className="flex items-center justify-between gap-2">
                         <div>
-                            <p className="text-xs font-semibold text-text">成员 PIN</p>
+                            <p className="text-xs font-semibold text-text">成员密码</p>
                             <p className="mt-0.5 text-[10px] text-muted">
                                 {remote
-                                    ? "共享账本必须设置 PIN；4–12 位数字，切换成员时验证"
-                                    : "可选，4–12 位数字；切换成员时需要输入"}
+                                    ? "共享账本必须设置密码；4–32 位，可包含字母和数字"
+                                    : "可选，4–32 位；切换成员时需要输入"}
                             </p>
                         </div>
                         {existingPin && !removePin && (
@@ -188,14 +188,14 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
                                 }}
                                 className="text-[10px] font-medium text-danger hover:underline"
                             >
-                                清除 PIN
+                                清除密码
                             </button>
                         )}
                     </div>
                     {removePin ? (
                         <div className="mt-2 flex items-center justify-between rounded-lg bg-danger-soft/50 px-2.5 py-2">
                             <span className="text-[10px] text-danger">
-                                保存后会清除已有 PIN
+                                保存后会清除已有密码
                             </span>
                             <button
                                 type="button"
@@ -209,16 +209,13 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
                         <input
                             className="field mt-2 text-xs tracking-widest"
                             type="password"
-                            inputMode="numeric"
-                            maxLength={12}
+                            maxLength={32}
                             value={pin}
-                            onChange={(event) =>
-                                setPin(event.target.value.replace(/\D/g, ""))
-                            }
+                            onChange={(event) => setPin(event.target.value)}
                             placeholder={
                                 existingPin
-                                    ? "留空保持现有 PIN，输入新 PIN 可修改"
-                                    : "设置成员 PIN（可选）"
+                                    ? "留空保持现有密码，输入新密码可修改"
+                                    : "设置成员密码（可选）"
                             }
                             autoComplete="new-password"
                         />

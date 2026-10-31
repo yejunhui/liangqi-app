@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
- * Mandatory login gate for shared ledgers. The last used member is the
- * default, but the user can switch to another member before entering the PIN.
+ * Mandatory login gate for shared ledgers. The last used member is listed
+ * first, but any member can be selected before entering the password.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -25,8 +25,6 @@ import {
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
-const SWITCH_FLAG = "liangqi-member-login-list";
-
 export function MemberLoginGate() {
     const bookId = useLedgerStore((state) => state.id);
     const bookName = useLedgerStore((state) => state.name);
@@ -38,7 +36,7 @@ export function MemberLoginGate() {
     const setActiveMember = useMemberSessionStore((state) => state.setActiveMember);
     const unlockMember = useMemberSessionStore((state) => state.unlockMember);
 
-    const [view, setView] = useState<"login" | "list">("login");
+    const [view, setView] = useState<"login" | "list">("list");
     const [targetId, setTargetId] = useState("");
     const [pin, setPin] = useState("");
     const [pinConfirm, setPinConfirm] = useState("");
@@ -52,19 +50,26 @@ export function MemberLoginGate() {
             selectedMember,
         [members, targetId, selectedMember],
     );
+    const orderedMembers = useMemo(
+        () =>
+            [...members].sort((a, b) => {
+                if (a.id === selectedMember?.id) {
+                    return -1;
+                }
+                if (b.id === selectedMember?.id) {
+                    return 1;
+                }
+                return a.createdAt - b.createdAt;
+            }),
+        [members, selectedMember?.id],
+    );
 
     useEffect(() => {
         if (activeMember) {
             return;
         }
-        const wantsList =
-            typeof window !== "undefined" &&
-            window.sessionStorage.getItem(SWITCH_FLAG) === "1";
-        if (typeof window !== "undefined") {
-            window.sessionStorage.removeItem(SWITCH_FLAG);
-        }
         setTargetId(selectedMember?.id ?? "");
-        setView(wantsList ? "list" : selectedMember ? "login" : "list");
+        setView("list");
         setPin("");
         setPinConfirm("");
         setError("");
@@ -94,7 +99,7 @@ export function MemberLoginGate() {
                 return;
             }
             if (pin !== pinConfirm) {
-                setError("两次输入的 PIN 不一致");
+                setError("两次输入的密码不一致");
                 return;
             }
             setBusy(true);
@@ -107,9 +112,10 @@ export function MemberLoginGate() {
                 }
                 unlockMember(bookId, target.id);
                 setActiveMember(bookId, target.id);
+                setView("list");
                 toast(`已登录：${target.name}`, "success");
             } catch (cause) {
-                setError(cause instanceof Error ? cause.message : "PIN 设置失败");
+                setError(cause instanceof Error ? cause.message : "密码设置失败");
             } finally {
                 setBusy(false);
             }
@@ -119,11 +125,12 @@ export function MemberLoginGate() {
         const valid = await verifyMemberPin(pin, target);
         setBusy(false);
         if (!valid) {
-            setError("PIN 不正确");
+            setError("密码不正确");
             return;
         }
         unlockMember(bookId, target.id);
         setActiveMember(bookId, target.id);
+        setView("list");
         toast(`已登录：${target.name}`, "success");
     }
 
@@ -138,7 +145,7 @@ export function MemberLoginGate() {
                         </p>
                         <h1 className="mt-1 text-xl font-bold text-text">{bookName}</h1>
                         <p className="mt-1 text-[11px] leading-relaxed text-muted">
-                            请选择成员并输入 PIN。锁定后默认回到上次成员，也可以切换用户。
+                            请选择成员并输入密码；上次登录的成员排在第一位。
                         </p>
                     </div>
 
@@ -149,7 +156,7 @@ export function MemberLoginGate() {
                                     这个共享账还没有成员，先新建一个。
                                 </p>
                             )}
-                            {members.map((member) => (
+                            {orderedMembers.map((member) => (
                                 <button
                                     key={member.id}
                                     type="button"
@@ -172,9 +179,11 @@ export function MemberLoginGate() {
                                             {member.name}
                                         </span>
                                         <span className="mt-0.5 block text-[10px] text-muted">
+                                            {member.id === selectedMember?.id &&
+                                                "上次登录 · "}
                                             {hasMemberPin(member)
-                                                ? "输入 PIN 登录"
-                                                : "首次登录，设置 PIN"}
+                                                ? "输入密码"
+                                                : "首次登录，设置密码"}
                                         </span>
                                     </span>
                                 </button>
@@ -217,51 +226,51 @@ export function MemberLoginGate() {
                                     </p>
                                     <p className="text-[10px] text-muted">
                                         {hasMemberPin(target)
-                                            ? "该成员已设置 PIN"
-                                            : "首次登录，请先设置 PIN"}
+                                            ? "该成员已设置密码"
+                                            : "首次登录，请先设置密码"}
                                     </p>
                                 </div>
                             </div>
 
                             <label className="block">
                                 <span className="mb-1.5 block text-xs font-semibold text-muted">
-                                    {hasMemberPin(target) ? "成员 PIN" : "设置成员 PIN"}
+                                    {hasMemberPin(target) ? "成员密码" : "设置成员密码"}
                                 </span>
                                 <input
-                                    className="field text-center text-lg tracking-[0.5em]"
+                                    className="field text-center text-base"
                                     type="password"
-                                    inputMode="numeric"
-                                    maxLength={12}
+                                    maxLength={32}
                                     value={pin}
                                     onChange={(event) => {
-                                        setPin(event.target.value.replace(/\D/g, ""));
+                                        setPin(event.target.value);
                                         setError("");
                                     }}
-                                    placeholder="••••"
+                                    placeholder="输入密码"
                                     autoFocus
-                                    autoComplete="off"
+                                    autoComplete={
+                                        hasMemberPin(target)
+                                            ? "current-password"
+                                            : "new-password"
+                                    }
                                 />
                             </label>
 
                             {!hasMemberPin(target) && (
                                 <label className="block">
                                     <span className="mb-1.5 block text-xs font-semibold text-muted">
-                                        再输一次 PIN
+                                        再输一次密码
                                     </span>
                                     <input
-                                        className="field text-center text-lg tracking-[0.5em]"
+                                        className="field text-center text-base"
                                         type="password"
-                                        inputMode="numeric"
-                                        maxLength={12}
+                                        maxLength={32}
                                         value={pinConfirm}
                                         onChange={(event) => {
-                                            setPinConfirm(
-                                                event.target.value.replace(/\D/g, ""),
-                                            );
+                                            setPinConfirm(event.target.value);
                                             setError("");
                                         }}
-                                        placeholder="••••"
-                                        autoComplete="off"
+                                        placeholder="再输一次"
+                                        autoComplete="new-password"
                                     />
                                 </label>
                             )}
@@ -297,12 +306,12 @@ export function MemberLoginGate() {
                                         ? "登录中…"
                                         : hasMemberPin(target)
                                           ? "登录"
-                                          : "设置 PIN 并登录"}
+                                          : "设置密码并登录"}
                                 </Button>
                             </div>
 
                             <p className="text-center text-[9px] leading-relaxed text-muted">
-                                PIN 哈希随成员信息保存在仓库
+                                密码哈希随成员信息保存在仓库
                             </p>
                         </form>
                     ) : (
@@ -329,6 +338,7 @@ export function MemberLoginGate() {
                     if (createdPin) {
                         unlockMember(bookId, id);
                         setActiveMember(bookId, id);
+                        setView("list");
                         toast("成员已创建并登录", "success");
                         setCreateOpen(false);
                     } else {

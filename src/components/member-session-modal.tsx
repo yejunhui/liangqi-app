@@ -13,8 +13,6 @@ import {
 import { useUIStore } from "@/store/ui";
 import { toast } from "@/store/toast";
 
-const SWITCH_FLAG = "liangqi-member-login-list";
-
 export function MemberSessionModal() {
     const open = useUIStore((state) => state.memberModalOpen);
     const close = useUIStore((state) => state.closeMemberModal);
@@ -38,10 +36,7 @@ export function MemberSessionModal() {
     }
 
     function switchUser() {
-        if (typeof window !== "undefined") {
-            window.sessionStorage.setItem(SWITCH_FLAG, "1");
-        }
-        lockAndClose("已退出当前成员，请选择要登录的用户");
+        lockAndClose("已退出当前成员，请重新登录");
     }
 
     return (
@@ -97,12 +92,12 @@ export function MemberSessionModal() {
 
                 {remote && (
                     <p className="text-[10px] leading-relaxed text-muted">
-                        「切换用户」会先退出当前成员，再打开登录页；默认显示上次登录的成员，也可以在登录页切换成其他成员。锁定后同样需要重新登录。
+                        「切换用户」和「锁定」都会退出当前成员并回到登录页的成员列表。上次登录的成员排在第一位，也可以选择其他成员，再输入密码登录。
                     </p>
                 )}
                 {!remote && (
                     <p className="text-[10px] leading-relaxed text-muted">
-                        本地账本没有共享成员登录限制；连接远程仓库后会启用成员 PIN 登录。
+                        本地账本没有共享成员登录限制；连接远程仓库后会启用成员密码登录。
                     </p>
                 )}
             </div>

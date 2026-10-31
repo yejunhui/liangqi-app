@@ -3,7 +3,7 @@
  *
  * Local "who am I" selection per book. The repo is shared with one private
  * key; each device/user picks the member they are. For shared books the member
- * must have a PIN and be unlocked in this tab session before editing.
+ * must have a password and be unlocked in this tab session before editing.
  */
 
 import { create } from "zustand";
@@ -117,7 +117,7 @@ export const useMemberSessionStore = create<MemberSessionState>()((set) => ({
     },
 }));
 
-/** Returns the member selected for this book, even if its PIN is still locked. */
+/** Returns the member selected for this book, even if its password is still locked. */
 export function getSelectedMemberForBook(book: Book | undefined): Member | undefined {
     if (!book || book.members.length === 0) {
         return undefined;

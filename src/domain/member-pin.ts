@@ -6,7 +6,7 @@ import type { Member } from "@/types";
 import { base64ToBytes, bytesToBase64 } from "@/utils/base64";
 
 export const PIN_MIN_LENGTH = 4;
-export const PIN_MAX_LENGTH = 12;
+export const PIN_MAX_LENGTH = 32;
 const PIN_ITERATIONS = 160_000;
 
 export interface MemberPinFields {
@@ -20,8 +20,8 @@ export function hasMemberPin(member: Member): boolean {
 }
 
 export function validateMemberPin(pin: string): string | null {
-    if (!/^\d{4,12}$/.test(pin)) {
-        return `PIN 需要 ${PIN_MIN_LENGTH}–${PIN_MAX_LENGTH} 位数字`;
+    if (!/^\S{4,32}$/.test(pin)) {
+        return `密码需要 ${PIN_MIN_LENGTH}–${PIN_MAX_LENGTH} 位，不能包含空格`;
     }
     return null;
 }

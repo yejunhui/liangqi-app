@@ -21,14 +21,17 @@ function member(fields: Partial<Member> = {}): Member {
     };
 }
 
-describe("member PIN", () => {
-    it("validates PIN format", () => {
+describe("member password", () => {
+    it("validates password format", () => {
         expect(validateMemberPin("1234")).toBeNull();
+        expect(validateMemberPin("abcd")).toBeNull();
+        expect(validateMemberPin("family-2026")).toBeNull();
         expect(validateMemberPin("123")).toContain("4");
-        expect(validateMemberPin("abcd")).not.toBeNull();
+        expect(validateMemberPin("has space")).not.toBeNull();
+        expect(validateMemberPin("x".repeat(33))).not.toBeNull();
     });
 
-    it("hashes and verifies a PIN", async () => {
+    it("hashes and verifies a password", async () => {
         const fields = await hashMemberPin("2468");
         const value = member(fields);
         expect(hasMemberPin(value)).toBe(true);
@@ -36,7 +39,13 @@ describe("member PIN", () => {
         await expect(verifyMemberPin("0000", value)).resolves.toBe(false);
     });
 
-    it("treats members without a PIN as unlocked", async () => {
+    it("accepts existing 4-digit PINs", async () => {
+        const fields = await hashMemberPin("1234");
+        const value = member(fields);
+        await expect(verifyMemberPin("1234", value)).resolves.toBe(true);
+    });
+
+    it("treats members without a password as unlocked", async () => {
         await expect(verifyMemberPin("anything", member())).resolves.toBe(true);
         expect(hasMemberPin(member())).toBe(false);
     });

@@ -17,7 +17,7 @@ export interface Member {
     name: string;
     color: string;
     createdAt: number;
-    /** Optional PBKDF2 hash for the member's login PIN. */
+    /** Optional PBKDF2 hash for the member's login password. */
     pinHash?: string;
     pinSalt?: string;
     pinIterations?: number;

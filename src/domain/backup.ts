@@ -360,19 +360,19 @@ function parseMember(raw: unknown, index: number): Member {
         !optionalString(raw.pinSalt) ||
         !optionalNumber(raw.pinIterations)
     ) {
-        throw new Error(`第 ${index + 1} 个成员 PIN 格式不正确`);
+        throw new Error(`第 ${index + 1} 个成员密码格式不正确`);
     }
     if (
         (raw.pinHash === undefined) !== (raw.pinSalt === undefined) ||
         (raw.pinHash === undefined) !== (raw.pinIterations === undefined)
     ) {
-        throw new Error(`第 ${index + 1} 个成员 PIN 不完整`);
+        throw new Error(`第 ${index + 1} 个成员密码不完整`);
     }
     if (
         raw.pinIterations !== undefined &&
         (!isFiniteNumber(raw.pinIterations) || raw.pinIterations <= 0)
     ) {
-        throw new Error(`第 ${index + 1} 个成员 PIN 迭代次数不正确`);
+        throw new Error(`第 ${index + 1} 个成员密码迭代次数不正确`);
     }
     return {
         id: requiredString(raw.id, "成员 id"),

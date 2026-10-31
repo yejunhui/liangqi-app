@@ -551,7 +551,7 @@ export function DataSource() {
 
                 {!isWebDav && (
                     <p className="mt-3 text-[10px] leading-relaxed text-muted">
-                        只需要填写仓库名和私钥。仓库名可以只写 repo（自动用私钥所属账号补全），也可以写 owner/repo。分支自动使用默认分支。多个人可以共用同一个私钥，连接后各自选择成员并输入 PIN。
+                        只需要填写仓库名和私钥。仓库名可以只写 repo（自动用私钥所属账号补全），也可以写 owner/repo。分支自动使用默认分支。多个人可以共用同一个私钥，连接后各自选择成员并输入密码。
                     </p>
                 )}
 
