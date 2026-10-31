@@ -35,6 +35,7 @@ import { useUIStore } from "@/store/ui";
 import { useActiveMember } from "@/store/member-session";
 import { MemberSessionModal } from "@/components/member-session-modal";
 import { MemberLoginGate } from "@/components/member-login-gate";
+import { WelcomeGate } from "@/components/welcome-gate";
 import { getTotals } from "@/domain/ledger";
 import { formatCents } from "@/domain/money";
 import { cn } from "@/utils/cn";
@@ -366,6 +367,7 @@ export function Layout() {
 
             <BookSwitcher />
             <MemberSessionModal />
+            <WelcomeGate />
             <MemberLoginGate />
         </div>
     );

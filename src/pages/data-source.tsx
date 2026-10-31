@@ -200,14 +200,14 @@ export function DataSource() {
         try {
             const candidate = await buildConnection();
             const tested = await testRemoteConnection(candidate);
-            const resolved: Connection = {
+            let resolved: Connection = {
                 ...candidate,
                 branch: candidate.branch || tested.defaultBranch,
             };
             const existing = findMatchingConnection(resolved);
             if (existing) {
+                resolved = { ...resolved, id: existing.id };
                 useLibraryStore.getState().updateConnection(existing.id, resolved);
-                resolved.id = existing.id;
             } else {
                 useLibraryStore.getState().addConnection(resolved);
             }
