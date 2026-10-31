@@ -91,6 +91,26 @@ repo/
 - **可选 OAuth**：只有 OAuth 需要 `server/oauth-worker` 做 code exchange，它不保存账本数据；不想部署就只用 PAT。
 - **WebDAV 注意**：浏览器直连要求服务器允许 CORS；不支持 CORS 的 WebDAV 需要额外代理，那种情况下才需要后端。
 
+### 部署到子路径
+
+```bash
+# 生成 /workbook/ 前缀的静态文件
+pnpm build:workbook
+```
+
+Nginx 示例：
+
+```nginx
+location = /workbook { return 301 /workbook/; }
+location /workbook/ {
+    root /var/www;
+    try_files $uri $uri/ /workbook/index.html;
+    index index.html;
+}
+```
+
+也可以使用 `scripts/deploy-workbook.sh`，通过 `DEPLOY_HOST` / `DEPLOY_USER` / `DEPLOY_PATH` 部署并在远端 reload nginx。SSH 需要预先配置好密钥或 ssh-agent。
+
 ## 登录方式
 
 ### PAT Token
