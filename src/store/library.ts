@@ -62,6 +62,8 @@ function normalizeLibrary(raw: unknown): LibraryData | null {
             tagGroups: Array.isArray(book.tagGroups) ? book.tagGroups : [],
             tags: Array.isArray(book.tags) ? book.tags : [],
             budgets: Array.isArray(book.budgets) ? book.budgets : [],
+            recurringRules: Array.isArray(book.recurringRules) ? book.recurringRules : [],
+            attachments: Array.isArray(book.attachments) ? book.attachments : [],
         }));
     if (books.length === 0) {
         return null;
@@ -132,6 +134,8 @@ function migrateLegacyLedger(): LibraryData | null {
                 tagGroups: [],
                 tags: [],
                 budgets: [],
+                recurringRules: [],
+                attachments: [],
                 bills: ledger.bills as Book["bills"],
                 entries: ledger.entries as Book["entries"],
                 settings: ledger.settings as Book["settings"],

@@ -18,6 +18,10 @@ import {
     LockKeyhole,
     Tag,
     Target,
+    Repeat,
+    Upload,
+    Mic,
+    ChartNoAxesColumn,
 } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Logo } from "@/components/logo";
@@ -42,6 +46,9 @@ const secondaryNav = [
     { to: "/categories", label: "分类", icon: Tags },
     { to: "/tags", label: "标签", icon: Tag },
     { to: "/budgets", label: "预算", icon: Target },
+    { to: "/analytics", label: "分析", icon: ChartNoAxesColumn },
+    { to: "/recurring", label: "周期", icon: Repeat },
+    { to: "/import", label: "导入", icon: Upload },
     { to: "/members", label: "成员", icon: Users },
     { to: "/data", label: "数据源", icon: Cloud },
     { to: "/settings", label: "设置", icon: Settings },
@@ -62,6 +69,7 @@ export function Layout() {
     const entries = useLedgerStore((state) => state.entries);
     const currency = useCurrency();
     const openEntryModal = useUIStore((state) => state.openEntryModal);
+    const openQuickEntry = useUIStore((state) => state.openQuickEntry);
     const closeEntryModal = useUIStore((state) => state.closeEntryModal);
     const openBookSwitcher = useUIStore((state) => state.openBookSwitcher);
     const activeBook = useLibraryStore((state) => getActiveBook(state));
@@ -108,9 +116,17 @@ export function Layout() {
                         <Plus className="size-4" />
                         记一笔
                     </Button>
+                    <Button
+                        variant="secondary"
+                        className="mt-2 w-full"
+                        onClick={() => openQuickEntry()}
+                    >
+                        <Mic className="size-4" />
+                        一句话记账
+                    </Button>
                 </div>
 
-                <nav className="mt-6 flex-1 space-y-1 px-3">
+                <nav className="mt-6 flex-1 space-y-1 overflow-y-auto px-3">
                     {primaryNav.map((item) => (
                         <NavLink
                             key={item.to}
@@ -187,6 +203,14 @@ export function Layout() {
                                     <LockKeyhole className="size-4" />
                                 </button>
                             )}
+                            <button
+                                type="button"
+                                onClick={() => openQuickEntry()}
+                                className="grid size-9 place-items-center rounded-xl border border-line bg-surface text-muted transition hover:text-text"
+                                aria-label="一句话记账"
+                            >
+                                <Mic className="size-4" />
+                            </button>
                             <NavLink
                                 to="/settings"
                                 className="grid size-9 place-items-center rounded-xl border border-line bg-surface text-muted transition hover:text-text"

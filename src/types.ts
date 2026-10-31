@@ -4,7 +4,7 @@
 
 export type AccountKind = "asset" | "liability";
 
-export type EntryKind = "expense" | "income" | "repayment";
+export type EntryKind = "expense" | "income" | "repayment" | "transfer";
 
 export type CategoryKind = "expense" | "income";
 
@@ -60,6 +60,33 @@ export interface Tag {
 
 export type BudgetPeriod = "month" | "year";
 
+export type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly";
+
+export interface RecurringRule {
+    id: string;
+    name: string;
+    kind: "expense" | "income";
+    /** Amount in cents. */
+    amount: number;
+    frequency: RecurringFrequency;
+    /** Every N days / weeks / months / years. */
+    interval: number;
+    startDate: number;
+    nextDueDate: number;
+    endDate?: number;
+    enabled: boolean;
+    lastPostedAt?: number;
+    categoryId: string;
+    /** Asset account for income and cash expenses. */
+    accountId?: string;
+    /** Liability account when a recurring expense is credited. */
+    liabilityAccountId?: string;
+    memberId?: string;
+    tagIds?: string[];
+    note?: string;
+    createdAt: number;
+}
+
 export interface Budget {
     id: string;
     name: string;
@@ -72,6 +99,30 @@ export interface Budget {
     createdAt: number;
 }
 
+export interface Attachment {
+    id: string;
+    name: string;
+    mimeType: string;
+    /** File size in bytes. */
+    size: number;
+    createdAt: number;
+}
+
+export interface EntryLocation {
+    lat: number;
+    lng: number;
+    label?: string;
+}
+
+/** A foreign-currency amount converted into the book's base currency. */
+export interface OriginalAmount {
+    currency: string;
+    /** Amount in the foreign currency's minor units. */
+    amount: number;
+    /** Base-currency units per one foreign-currency unit. */
+    rate: number;
+}
+
 export interface Bill {
     id: string;
     liabilityAccountId: string;
@@ -80,6 +131,8 @@ export interface Bill {
     /** Optional family member this bill belongs to. */
     memberId?: string;
     tagIds?: string[];
+    attachmentIds?: string[];
+    originalAmount?: OriginalAmount;
     title: string;
     /** Original amount in cents. */
     principal: number;
@@ -101,13 +154,20 @@ export interface Entry {
     accountId?: string;
     /** Liability account for credit expenses and repayments. */
     liabilityAccountId?: string;
+    /** Destination asset account for transfers. */
+    toAccountId?: string;
     /** Links a credit expense or a repayment to a bill. */
     billId?: string;
     categoryId?: string;
     /** Optional family member this entry belongs to. */
     memberId?: string;
     tagIds?: string[];
+    attachmentIds?: string[];
+    location?: EntryLocation;
+    originalAmount?: OriginalAmount;
     note?: string;
+    /** Links an automatically posted entry to its recurring rule. */
+    recurringId?: string;
     createdAt: number;
 }
 
@@ -123,6 +183,8 @@ export interface LedgerData {
     tagGroups: TagGroup[];
     tags: Tag[];
     budgets: Budget[];
+    recurringRules: RecurringRule[];
+    attachments: Attachment[];
     bills: Bill[];
     entries: Entry[];
     settings: Settings;

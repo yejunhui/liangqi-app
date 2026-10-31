@@ -13,6 +13,7 @@ import { saveConflictBackup } from "@/remote/conflicts";
 import {
     pullRemoteBook,
     pushRemoteBook,
+    readRemoteManifest,
     RemoteNewerError,
 } from "@/remote/repository";
 import { RemoteError } from "@/remote/errors";
@@ -79,25 +80,27 @@ export async function reconcileBook(
     local: Book,
     binding: RemoteBinding,
 ): Promise<SyncResult> {
-    const remote = await pullRemoteBook(connection, binding.remoteBookId);
+    const manifestRecord = await readRemoteManifest(connection, binding.remoteBookId);
     const last = binding.lastSyncedAt ?? 0;
     const localChanged = local.updatedAt > last;
-    const remoteChanged = remote ? remote.book.updatedAt > last : false;
 
-    if (!remote) {
+    if (!manifestRecord) {
         return {
             action: "push",
             message: "远程还没有这个账本，正在上传",
         };
     }
 
-    if (remoteChanged && !localChanged) {
+    const remoteChanged = manifestRecord.manifest.updatedAt > last;
+
+    // Fast path: the remote manifest is unchanged, so skip meta/chunk reads.
+    if (!remoteChanged && !localChanged) {
         return {
-            action: "pull",
-            book: remote.book,
-            message: "已拉取远程更新",
-            revision: remote.revision,
-            manifest: remote.manifest,
+            action: "noop",
+            book: local,
+            message: "已是最新",
+            revision: manifestRecord.revision,
+            manifest: manifestRecord.manifest,
         };
     }
 
@@ -108,7 +111,31 @@ export async function reconcileBook(
         };
     }
 
-    if (localChanged && remoteChanged) {
+    // Remote changed (or both changed): fetch meta and chunks once.
+    const remote = await pullRemoteBook(connection, binding.remoteBookId);
+    if (!remote) {
+        return {
+            action: "push",
+            message: "远程还没有这个账本，正在上传",
+        };
+    }
+    const finalRemoteChanged = remote.book.updatedAt > last;
+    if (!finalRemoteChanged && localChanged) {
+        return {
+            action: "push",
+            message: "正在上传本地更新",
+        };
+    }
+    if (finalRemoteChanged && !localChanged) {
+        return {
+            action: "pull",
+            book: remote.book,
+            message: "已拉取远程更新",
+            revision: remote.revision,
+            manifest: remote.manifest,
+        };
+    }
+    if (finalRemoteChanged && localChanged) {
         return {
             action: "conflict",
             book: remote.book,
@@ -230,7 +257,7 @@ export async function syncBookNow(bookId?: string): Promise<SyncResult> {
             connection,
             book.id,
             result.revision,
-            result.book.updatedAt,
+            result.manifest?.updatedAt ?? result.book.updatedAt,
             latest.remote?.autoSync ?? book.remote.autoSync,
             result.manifest,
         );

@@ -176,6 +176,24 @@ export interface RemoteBookRecord {
     manifest?: RemoteBookManifest;
 }
 
+export interface RemoteManifestRecord {
+    manifest: RemoteBookManifest;
+    revision?: string;
+}
+
+/** Reads only the small manifest file; used for incremental pull decisions. */
+export async function readRemoteManifest(
+    connection: Connection,
+    bookId: string,
+): Promise<RemoteManifestRecord | null> {
+    const adapter = createRemoteAdapter(connection);
+    const file = await adapter.readFile(remoteBookManifestPath(bookId));
+    if (!file) {
+        return null;
+    }
+    return { manifest: parseManifest(file.text), revision: file.revision };
+}
+
 export async function testRemoteConnection(
     connection: Connection,
 ): Promise<{ defaultBranch?: string }> {

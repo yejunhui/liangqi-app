@@ -4,17 +4,22 @@
 
 import type {
     Account,
+    Attachment,
     Bill,
     Book,
     Budget,
     Category,
     Connection,
     Entry,
+    EntryLocation,
     ExportPayload,
     LedgerData,
     LibraryData,
     LibraryExportPayload,
     Member,
+    OriginalAmount,
+    RecurringFrequency,
+    RecurringRule,
     RemoteBinding,
     Settings,
     Tag,
@@ -117,6 +122,43 @@ function parseCategory(raw: unknown, index: number): Category {
     };
 }
 
+function parseOptionalOriginalAmount(
+    value: unknown,
+    index: number,
+): OriginalAmount | undefined {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (
+        !isObject(value) ||
+        !isString(value.currency) ||
+        !Number.isInteger(value.amount) ||
+        (value.amount as number) <= 0 ||
+        !isFiniteNumber(value.rate) ||
+        (value.rate as number) <= 0
+    ) {
+        throw new Error(`第 ${index + 1} 条记录的外币金额格式不正确`);
+    }
+    return {
+        currency: value.currency,
+        amount: value.amount as number,
+        rate: value.rate as number,
+    };
+}
+
+function parseAttachment(raw: unknown, index: number): Attachment {
+    if (!isObject(raw)) {
+        throw new Error(`第 ${index + 1} 个附件格式不正确`);
+    }
+    return {
+        id: requiredString(raw.id, "附件 id"),
+        name: requiredString(raw.name, "附件名称"),
+        mimeType: requiredString(raw.mimeType, "附件类型"),
+        size: requiredInteger(raw.size, "附件大小", 0),
+        createdAt: requiredTimestamp(raw.createdAt, "附件创建时间"),
+    };
+}
+
 function parseTagGroup(raw: unknown, index: number): TagGroup {
     if (!isObject(raw)) {
         throw new Error(`第 ${index + 1} 个标签组格式不正确`);
@@ -178,6 +220,61 @@ function parseBudget(raw: unknown, index: number): Budget {
     };
 }
 
+function parseRecurringRule(raw: unknown, index: number): RecurringRule {
+    if (!isObject(raw)) {
+        throw new Error(`第 ${index + 1} 个周期记账格式不正确`);
+    }
+    const kind = raw.kind;
+    if (kind !== "expense" && kind !== "income") {
+        throw new Error(`第 ${index + 1} 个周期记账类型不正确`);
+    }
+    const frequency = raw.frequency;
+    const frequencies: RecurringFrequency[] = ["daily", "weekly", "monthly", "yearly"];
+    if (!frequencies.includes(frequency as RecurringFrequency)) {
+        throw new Error(`第 ${index + 1} 个周期记账频率不正确`);
+    }
+    if (
+        !optionalString(raw.accountId) ||
+        !optionalString(raw.liabilityAccountId) ||
+        !optionalString(raw.memberId) ||
+        !optionalString(raw.note)
+    ) {
+        throw new Error(`第 ${index + 1} 个周期记账字段格式不正确`);
+    }
+    if (
+        raw.tagIds !== undefined &&
+        (!Array.isArray(raw.tagIds) || raw.tagIds.some((item) => !isString(item)))
+    ) {
+        throw new Error(`第 ${index + 1} 个周期记账标签格式不正确`);
+    }
+    if (!optionalNumber(raw.endDate) || !optionalNumber(raw.lastPostedAt)) {
+        throw new Error(`第 ${index + 1} 个周期记账日期格式不正确`);
+    }
+    if (typeof raw.enabled !== "boolean") {
+        throw new Error(`第 ${index + 1} 个周期记账启用状态不正确`);
+    }
+    return {
+        id: requiredString(raw.id, "周期记账 id"),
+        name: requiredString(raw.name, "周期记账名称"),
+        kind,
+        amount: requiredInteger(raw.amount, "周期记账金额", 1),
+        frequency: frequency as RecurringFrequency,
+        interval: requiredInteger(raw.interval, "周期记账间隔", 1),
+        startDate: requiredTimestamp(raw.startDate, "周期记账开始日期"),
+        nextDueDate: requiredTimestamp(raw.nextDueDate, "周期记账下次日期"),
+        endDate: raw.endDate as number | undefined,
+        enabled: raw.enabled,
+        lastPostedAt: raw.lastPostedAt as number | undefined,
+        categoryId: requiredString(raw.categoryId, "周期记账分类"),
+        accountId: raw.accountId as string | undefined,
+        liabilityAccountId: raw.liabilityAccountId as string | undefined,
+        memberId: raw.memberId as string | undefined,
+        tagIds: raw.tagIds as string[] | undefined,
+        note: raw.note as string | undefined,
+        createdAt: requiredTimestamp(raw.createdAt, "周期记账创建时间"),
+    };
+}
+
 function parseMember(raw: unknown, index: number): Member {
     if (!isObject(raw)) {
         throw new Error(`第 ${index + 1} 个成员格式不正确`);
@@ -207,6 +304,13 @@ function parseBill(raw: unknown, index: number): Bill {
     ) {
         throw new Error(`第 ${index + 1} 张账单标签格式不正确`);
     }
+    if (
+        raw.attachmentIds !== undefined &&
+        (!Array.isArray(raw.attachmentIds) ||
+            raw.attachmentIds.some((item) => !isString(item)))
+    ) {
+        throw new Error(`第 ${index + 1} 张账单附件格式不正确`);
+    }
     if (!optionalNumber(raw.dueDate)) {
         throw new Error(`第 ${index + 1} 张账单到期日格式不正确`);
     }
@@ -222,6 +326,8 @@ function parseBill(raw: unknown, index: number): Bill {
         categoryId: raw.categoryId as string | undefined,
         memberId: raw.memberId as string | undefined,
         tagIds: raw.tagIds as string[] | undefined,
+        attachmentIds: raw.attachmentIds as string[] | undefined,
+        originalAmount: parseOptionalOriginalAmount(raw.originalAmount, index),
         title: requiredString(raw.title, "账单名称"),
         principal: requiredInteger(raw.principal, "账单金额", 1),
         purchasedAt: requiredTimestamp(raw.purchasedAt, "账单消费时间"),
@@ -237,7 +343,12 @@ function parseEntry(raw: unknown, index: number): Entry {
         throw new Error(`第 ${index + 1} 条流水格式不正确`);
     }
     const kind = raw.kind;
-    if (kind !== "expense" && kind !== "income" && kind !== "repayment") {
+    if (
+        kind !== "expense" &&
+        kind !== "income" &&
+        kind !== "repayment" &&
+        kind !== "transfer"
+    ) {
         throw new Error(`第 ${index + 1} 条流水类型不正确`);
     }
     for (const key of [
@@ -247,6 +358,8 @@ function parseEntry(raw: unknown, index: number): Entry {
         "categoryId",
         "memberId",
         "note",
+        "recurringId",
+        "toAccountId",
     ] as const) {
         if (!optionalString(raw[key])) {
             throw new Error(`第 ${index + 1} 条流水 ${key} 格式不正确`);
@@ -258,6 +371,23 @@ function parseEntry(raw: unknown, index: number): Entry {
     ) {
         throw new Error(`第 ${index + 1} 条流水标签格式不正确`);
     }
+    if (
+        raw.attachmentIds !== undefined &&
+        (!Array.isArray(raw.attachmentIds) ||
+            raw.attachmentIds.some((item) => !isString(item)))
+    ) {
+        throw new Error(`第 ${index + 1} 条流水附件格式不正确`);
+    }
+    if (raw.location !== undefined) {
+        if (
+            !isObject(raw.location) ||
+            !isFiniteNumber(raw.location.lat) ||
+            !isFiniteNumber(raw.location.lng) ||
+            (raw.location.label !== undefined && !isString(raw.location.label))
+        ) {
+            throw new Error(`第 ${index + 1} 条流水位置格式不正确`);
+        }
+    }
     return {
         id: requiredString(raw.id, "流水 id"),
         kind,
@@ -265,11 +395,16 @@ function parseEntry(raw: unknown, index: number): Entry {
         date: requiredTimestamp(raw.date, "流水日期"),
         accountId: raw.accountId as string | undefined,
         liabilityAccountId: raw.liabilityAccountId as string | undefined,
+        toAccountId: raw.toAccountId as string | undefined,
         billId: raw.billId as string | undefined,
         categoryId: raw.categoryId as string | undefined,
         memberId: raw.memberId as string | undefined,
         tagIds: raw.tagIds as string[] | undefined,
+        attachmentIds: raw.attachmentIds as string[] | undefined,
+        location: raw.location as EntryLocation | undefined,
+        originalAmount: parseOptionalOriginalAmount(raw.originalAmount, index),
         note: raw.note as string | undefined,
+        recurringId: raw.recurringId as string | undefined,
         createdAt: requiredTimestamp(raw.createdAt, "流水创建时间"),
     };
 }
@@ -294,6 +429,7 @@ function validateReferences(data: LedgerData): void {
     const members = new Map(data.members.map((member) => [member.id, member]));
     const tagGroups = new Map(data.tagGroups.map((group) => [group.id, group]));
     const tags = new Map(data.tags.map((tag) => [tag.id, tag]));
+    const attachments = new Map(data.attachments.map((item) => [item.id, item]));
     const bills = new Map(data.bills.map((bill) => [bill.id, bill]));
     const entriesByBill = new Map<string, Entry[]>();
     for (const entry of data.entries) {
@@ -336,6 +472,36 @@ function validateReferences(data: LedgerData): void {
         }
     }
 
+    for (const rule of data.recurringRules) {
+        const category = categories.get(rule.categoryId);
+        const expectedKind = rule.kind === "expense" ? "expense" : "income";
+        if (!category || category.kind !== expectedKind) {
+            throw new Error(`周期记账“${rule.name}”关联的分类不存在`);
+        }
+        if (rule.kind === "expense" && rule.liabilityAccountId) {
+            const liability = accounts.get(rule.liabilityAccountId);
+            if (!liability || liability.kind !== "liability") {
+                throw new Error(`周期记账“${rule.name}”关联的负债账户不存在`);
+            }
+        } else {
+            const account = rule.accountId ? accounts.get(rule.accountId) : undefined;
+            if (!account || account.kind !== "asset") {
+                throw new Error(`周期记账“${rule.name}”关联的资产账户不存在`);
+            }
+        }
+        if (rule.memberId && !members.has(rule.memberId)) {
+            throw new Error(`周期记账“${rule.name}”关联的成员不存在`);
+        }
+        for (const tagId of rule.tagIds ?? []) {
+            if (!tags.has(tagId)) {
+                throw new Error(`周期记账“${rule.name}”关联的标签不存在`);
+            }
+        }
+        if (rule.endDate !== undefined && rule.endDate < rule.startDate) {
+            throw new Error(`周期记账“${rule.name}”的结束日期早于开始日期`);
+        }
+    }
+
     for (const account of data.accounts) {
         if (account.kind !== "liability") {
             continue;
@@ -362,6 +528,11 @@ function validateReferences(data: LedgerData): void {
         for (const tagId of bill.tagIds ?? []) {
             if (!tags.has(tagId)) {
                 throw new Error(`账单“${bill.title}”关联的标签不存在`);
+            }
+        }
+        for (const attachmentId of bill.attachmentIds ?? []) {
+            if (!attachments.has(attachmentId)) {
+                throw new Error(`账单“${bill.title}”关联的附件不存在`);
             }
         }
         const liability = accounts.get(bill.liabilityAccountId);
@@ -397,10 +568,24 @@ function validateReferences(data: LedgerData): void {
         if (entry.memberId && !members.has(entry.memberId)) {
             throw new Error("流水关联的成员不存在");
         }
+        if (
+            entry.recurringId &&
+            !data.recurringRules.some((rule) => rule.id === entry.recurringId)
+        ) {
+            throw new Error("流水关联的周期记账不存在");
+        }
         for (const tagId of entry.tagIds ?? []) {
             if (!tags.has(tagId)) {
                 throw new Error("流水关联的标签不存在");
             }
+        }
+        for (const attachmentId of entry.attachmentIds ?? []) {
+            if (!attachments.has(attachmentId)) {
+                throw new Error("流水关联的附件不存在");
+            }
+        }
+        if (entry.kind !== "transfer" && entry.toAccountId) {
+            throw new Error("非转账流水不应设置转入账户");
         }
         if (entry.kind === "expense") {
             if (entry.billId) {
@@ -446,7 +631,22 @@ function validateReferences(data: LedgerData): void {
                     throw new Error("收入流水关联的分类不存在");
                 }
             }
+        } else if (entry.kind === "transfer") {
+            const from = entry.accountId ? accounts.get(entry.accountId) : undefined;
+            const to = entry.toAccountId ? accounts.get(entry.toAccountId) : undefined;
+            if (!from || from.kind !== "asset" || !to || to.kind !== "asset") {
+                throw new Error("转账流水关联的储蓄账户不存在");
+            }
+            if (from.id === to.id) {
+                throw new Error("转账流水的转出和转入账户不能相同");
+            }
+            if (entry.liabilityAccountId || entry.billId || entry.categoryId) {
+                throw new Error("转账流水不应关联负债、账单或分类");
+            }
         } else {
+            if (entry.toAccountId) {
+                throw new Error("非转账流水不应设置转入账户");
+            }
             const bill = entry.billId ? bills.get(entry.billId) : undefined;
             if (!bill) {
                 throw new Error("还款流水关联的账单不存在");
@@ -507,6 +707,12 @@ export function parseBackup(raw: unknown): { ok: true; data: LedgerData } | { ok
         const budgets = Array.isArray(raw.budgets)
             ? raw.budgets.map(parseBudget)
             : [];
+        const recurringRules = Array.isArray(raw.recurringRules)
+            ? raw.recurringRules.map(parseRecurringRule)
+            : [];
+        const attachments = Array.isArray(raw.attachments)
+            ? raw.attachments.map(parseAttachment)
+            : [];
         const bills = raw.bills.map(parseBill);
         const entries = raw.entries.map(parseEntry);
         const settings = parseSettings(raw.settings);
@@ -519,6 +725,8 @@ export function parseBackup(raw: unknown): { ok: true; data: LedgerData } | { ok
             ...tagGroups,
             ...tags,
             ...budgets,
+            ...recurringRules,
+            ...attachments,
             ...bills,
             ...entries,
         ]) {
@@ -535,6 +743,8 @@ export function parseBackup(raw: unknown): { ok: true; data: LedgerData } | { ok
             tagGroups,
             tags,
             budgets,
+            recurringRules,
+            attachments,
             bills,
             entries,
             settings,

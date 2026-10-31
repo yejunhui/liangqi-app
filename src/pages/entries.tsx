@@ -3,13 +3,14 @@
  */
 
 import { useMemo, useState } from "react";
-import { Plus, ReceiptText, Search, X } from "lucide-react";
+import { ListChecks, Plus, ReceiptText, Search, X } from "lucide-react";
 import type { Entry, EntryKind } from "@/types";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/button";
 import { Tabs, type TabItem } from "@/components/tabs";
 import { EntryRow } from "@/components/entry-row";
 import { EntryDetailModal } from "@/components/entry-detail-modal";
+import { BatchEditModal } from "@/components/batch-edit-modal";
 import { EmptyState } from "@/components/empty-state";
 import { formatCents } from "@/domain/money";
 import { formatDate, formatRelativeDay, formatWeekday, startOfDay } from "@/utils/date";
@@ -31,6 +32,9 @@ export function Entries() {
     const [filter, setFilter] = useState<Filter>("all");
     const [query, setQuery] = useState("");
     const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
+    const [selectMode, setSelectMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [batchOpen, setBatchOpen] = useState(false);
 
     const counts = useMemo(() => {
         return {
@@ -38,6 +42,7 @@ export function Entries() {
             expense: entries.filter((entry) => entry.kind === "expense").length,
             income: entries.filter((entry) => entry.kind === "income").length,
             repayment: entries.filter((entry) => entry.kind === "repayment").length,
+            transfer: entries.filter((entry) => entry.kind === "transfer").length,
         };
     }, [entries]);
 
@@ -72,7 +77,13 @@ export function Entries() {
                     member?.name,
                     ...entryTags,
                     (entry.amount / 100).toFixed(2),
-                    entry.kind === "expense" ? "支出" : entry.kind === "income" ? "收入" : "还款",
+                    entry.kind === "expense"
+                        ? "支出"
+                        : entry.kind === "income"
+                          ? "收入"
+                          : entry.kind === "transfer"
+                            ? "转账"
+                            : "还款",
                 ]
                     .filter(Boolean)
                     .join(" ")
@@ -101,9 +112,52 @@ export function Entries() {
         { value: "expense", label: "支出", count: counts.expense },
         { value: "income", label: "收入", count: counts.income },
         { value: "repayment", label: "还款", count: counts.repayment },
+        { value: "transfer", label: "转账", count: counts.transfer },
     ];
 
     const hasFilter = filter !== "all" || query.trim() !== "";
+    const selectedEntries = useMemo(
+        () => entries.filter((entry) => selectedIds.has(entry.id)),
+        [entries, selectedIds],
+    );
+
+    function toggleSelection(entryId: string) {
+        setSelectedIds((current) => {
+            const next = new Set(current);
+            if (next.has(entryId)) {
+                next.delete(entryId);
+            } else {
+                next.add(entryId);
+            }
+            return next;
+        });
+    }
+
+    function toggleSelectMode() {
+        setSelectMode((current) => {
+            if (current) {
+                setSelectedIds(new Set());
+            }
+            return !current;
+        });
+    }
+
+    function selectVisible() {
+        setSelectedIds((current) => {
+            const next = new Set(current);
+            const allSelected = filtered.every((entry) => next.has(entry.id));
+            if (allSelected) {
+                for (const entry of filtered) {
+                    next.delete(entry.id);
+                }
+            } else {
+                for (const entry of filtered) {
+                    next.add(entry.id);
+                }
+            }
+            return next;
+        });
+    }
 
     return (
         <div>
@@ -111,10 +165,19 @@ export function Entries() {
                 title="流水"
                 description="每一笔支出、收入和还款都在这里。点开可以查看详情或删除。"
                 action={
-                    <Button onClick={() => openEntryModal()}>
-                        <Plus className="size-4" />
-                        记一笔
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button
+                            variant={selectMode ? "primary" : "secondary"}
+                            onClick={toggleSelectMode}
+                        >
+                            <ListChecks className="size-4" />
+                            {selectMode ? "完成" : "批量"}
+                        </Button>
+                        <Button onClick={() => openEntryModal()}>
+                            <Plus className="size-4" />
+                            记一笔
+                        </Button>
+                    </div>
                 }
             />
 
@@ -142,6 +205,37 @@ export function Entries() {
                     )}
                 </div>
             </div>
+
+            {selectMode && (
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent/20 bg-accent-soft/45 px-3 py-2.5">
+                    <p className="text-xs font-semibold text-accent">
+                        已选 {selectedIds.size} 笔
+                    </p>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        <Button size="sm" variant="secondary" onClick={selectVisible}>
+                            {filtered.every((entry) => selectedIds.has(entry.id)) &&
+                            filtered.length > 0
+                                ? "取消全选"
+                                : "全选当前"}
+                        </Button>
+                        <Button
+                            size="sm"
+                            onClick={() => setBatchOpen(true)}
+                            disabled={selectedIds.size === 0}
+                        >
+                            修改选中
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setSelectedIds(new Set())}
+                            disabled={selectedIds.size === 0}
+                        >
+                            清空
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             <div className="card overflow-hidden">
                 {groups.length === 0 ? (
@@ -227,6 +321,9 @@ export function Entries() {
                                             members={members}
                                             tags={tags}
                                             currency={currency}
+                                            selectable={selectMode}
+                                            selected={selectedIds.has(entry.id)}
+                                            onToggle={() => toggleSelection(entry.id)}
                                             onClick={() => setSelectedEntry(entry)}
                                         />
                                     ))}
@@ -240,6 +337,12 @@ export function Entries() {
             <EntryDetailModal
                 entry={selectedEntry}
                 onClose={() => setSelectedEntry(null)}
+            />
+
+            <BatchEditModal
+                open={batchOpen}
+                entries={selectedEntries}
+                onClose={() => setBatchOpen(false)}
             />
         </div>
     );

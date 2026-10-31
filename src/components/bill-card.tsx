@@ -116,6 +116,13 @@ export function BillCard({
                     <p className="mt-0.5 truncate text-[11px] text-muted">
                         {liability?.name ?? "负债账户"}
                         {category ? ` · ${category.name}` : ""}
+                        {bill.originalAmount &&
+                        bill.originalAmount.currency !== currency
+                            ? ` · ${formatCents(
+                                  bill.originalAmount.amount,
+                                  bill.originalAmount.currency,
+                              )} @ ${bill.originalAmount.rate}`
+                            : ""}
                     </p>
                 </div>
                 <div className="shrink-0 text-right">

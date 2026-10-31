@@ -19,6 +19,15 @@ export function getAccountBalance(account: Account, entries: Entry[]): number {
 
     for (const entry of entries) {
         if (account.kind === "asset") {
+            if (entry.kind === "transfer") {
+                if (entry.accountId === account.id) {
+                    balance -= entry.amount;
+                }
+                if (entry.toAccountId === account.id) {
+                    balance += entry.amount;
+                }
+                continue;
+            }
             if (entry.accountId !== account.id) {
                 continue;
             }
@@ -168,7 +177,7 @@ export function getMonthTotals(entries: Entry[], monthTimestamp: number): MonthT
             totals.expense += entry.amount;
         } else if (entry.kind === "income") {
             totals.income += entry.amount;
-        } else {
+        } else if (entry.kind === "repayment") {
             totals.repayment += entry.amount;
         }
     }

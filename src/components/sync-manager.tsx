@@ -4,6 +4,7 @@
 
 import { useEffect, useRef } from "react";
 import { useLibraryStore } from "@/store/library";
+import { useLedgerStore } from "@/store/ledger";
 import { syncBookNow } from "@/remote/sync";
 import { toast } from "@/store/toast";
 
@@ -48,6 +49,7 @@ export function SyncManager() {
                 if (result.action === "conflict") {
                     toast(result.message, "info");
                 }
+                useLedgerStore.getState().postDueRecurring();
             } catch (error) {
                 const now = Date.now();
                 if (now - lastErrorAtRef.current > 60_000) {

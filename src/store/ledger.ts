@@ -6,6 +6,7 @@ import { create } from "zustand";
 import type {
     Account,
     AccountKind,
+    Attachment,
     Bill,
     Book,
     Budget,
@@ -13,8 +14,12 @@ import type {
     Category,
     CategoryKind,
     Entry,
+    EntryLocation,
     LedgerData,
     Member,
+    OriginalAmount,
+    RecurringFrequency,
+    RecurringRule,
     Settings,
     Tag,
     TagGroup,
@@ -28,10 +33,13 @@ import {
     validateRepayment,
 } from "@/domain/ledger";
 import { getActiveBook, useLibraryStore } from "@/store/library";
+import { advanceRecurringDate } from "@/domain/recurring";
 import { newId } from "@/utils/id";
 
 export type Result = { ok: true } | { ok: false; error: string };
-export type AddExpenseResult = { ok: true; billId?: string } | { ok: false; error: string };
+export type AddEntryResult =
+    | { ok: true; entryId: string; billId?: string }
+    | { ok: false; error: string };
 
 export interface ExpenseInput {
     amount: number;
@@ -39,7 +47,10 @@ export interface ExpenseInput {
     categoryId: string;
     memberId?: string;
     tagIds?: string[];
+    location?: EntryLocation;
+    originalAmount?: OriginalAmount;
     note?: string;
+    recurringId?: string;
     source:
         | { type: "asset"; accountId: string }
         | {
@@ -57,7 +68,10 @@ export interface IncomeInput {
     accountId: string;
     memberId?: string;
     tagIds?: string[];
+    location?: EntryLocation;
+    originalAmount?: OriginalAmount;
     note?: string;
+    recurringId?: string;
 }
 
 export interface RepaymentInput {
@@ -67,6 +81,20 @@ export interface RepaymentInput {
     accountId: string;
     memberId?: string;
     tagIds?: string[];
+    location?: EntryLocation;
+    originalAmount?: OriginalAmount;
+    note?: string;
+}
+
+export interface TransferInput {
+    amount: number;
+    date: number;
+    fromAccountId: string;
+    toAccountId: string;
+    memberId?: string;
+    tagIds?: string[];
+    location?: EntryLocation;
+    originalAmount?: OriginalAmount;
     note?: string;
 }
 
@@ -107,11 +135,36 @@ export interface BudgetInput {
     memberIds?: string[];
 }
 
+export interface RecurringInput {
+    name: string;
+    kind: "expense" | "income";
+    amount: number;
+    frequency: RecurringFrequency;
+    interval: number;
+    startDate: number;
+    endDate?: number;
+    categoryId: string;
+    accountId?: string;
+    liabilityAccountId?: string;
+    memberId?: string;
+    tagIds?: string[];
+    note?: string;
+}
+
+export interface BulkEntryPatch {
+    categoryId?: string;
+    memberId?: string;
+    tagIds?: string[];
+    note?: string;
+}
+
 export interface LedgerActions {
-    addExpense: (input: ExpenseInput) => AddExpenseResult;
-    addIncome: (input: IncomeInput) => Result;
-    addRepayment: (input: RepaymentInput) => Result;
+    addExpense: (input: ExpenseInput) => AddEntryResult;
+    addIncome: (input: IncomeInput) => AddEntryResult;
+    addRepayment: (input: RepaymentInput) => AddEntryResult;
+    addTransfer: (input: TransferInput) => AddEntryResult;
     deleteEntry: (entryId: string) => Result;
+    bulkUpdateEntries: (entryIds: string[], patch: BulkEntryPatch) => Result;
     deleteBill: (billId: string) => Result;
     updateBill: (
         billId: string,
@@ -143,6 +196,36 @@ export interface LedgerActions {
         patch: Partial<Pick<Budget, "name" | "period" | "amount" | "categoryIds" | "tagIds" | "memberIds">>,
     ) => Result;
     deleteBudget: (budgetId: string) => Result;
+    addRecurringRule: (input: RecurringInput) => Result & { id?: string };
+    updateRecurringRule: (
+        ruleId: string,
+        patch: Partial<
+            Pick<
+                RecurringRule,
+                | "name"
+                | "amount"
+                | "frequency"
+                | "interval"
+                | "startDate"
+                | "nextDueDate"
+                | "endDate"
+                | "enabled"
+                | "categoryId"
+                | "accountId"
+                | "liabilityAccountId"
+                | "memberId"
+                | "tagIds"
+                | "note"
+            >
+        >,
+    ) => Result;
+    deleteRecurringRule: (ruleId: string) => Result;
+    postDueRecurring: (now?: number) => Result & { posted?: number };
+    addAttachments: (
+        target: { kind: "entry" | "bill"; id: string },
+        items: Attachment[],
+    ) => Result;
+    deleteAttachment: (attachmentId: string) => Result;
     addAccount: (input: AccountInput) => Result & { id?: string };
     updateAccount: (
         accountId: string,
@@ -243,10 +326,13 @@ const createActions = (
                 memberId,
                 tagIds,
                 note,
+                recurringId: input.recurringId,
+                location: input.location,
+                originalAmount: input.originalAmount,
                 createdAt,
             };
             set({ entries: [...state.entries, entry] });
-            return { ok: true };
+            return { ok: true, entryId: entry.id };
         }
 
         const liability = state.accounts.find((item) => item.id === input.source.accountId);
@@ -269,6 +355,7 @@ const createActions = (
             purchasedAt: input.date,
             dueDate: input.source.dueDate,
             note,
+            originalAmount: input.originalAmount,
             createdAt,
         };
         const entry: Entry = {
@@ -282,6 +369,9 @@ const createActions = (
             memberId,
             tagIds,
             note,
+            recurringId: input.recurringId,
+            location: input.location,
+            originalAmount: input.originalAmount,
             createdAt,
         };
 
@@ -289,7 +379,7 @@ const createActions = (
             bills: [...state.bills, bill],
             entries: [...state.entries, entry],
         });
-        return { ok: true, billId };
+        return { ok: true, billId, entryId: entry.id };
     },
 
     addIncome(input) {
@@ -328,10 +418,13 @@ const createActions = (
             memberId,
             tagIds: tagResult.tagIds,
             note: cleanNote(input.note),
+            recurringId: input.recurringId,
+            location: input.location,
+            originalAmount: input.originalAmount,
             createdAt: Date.now(),
         };
         set({ entries: [...state.entries, entry] });
-        return { ok: true };
+        return { ok: true, entryId: entry.id };
     },
 
     addRepayment(input) {
@@ -369,10 +462,54 @@ const createActions = (
             memberId,
             tagIds: tagResult.tagIds,
             note: cleanNote(input.note),
+            location: input.location,
+            originalAmount: input.originalAmount,
             createdAt: Date.now(),
         };
         set({ entries: [...state.entries, entry] });
-        return { ok: true };
+        return { ok: true, entryId: entry.id };
+    },
+
+    addTransfer(input) {
+        if (!isPositiveInteger(input.amount)) {
+            return fail("金额必须大于 0");
+        }
+        if (!isValidDate(input.date)) {
+            return fail("请选择有效日期");
+        }
+        const state = get();
+        const from = state.accounts.find((item) => item.id === input.fromAccountId);
+        const to = state.accounts.find((item) => item.id === input.toAccountId);
+        if (!from || from.kind !== "asset" || !to || to.kind !== "asset") {
+            return fail("请选择两个储蓄账户");
+        }
+        if (from.id === to.id) {
+            return fail("转出账户和转入账户不能相同");
+        }
+        const memberId = input.memberId ?? state.members[0]?.id;
+        if (!memberId || !state.members.some((member) => member.id === memberId)) {
+            return fail("请选择成员");
+        }
+        const tagResult = cleanTagIds(input.tagIds, state.tags);
+        if (!tagResult.ok) {
+            return fail(tagResult.error);
+        }
+        const entry: Entry = {
+            id: newId("entry"),
+            kind: "transfer",
+            amount: input.amount,
+            date: input.date,
+            accountId: from.id,
+            toAccountId: to.id,
+            memberId,
+            tagIds: tagResult.tagIds,
+            note: cleanNote(input.note),
+            location: input.location,
+            originalAmount: input.originalAmount,
+            createdAt: Date.now(),
+        };
+        set({ entries: [...state.entries, entry] });
+        return { ok: true, entryId: entry.id };
     },
 
     deleteEntry(entryId) {
@@ -402,6 +539,84 @@ const createActions = (
         }
 
         set({ entries: state.entries.filter((item) => item.id !== entryId) });
+        return { ok: true };
+    },
+
+    bulkUpdateEntries(entryIds, patch) {
+        const ids = [...new Set(entryIds)];
+        if (ids.length === 0) {
+            return fail("请选择流水");
+        }
+        const state = get();
+        const items = state.entries.filter((entry) => ids.includes(entry.id));
+        if (items.length !== ids.length) {
+            return fail("部分流水不存在");
+        }
+        if (patch.memberId !== undefined) {
+            if (!state.members.some((member) => member.id === patch.memberId)) {
+                return fail("请选择成员");
+            }
+        }
+        const tagResult =
+            patch.tagIds === undefined
+                ? null
+                : cleanTagIds(patch.tagIds, state.tags);
+        if (tagResult && !tagResult.ok) {
+            return fail(tagResult.error);
+        }
+        let category: Category | undefined;
+        if (patch.categoryId !== undefined) {
+            category = state.categories.find((item) => item.id === patch.categoryId);
+            if (!category) {
+                return fail("分类不存在");
+            }
+            for (const entry of items) {
+                if (entry.kind !== "expense" && entry.kind !== "income") {
+                    return fail("转账和还款流水不能修改分类");
+                }
+                if (entry.kind !== category.kind) {
+                    return fail("所选流水的类型和分类不一致");
+                }
+            }
+        }
+
+        set({
+            entries: state.entries.map((entry) => {
+                if (!ids.includes(entry.id)) {
+                    return entry;
+                }
+                return {
+                    ...entry,
+                    ...(category ? { categoryId: category.id } : {}),
+                    ...(patch.memberId !== undefined
+                        ? { memberId: patch.memberId }
+                        : {}),
+                    ...(tagResult ? { tagIds: tagResult.tagIds } : {}),
+                    ...(patch.note !== undefined
+                        ? { note: cleanNote(patch.note) }
+                        : {}),
+                };
+            }),
+            bills: state.bills.map((bill) => {
+                const linked = state.entries.find(
+                    (entry) =>
+                        ids.includes(entry.id) &&
+                        entry.kind === "expense" &&
+                        entry.billId === bill.id,
+                );
+                if (!linked) {
+                    return bill;
+                }
+                return {
+                    ...bill,
+                    ...(category ? { categoryId: category.id } : {}),
+                    ...(patch.memberId !== undefined
+                        ? { memberId: patch.memberId }
+                        : {}),
+                    ...(tagResult ? { tagIds: tagResult.tagIds } : {}),
+                };
+            }),
+        });
         return { ok: true };
     },
 
@@ -975,6 +1190,347 @@ const createActions = (
         return { ok: true };
     },
 
+    addRecurringRule(input) {
+        const name = input.name.trim();
+        if (!name) {
+            return fail("周期记账名称不能为空");
+        }
+        if (!isPositiveInteger(input.amount)) {
+            return fail("金额必须大于 0");
+        }
+        if (!isPositiveInteger(input.interval)) {
+            return fail("间隔必须是大于 0 的整数");
+        }
+        if (!isValidDate(input.startDate)) {
+            return fail("请选择开始日期");
+        }
+        if (input.endDate !== undefined && !isValidDate(input.endDate)) {
+            return fail("请选择有效的结束日期");
+        }
+        if (input.endDate !== undefined && input.endDate < input.startDate) {
+            return fail("结束日期不能早于开始日期");
+        }
+
+        const state = get();
+        const category = state.categories.find((item) => item.id === input.categoryId);
+        if (!category || category.kind !== input.kind) {
+            return fail(input.kind === "expense" ? "请选择支出分类" : "请选择收入分类");
+        }
+        if (input.kind === "expense" && input.liabilityAccountId) {
+            const liability = state.accounts.find(
+                (item) => item.id === input.liabilityAccountId,
+            );
+            if (!liability || liability.kind !== "liability") {
+                return fail("请选择负债账户");
+            }
+        } else {
+            const account = input.accountId
+                ? state.accounts.find((item) => item.id === input.accountId)
+                : undefined;
+            if (!account || account.kind !== "asset") {
+                return fail(input.kind === "income" ? "请选择收款账户" : "请选择储蓄账户");
+            }
+        }
+        if (
+            input.memberId &&
+            !state.members.some((member) => member.id === input.memberId)
+        ) {
+            return fail("请选择成员");
+        }
+        const tagResult = cleanTagIds(input.tagIds, state.tags);
+        if (!tagResult.ok) {
+            return fail(tagResult.error);
+        }
+
+        const rule: RecurringRule = {
+            id: newId("recurring"),
+            name,
+            kind: input.kind,
+            amount: input.amount,
+            frequency: input.frequency,
+            interval: input.interval,
+            startDate: input.startDate,
+            nextDueDate: input.startDate,
+            endDate: input.endDate,
+            enabled: true,
+            categoryId: category.id,
+            accountId: input.kind === "expense" && input.liabilityAccountId
+                ? undefined
+                : input.accountId,
+            liabilityAccountId:
+                input.kind === "expense" ? input.liabilityAccountId : undefined,
+            memberId: input.memberId,
+            tagIds: tagResult.tagIds,
+            note: cleanNote(input.note),
+            createdAt: Date.now(),
+        };
+        set({ recurringRules: [...state.recurringRules, rule] });
+        return { ok: true, id: rule.id };
+    },
+
+    updateRecurringRule(ruleId, patch) {
+        const state = get();
+        const rule = state.recurringRules.find((item) => item.id === ruleId);
+        if (!rule) {
+            return fail("周期记账不存在");
+        }
+        const next: RecurringRule = {
+            ...rule,
+            ...patch,
+            name: patch.name?.trim() ?? rule.name,
+            accountId: patch.accountId === undefined ? rule.accountId : patch.accountId || undefined,
+            liabilityAccountId:
+                patch.liabilityAccountId === undefined
+                    ? rule.liabilityAccountId
+                    : patch.liabilityAccountId || undefined,
+            memberId:
+                patch.memberId === undefined ? rule.memberId : patch.memberId || undefined,
+            tagIds: patch.tagIds === undefined ? rule.tagIds : [...new Set(patch.tagIds)],
+            note: patch.note === undefined ? rule.note : cleanNote(patch.note),
+            nextDueDate:
+                patch.nextDueDate ??
+                (patch.startDate !== undefined && patch.startDate !== rule.startDate
+                    ? patch.startDate
+                    : rule.nextDueDate),
+        };
+        if (!next.name) {
+            return fail("周期记账名称不能为空");
+        }
+        if (!isPositiveInteger(next.amount)) {
+            return fail("金额必须大于 0");
+        }
+        if (!isPositiveInteger(next.interval)) {
+            return fail("间隔必须是大于 0 的整数");
+        }
+        if (!isValidDate(next.startDate)) {
+            return fail("请选择开始日期");
+        }
+        if (next.endDate !== undefined && !isValidDate(next.endDate)) {
+            return fail("请选择有效的结束日期");
+        }
+        if (next.endDate !== undefined && next.endDate < next.startDate) {
+            return fail("结束日期不能早于开始日期");
+        }
+        const category = state.categories.find((item) => item.id === next.categoryId);
+        if (!category || category.kind !== next.kind) {
+            return fail(next.kind === "expense" ? "请选择支出分类" : "请选择收入分类");
+        }
+        if (next.kind === "expense" && next.liabilityAccountId) {
+            const liability = state.accounts.find(
+                (item) => item.id === next.liabilityAccountId,
+            );
+            if (!liability || liability.kind !== "liability") {
+                return fail("请选择负债账户");
+            }
+        } else {
+            const account = next.accountId
+                ? state.accounts.find((item) => item.id === next.accountId)
+                : undefined;
+            if (!account || account.kind !== "asset") {
+                return fail(next.kind === "income" ? "请选择收款账户" : "请选择储蓄账户");
+            }
+        }
+        if (next.memberId && !state.members.some((member) => member.id === next.memberId)) {
+            return fail("请选择成员");
+        }
+        const tagResult = cleanTagIds(next.tagIds, state.tags);
+        if (!tagResult.ok) {
+            return fail(tagResult.error);
+        }
+        next.tagIds = tagResult.tagIds;
+
+        set({
+            recurringRules: state.recurringRules.map((item) =>
+                item.id === ruleId ? next : item,
+            ),
+        });
+        return { ok: true };
+    },
+
+    deleteRecurringRule(ruleId) {
+        const state = get();
+        if (!state.recurringRules.some((item) => item.id === ruleId)) {
+            return fail("周期记账不存在");
+        }
+        set({
+            recurringRules: state.recurringRules.filter((item) => item.id !== ruleId),
+            entries: state.entries.map((entry) =>
+                entry.recurringId === ruleId
+                    ? { ...entry, recurringId: undefined }
+                    : entry,
+            ),
+        });
+        return { ok: true };
+    },
+
+    postDueRecurring(now = Date.now()) {
+        const state = get();
+        let posted = 0;
+        const errors: string[] = [];
+        const nextRules = state.recurringRules.map((rule) => {
+            if (!rule.enabled) {
+                return rule;
+            }
+            let next = rule.nextDueDate;
+            let enabled = true;
+            let lastPostedAt = rule.lastPostedAt;
+            let guard = 0;
+            while (next <= now && guard < 500) {
+                if (rule.endDate !== undefined && next > rule.endDate) {
+                    enabled = false;
+                    break;
+                }
+                const exists = get().entries.some(
+                    (entry) => entry.recurringId === rule.id && entry.date === next,
+                );
+                if (!exists) {
+                    const memberId = rule.memberId ?? get().members[0]?.id;
+                    const result =
+                        rule.kind === "income"
+                            ? get().addIncome({
+                                  amount: rule.amount,
+                                  date: next,
+                                  categoryId: rule.categoryId,
+                                  accountId: rule.accountId ?? "",
+                                  memberId,
+                                  tagIds: rule.tagIds,
+                                  note: rule.note,
+                                  recurringId: rule.id,
+                              })
+                            : get().addExpense({
+                                  amount: rule.amount,
+                                  date: next,
+                                  categoryId: rule.categoryId,
+                                  memberId,
+                                  tagIds: rule.tagIds,
+                                  note: rule.note,
+                                  recurringId: rule.id,
+                                  source: rule.liabilityAccountId
+                                      ? {
+                                            type: "liability",
+                                            accountId: rule.liabilityAccountId,
+                                            title: rule.name,
+                                        }
+                                      : {
+                                            type: "asset",
+                                            accountId: rule.accountId ?? "",
+                                        },
+                              });
+                    if (!result.ok) {
+                        errors.push(`${rule.name}：${result.error}`);
+                        break;
+                    }
+                    posted += 1;
+                }
+                lastPostedAt = next;
+                next = advanceRecurringDate(next, rule);
+                guard += 1;
+            }
+            if (rule.endDate !== undefined && next > rule.endDate) {
+                enabled = false;
+            }
+            return {
+                ...rule,
+                nextDueDate: next,
+                lastPostedAt,
+                enabled,
+            };
+        });
+
+        set({ recurringRules: nextRules });
+        if (errors.length > 0 && posted === 0) {
+            return fail(errors[0]);
+        }
+        return { ok: true, posted };
+    },
+
+    addAttachments(target, items) {
+        if (items.length === 0) {
+            return { ok: true };
+        }
+        const state = get();
+        if (target.kind === "entry") {
+            if (!state.entries.some((entry) => entry.id === target.id)) {
+                return fail("流水不存在");
+            }
+        } else if (!state.bills.some((bill) => bill.id === target.id)) {
+            return fail("账单不存在");
+        }
+        const existing = new Set(state.attachments.map((item) => item.id));
+        const additions = items.filter((item) => !existing.has(item.id));
+        if (additions.length === 0) {
+            return { ok: true };
+        }
+        const ids = additions.map((item) => item.id);
+        set({
+            attachments: [...state.attachments, ...additions],
+            entries:
+                target.kind === "entry"
+                    ? state.entries.map((entry) =>
+                          entry.id === target.id
+                              ? {
+                                    ...entry,
+                                    attachmentIds: [
+                                        ...new Set([
+                                            ...(entry.attachmentIds ?? []),
+                                            ...ids,
+                                        ]),
+                                    ],
+                                }
+                              : entry,
+                      )
+                    : state.entries,
+            bills:
+                target.kind === "bill"
+                    ? state.bills.map((bill) =>
+                          bill.id === target.id
+                              ? {
+                                    ...bill,
+                                    attachmentIds: [
+                                        ...new Set([
+                                            ...(bill.attachmentIds ?? []),
+                                            ...ids,
+                                        ]),
+                                    ],
+                                }
+                              : bill,
+                      )
+                    : state.bills,
+        });
+        return { ok: true };
+    },
+
+    deleteAttachment(attachmentId) {
+        const state = get();
+        if (!state.attachments.some((item) => item.id === attachmentId)) {
+            return fail("附件不存在");
+        }
+        set({
+            attachments: state.attachments.filter((item) => item.id !== attachmentId),
+            entries: state.entries.map((entry) =>
+                entry.attachmentIds?.includes(attachmentId)
+                    ? {
+                          ...entry,
+                          attachmentIds: entry.attachmentIds.filter(
+                              (id) => id !== attachmentId,
+                          ),
+                      }
+                    : entry,
+            ),
+            bills: state.bills.map((bill) =>
+                bill.attachmentIds?.includes(attachmentId)
+                    ? {
+                          ...bill,
+                          attachmentIds: bill.attachmentIds.filter(
+                              (id) => id !== attachmentId,
+                          ),
+                      }
+                    : bill,
+            ),
+        });
+        return { ok: true };
+    },
+
     setSettings(patch) {
         set((state) => ({ settings: { ...state.settings, ...patch } }));
     },
@@ -990,6 +1546,8 @@ const createActions = (
             tagGroups: data.tagGroups,
             tags: data.tags,
             budgets: data.budgets,
+            recurringRules: data.recurringRules,
+            attachments: data.attachments,
             bills: data.bills,
             entries: data.entries,
             settings: data.settings,
@@ -1016,6 +1574,8 @@ export function extractBook(state: LedgerState): Book {
         tagGroups: state.tagGroups,
         tags: state.tags,
         budgets: state.budgets,
+        recurringRules: state.recurringRules,
+        attachments: state.attachments,
         bills: state.bills,
         entries: state.entries,
         settings: state.settings,

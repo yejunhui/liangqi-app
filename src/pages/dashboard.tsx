@@ -12,6 +12,7 @@ import {
     ChevronRight,
     CreditCard,
     Info,
+    Mic,
     Plus,
     ReceiptText,
     Target,
@@ -63,6 +64,7 @@ export function Dashboard() {
     const budgets = useLedgerStore((state) => state.budgets);
     const currency = useCurrency();
     const openEntryModal = useUIStore((state) => state.openEntryModal);
+    const openQuickEntry = useUIStore((state) => state.openQuickEntry);
     const [month, setMonth] = useState(() => startOfMonth(Date.now()));
     const [now] = useState(() => Date.now());
 
@@ -195,6 +197,12 @@ export function Dashboard() {
                             label="记收入"
                             hint="存款增加"
                             onClick={() => openEntryModal({ kind: "income" })}
+                        />
+                        <QuickAction
+                            icon={Mic}
+                            label="智能记账"
+                            hint="说一句就记"
+                            onClick={() => openQuickEntry()}
                         />
                     </div>
                 </div>

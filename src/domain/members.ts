@@ -38,6 +38,8 @@ export function ensureMembers<T extends LedgerData>(data: T, now = Date.now()): 
         tagGroups: Array.isArray(data.tagGroups) ? data.tagGroups : [],
         tags: Array.isArray(data.tags) ? data.tags : [],
         budgets: Array.isArray(data.budgets) ? data.budgets : [],
+        recurringRules: Array.isArray(data.recurringRules) ? data.recurringRules : [],
+        attachments: Array.isArray(data.attachments) ? data.attachments : [],
     };
 }
 

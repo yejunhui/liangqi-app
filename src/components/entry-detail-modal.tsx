@@ -3,11 +3,12 @@
  */
 
 import { useState, type ReactNode } from "react";
-import { CreditCard, Trash2, Wallet } from "lucide-react";
+import { CreditCard, MapPin, Trash2, Wallet } from "lucide-react";
 import type { Entry } from "@/types";
 import { Modal } from "@/components/modal";
 import { Button } from "@/components/button";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { AttachmentList } from "@/components/attachment-list";
 import { Money } from "@/components/money";
 import { formatCents } from "@/domain/money";
 import {
@@ -46,6 +47,9 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
     const liability = entry?.liabilityAccountId
         ? accounts.find((item) => item.id === entry.liabilityAccountId)
         : undefined;
+    const toAccount = entry?.toAccountId
+        ? accounts.find((item) => item.id === entry.toAccountId)
+        : undefined;
     const member = entry?.memberId
         ? members.find((item) => item.id === entry.memberId)
         : undefined;
@@ -54,8 +58,19 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
         .filter((tag): tag is (typeof tags)[number] => tag !== undefined);
 
     const kindLabel =
-        entry?.kind === "expense" ? "支出" : entry?.kind === "income" ? "收入" : "还款";
-    const sign = entry?.kind === "income" ? "positive" : "negative";
+        entry?.kind === "expense"
+            ? "支出"
+            : entry?.kind === "income"
+              ? "收入"
+              : entry?.kind === "transfer"
+                ? "转账"
+                : "还款";
+    const sign =
+        entry?.kind === "income"
+            ? "positive"
+            : entry?.kind === "transfer"
+              ? "none"
+              : "negative";
 
     function handleDelete() {
         if (!entry) {
@@ -98,14 +113,19 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                     <div className="space-y-5">
                         <div className="rounded-2xl border border-line bg-surface-2/55 px-4 py-5 text-center">
                             <p className="text-[11px] font-medium text-muted">
-                                {entry.kind === "repayment" ? "还款金额" : kindLabel}
+                                {entry.kind === "repayment"
+                                    ? "还款金额"
+                                    : entry.kind === "transfer"
+                                      ? "转账金额"
+                                      : kindLabel}
                             </p>
                             <p
                                 className={cn(
                                     "mt-1 text-3xl font-bold tracking-tight",
                                     entry.kind === "income"
                                         ? "text-success"
-                                        : entry.kind === "repayment"
+                                        : entry.kind === "repayment" ||
+                                            entry.kind === "transfer"
                                           ? "text-muted"
                                           : entry.billId
                                             ? "text-liability"
@@ -143,7 +163,24 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                                     </span>
                                 </DetailRow>
                             )}
-                            {entry.kind === "expense" && entry.billId ? (
+                            {entry.kind === "transfer" ? (
+                                <>
+                                    <DetailRow label="转出账户">
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <Wallet className="size-3.5 text-muted" />
+                                            {asset ? `${asset.emoji} ${asset.name}` : "未指定"}
+                                        </span>
+                                    </DetailRow>
+                                    <DetailRow label="转入账户">
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <Wallet className="size-3.5 text-muted" />
+                                            {toAccount
+                                                ? `${toAccount.emoji} ${toAccount.name}`
+                                                : "未指定"}
+                                        </span>
+                                    </DetailRow>
+                                </>
+                            ) : entry.kind === "expense" && entry.billId ? (
                                 <>
                                     <DetailRow label="付款方式">
                                         <span className="inline-flex items-center gap-1.5 text-liability">
@@ -224,8 +261,38 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                                     </span>
                                 </DetailRow>
                             )}
+                            {entry.originalAmount && (
+                                <DetailRow label="原始金额">
+                                    {formatCents(
+                                        entry.originalAmount.amount,
+                                        entry.originalAmount.currency,
+                                    )}{" "}
+                                    <span className="text-[10px] text-muted">
+                                        @ {entry.originalAmount.rate}
+                                    </span>
+                                </DetailRow>
+                            )}
+                            {entry.location && (
+                                <DetailRow label="位置">
+                                    <a
+                                        href={`https://www.openstreetmap.org/?mlat=${entry.location.lat}&mlon=${entry.location.lng}#map=16/${entry.location.lat}/${entry.location.lng}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1 text-accent hover:underline"
+                                    >
+                                        <MapPin className="size-3.5" />
+                                        {entry.location.label ||
+                                            `${entry.location.lat.toFixed(4)}, ${entry.location.lng.toFixed(4)}`}
+                                    </a>
+                                </DetailRow>
+                            )}
                             {entry.note && <DetailRow label="备注">{entry.note}</DetailRow>}
                         </dl>
+
+                        <AttachmentList
+                            target={{ kind: "entry", id: entry.id }}
+                            attachmentIds={entry.attachmentIds}
+                        />
 
                         <p className="rounded-xl bg-surface-2/70 px-3 py-2.5 text-[10px] leading-relaxed text-muted">
                             删除后账户余额和账单待还金额会自动重算；已有还款的赊账需要先删除还款记录。

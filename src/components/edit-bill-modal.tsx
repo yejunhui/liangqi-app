@@ -7,6 +7,7 @@ import type { Bill } from "@/types";
 import { Modal } from "@/components/modal";
 import { Button } from "@/components/button";
 import { TagSelector } from "@/components/tag-selector";
+import { AttachmentList } from "@/components/attachment-list";
 import { fromDateInputValue, toDateInputValue } from "@/utils/date";
 import { useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
@@ -175,6 +176,11 @@ export function EditBillModal({ bill, onClose }: EditBillModalProps) {
                         groups={tagGroups}
                         value={tagIds}
                         onChange={setTagIds}
+                    />
+
+                    <AttachmentList
+                        target={{ kind: "bill", id: bill.id }}
+                        attachmentIds={bill.attachmentIds}
                     />
 
                     {error && (

@@ -2,20 +2,30 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
     ArrowDownUp,
+    ArrowRightLeft,
     CalendarDays,
     CreditCard,
     Info,
+    MapPin,
+    Paperclip,
     Plus,
     ReceiptText,
     Wallet,
+    X,
 } from "lucide-react";
-import type { EntryKind } from "@/types";
+import type { EntryKind, EntryLocation } from "@/types";
 import { Modal } from "@/components/modal";
 import { Button } from "@/components/button";
 import { TagSelector } from "@/components/tag-selector";
+import {
+    MAX_ATTACHMENT_SIZE,
+    createAttachmentMeta,
+    deleteAttachmentFile,
+    saveAttachmentFile,
+} from "@/domain/attachments";
 import {
     getAccountBalance,
     getBillDueInfo,
@@ -24,6 +34,7 @@ import {
     getOpenBills,
 } from "@/domain/ledger";
 import { formatCents, parseAmountToCents, currencySymbol } from "@/domain/money";
+import { CURRENCIES } from "@/domain/currencies";
 import { fromDateInputValue, toDateInputValue } from "@/utils/date";
 import { useCurrency, useLedgerStore } from "@/store/ledger";
 import { useUIStore } from "@/store/ui";
@@ -34,6 +45,7 @@ const KIND_OPTIONS: Array<{ value: EntryKind; label: string; icon: typeof Wallet
     { value: "expense", label: "支出", icon: ReceiptText },
     { value: "income", label: "收入", icon: ArrowDownUp },
     { value: "repayment", label: "还款", icon: CreditCard },
+    { value: "transfer", label: "转账", icon: ArrowRightLeft },
 ];
 
 export function EntryModal() {
@@ -41,6 +53,7 @@ export function EntryModal() {
     const initialKind = useUIStore((state) => state.entryModalKind);
     const initialBillId = useUIStore((state) => state.entryModalBillId);
     const initialPaymentMode = useUIStore((state) => state.entryModalPaymentMode);
+    const prefill = useUIStore((state) => state.entryModalPrefill);
     const close = useUIStore((state) => state.closeEntryModal);
 
     const accounts = useLedgerStore((state) => state.accounts);
@@ -53,22 +66,29 @@ export function EntryModal() {
     const addExpense = useLedgerStore((state) => state.addExpense);
     const addIncome = useLedgerStore((state) => state.addIncome);
     const addRepayment = useLedgerStore((state) => state.addRepayment);
+    const addTransfer = useLedgerStore((state) => state.addTransfer);
     const currency = useCurrency();
 
     const [kind, setKind] = useState<EntryKind>("expense");
     const [amount, setAmount] = useState("");
+    const [entryCurrency, setEntryCurrency] = useState(currency);
+    const [exchangeRate, setExchangeRate] = useState("1");
     const [date, setDate] = useState(() => toDateInputValue(Date.now()));
     const [categoryId, setCategoryId] = useState("");
     const [memberId, setMemberId] = useState("");
     const [tagIds, setTagIds] = useState<string[]>([]);
     const [paymentMode, setPaymentMode] = useState<"asset" | "liability">("asset");
     const [assetAccountId, setAssetAccountId] = useState("");
+    const [toAccountId, setToAccountId] = useState("");
     const [liabilityAccountId, setLiabilityAccountId] = useState("");
     const [billTitle, setBillTitle] = useState("");
     const [dueDate, setDueDate] = useState("");
     const [billId, setBillId] = useState("");
     const [note, setNote] = useState("");
+    const [location, setLocation] = useState<EntryLocation | undefined>(undefined);
+    const [files, setFiles] = useState<File[]>([]);
     const [error, setError] = useState("");
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const assetAccounts = useMemo(
         () => accounts.filter((account) => account.kind === "asset"),
@@ -91,7 +111,17 @@ export function EntryModal() {
     const selectedBill = bills.find((bill) => bill.id === billId);
     const selectedCategory = categories.find((category) => category.id === categoryId);
     const selectedAsset = accounts.find((account) => account.id === assetAccountId);
-    const parsedAmount = parseAmountToCents(amount);
+    const foreignCents = parseAmountToCents(amount);
+    const rateNumber = Number.parseFloat(exchangeRate);
+    const isForeign = entryCurrency !== currency;
+    const parsedAmount =
+        foreignCents === null
+            ? null
+            : isForeign
+              ? Number.isFinite(rateNumber) && rateNumber > 0
+                  ? Math.round(foreignCents * rateNumber)
+                  : null
+              : foreignCents;
     const repaymentRemaining = selectedBill ? getBillRemaining(selectedBill, entries) : 0;
     const repaymentProjected = Math.max(0, repaymentRemaining - (parsedAmount ?? 0));
     const assetBalance = selectedAsset ? getAccountBalance(selectedAsset, entries) : 0;
@@ -114,25 +144,46 @@ export function EntryModal() {
         setAmount(
             initialBill
                 ? (getBillRemaining(initialBill, state.entries) / 100).toFixed(2)
-                : "",
+                : prefill?.amount
+                  ? (prefill.amount / 100).toFixed(2)
+                  : "",
         );
-        setDate(toDateInputValue(Date.now()));
+        setEntryCurrency(currency);
+        setExchangeRate("1");
+        setDate(toDateInputValue(prefill?.date ?? Date.now()));
+        const initialCategories = initialKind === "income" ? incomeList : expenseList;
         setCategoryId(
-            initialKind === "income"
-                ? (incomeList[0]?.id ?? "")
-                : (expenseList[0]?.id ?? ""),
+            initialCategories.some((category) => category.id === prefill?.categoryId)
+                ? (prefill?.categoryId ?? "")
+                : (initialCategories[0]?.id ?? ""),
         );
-        setMemberId(initialBill?.memberId ?? state.members[0]?.id ?? "");
-        setTagIds(initialBill?.tagIds ?? []);
-        setPaymentMode(initialPaymentMode ?? "asset");
-        setAssetAccountId(assetList[0]?.id ?? "");
-        setLiabilityAccountId(liabilityList[0]?.id ?? "");
+        setMemberId(
+            initialBill?.memberId ??
+                prefill?.memberId ??
+                state.members[0]?.id ??
+                "",
+        );
+        setTagIds(initialBill?.tagIds ?? prefill?.tagIds ?? []);
+        setPaymentMode(
+            initialPaymentMode ??
+                (prefill?.liabilityAccountId ? "liability" : "asset"),
+        );
+        setAssetAccountId(prefill?.assetAccountId ?? assetList[0]?.id ?? "");
+        setToAccountId(
+            assetList.find((account) => account.id !== (prefill?.assetAccountId ?? assetList[0]?.id))
+                ?.id ?? assetList[1]?.id ?? assetList[0]?.id ?? "",
+        );
+        setLiabilityAccountId(
+            prefill?.liabilityAccountId ?? liabilityList[0]?.id ?? "",
+        );
         setBillTitle("");
         setDueDate("");
         setBillId(initialBill?.id ?? "");
-        setNote("");
+        setNote(prefill?.note ?? "");
+        setLocation(prefill?.location);
+        setFiles([]);
         setError("");
-    }, [open, initialKind, initialBillId, initialPaymentMode]);
+    }, [open, initialKind, initialBillId, initialPaymentMode, prefill, currency]);
 
     useEffect(() => {
         if (!open) {
@@ -163,13 +214,17 @@ export function EntryModal() {
         setError("");
     }
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setError("");
 
-        const cents = parseAmountToCents(amount);
+        const cents = parsedAmount;
         if (cents === null || cents <= 0) {
-            setError("请输入大于 0 的金额");
+            setError(
+                isForeign && !(Number.isFinite(rateNumber) && rateNumber > 0)
+                    ? "请输入有效汇率"
+                    : "请输入大于 0 的金额",
+            );
             return;
         }
         const timestamp = fromDateInputValue(date);
@@ -181,6 +236,17 @@ export function EntryModal() {
             setError("请选择成员");
             return;
         }
+
+        const originalAmount =
+            isForeign && foreignCents !== null
+                ? {
+                      currency: entryCurrency,
+                      amount: foreignCents,
+                      rate: rateNumber,
+                  }
+                : undefined;
+
+        let createdEntryId: string | undefined;
 
         if (kind === "expense") {
             if (!categoryId) {
@@ -198,6 +264,8 @@ export function EntryModal() {
                     categoryId,
                     memberId,
                     tagIds,
+                    location,
+                    originalAmount,
                     note,
                     source: { type: "asset", accountId: assetAccountId },
                 });
@@ -205,6 +273,7 @@ export function EntryModal() {
                     setError(result.error);
                     return;
                 }
+                createdEntryId = result.entryId;
                 toast("支出已记入，存款已扣减", "success");
             } else {
                 if (!liabilityAccountId) {
@@ -226,6 +295,8 @@ export function EntryModal() {
                     categoryId,
                     memberId,
                     tagIds,
+                    location,
+                    originalAmount,
                     note,
                     source: {
                         type: "liability",
@@ -238,6 +309,7 @@ export function EntryModal() {
                     setError(result.error);
                     return;
                 }
+                createdEntryId = result.entryId;
                 toast("已生成待还账单，存款没有变动", "success");
             }
         } else if (kind === "income") {
@@ -256,13 +328,42 @@ export function EntryModal() {
                 accountId: assetAccountId,
                 memberId,
                 tagIds,
+                location,
+                originalAmount,
                 note,
             });
             if (!result.ok) {
                 setError(result.error);
                 return;
             }
+            createdEntryId = result.entryId;
             toast("收入已记入", "success");
+        } else if (kind === "transfer") {
+            if (!assetAccountId || !toAccountId) {
+                setError("请选择转出和转入账户");
+                return;
+            }
+            if (assetAccountId === toAccountId) {
+                setError("转出账户和转入账户不能相同");
+                return;
+            }
+            const result = addTransfer({
+                amount: cents,
+                date: timestamp,
+                fromAccountId: assetAccountId,
+                toAccountId,
+                memberId,
+                tagIds,
+                location,
+                originalAmount,
+                note,
+            });
+            if (!result.ok) {
+                setError(result.error);
+                return;
+            }
+            createdEntryId = result.entryId;
+            toast("转账已记录，不计入支出和收入", "success");
         } else {
             if (!billId) {
                 setError("请选择要还款的账单");
@@ -279,20 +380,49 @@ export function EntryModal() {
                 accountId: assetAccountId,
                 memberId,
                 tagIds,
+                location,
+                originalAmount,
                 note,
             });
             if (!result.ok) {
                 setError(result.error);
                 return;
             }
+            createdEntryId = result.entryId;
             toast("还款已记录，不会重复计入支出", "success");
+        }
+
+        if (createdEntryId && files.length > 0) {
+            const metas = files.map(createAttachmentMeta);
+            try {
+                for (let index = 0; index < files.length; index += 1) {
+                    await saveAttachmentFile(metas[index].id, files[index]);
+                }
+                const attachResult = useLedgerStore
+                    .getState()
+                    .addAttachments({ kind: "entry", id: createdEntryId }, metas);
+                if (!attachResult.ok) {
+                    await Promise.all(metas.map((meta) => deleteAttachmentFile(meta.id)));
+                    toast(attachResult.error, "error");
+                } else {
+                    toast(`已添加 ${metas.length} 个附件`, "success");
+                }
+            } catch {
+                toast("附件保存失败，流水已正常记入", "error");
+            }
         }
 
         close();
     }
 
     const submitLabel =
-        kind === "expense" ? "记支出" : kind === "income" ? "记收入" : "确认还款";
+        kind === "expense"
+            ? "记支出"
+            : kind === "income"
+              ? "记收入"
+              : kind === "transfer"
+                ? "确认转账"
+                : "确认还款";
 
     return (
         <Modal
@@ -313,7 +443,7 @@ export function EntryModal() {
             }
         >
             <form id="entry-form" className="space-y-5" onSubmit={handleSubmit}>
-                <div className="grid grid-cols-3 gap-1 rounded-xl bg-surface-2 p-1">
+                <div className="grid grid-cols-4 gap-1 rounded-xl bg-surface-2 p-1">
                     {KIND_OPTIONS.map((option) => {
                         const active = kind === option.value;
                         return (
@@ -344,11 +474,13 @@ export function EntryModal() {
                                 : "先记负债，之后还款"
                             : kind === "income"
                               ? "这笔钱收到哪里"
-                              : "这次还多少"}
+                              : kind === "transfer"
+                                ? "从哪个账户转到哪个账户"
+                                : "这次还多少"}
                     </p>
                     <div className="mt-2 flex items-baseline justify-center gap-1.5">
                         <span className="text-xl font-semibold text-muted">
-                            {currencySymbol(currency)}
+                            {currencySymbol(entryCurrency)}
                         </span>
                         <input
                             value={amount}
@@ -359,6 +491,46 @@ export function EntryModal() {
                             className="w-44 bg-transparent text-center text-4xl font-bold tracking-tight text-text outline-none placeholder:text-line-strong sm:w-56"
                         />
                     </div>
+
+                    <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px] text-muted">
+                        <select
+                            value={entryCurrency}
+                            onChange={(event) => {
+                                setEntryCurrency(event.target.value);
+                                setExchangeRate("1");
+                            }}
+                            className="rounded-lg border border-line bg-surface px-2 py-1 text-[10px] font-medium text-text"
+                            aria-label="记账币种"
+                        >
+                            {!CURRENCIES.some((item) => item.value === currency) && (
+                                <option value={currency}>{currency}</option>
+                            )}
+                            {CURRENCIES.map((item) => (
+                                <option key={item.value} value={item.value}>
+                                    {item.label}
+                                </option>
+                            ))}
+                        </select>
+                        {isForeign && (
+                            <label className="flex items-center gap-1">
+                                1 {entryCurrency} =
+                                <input
+                                    value={exchangeRate}
+                                    onChange={(event) => setExchangeRate(event.target.value)}
+                                    inputMode="decimal"
+                                    className="w-16 rounded-md border border-line bg-surface px-1.5 py-1 text-center text-[10px] text-text outline-none"
+                                    aria-label="汇率"
+                                />
+                                {currency}
+                            </label>
+                        )}
+                    </div>
+                    {isForeign && parsedAmount !== null && foreignCents !== null && (
+                        <p className="mt-1.5 text-[10px] text-accent">
+                            折合 {formatCents(parsedAmount, currency)}
+                        </p>
+                    )}
+
                     {kind === "repayment" && selectedBill && (
                         <p className="mt-2 text-[11px] text-muted">
                             待还 {formatCents(repaymentRemaining, currency)}
@@ -513,6 +685,33 @@ export function EntryModal() {
                     </div>
                 )}
 
+                {kind === "transfer" && (
+                    <div className="space-y-4">
+                        <AccountPicker
+                            label="从哪个账户转出"
+                            accounts={assetAccounts}
+                            value={assetAccountId}
+                            onChange={setAssetAccountId}
+                            emptyHint="还没有储蓄账户，请先到账户页添加"
+                        />
+                        <AccountPicker
+                            label="转到哪个账户"
+                            accounts={assetAccounts}
+                            value={toAccountId}
+                            onChange={setToAccountId}
+                            emptyHint="至少需要两个储蓄账户才能转账"
+                        />
+                        {assetAccountId === toAccountId && (
+                            <p className="rounded-xl border border-danger/20 bg-danger-soft px-3 py-2 text-[11px] text-danger">
+                                转出账户和转入账户不能相同。
+                            </p>
+                        )}
+                        <p className="rounded-xl border border-line bg-surface-2/50 px-3 py-2 text-[10px] leading-relaxed text-muted">
+                            转账只改变两个账户的余额，不会计入支出、收入或预算。
+                        </p>
+                    </div>
+                )}
+
                 {kind === "repayment" && (
                     <div className="space-y-4">
                         {openBills.length === 0 ? (
@@ -655,12 +854,147 @@ export function EntryModal() {
                     </label>
                 </div>
 
+                <div>
+                    <div className="mb-2 flex items-center justify-between">
+                        <p className="flex items-center gap-1 text-xs font-semibold text-muted">
+                            <MapPin className="size-3" />
+                            位置
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (!navigator.geolocation) {
+                                    toast("这个浏览器不支持定位", "info");
+                                    return;
+                                }
+                                navigator.geolocation.getCurrentPosition(
+                                    (position) => {
+                                        setLocation((current) => ({
+                                            lat: position.coords.latitude,
+                                            lng: position.coords.longitude,
+                                            label: current?.label,
+                                        }));
+                                        toast("已记录当前位置", "success");
+                                    },
+                                    () => toast("定位失败，请检查浏览器权限", "error"),
+                                    { enableHighAccuracy: false, timeout: 10_000 },
+                                );
+                            }}
+                            className="rounded-lg border border-line px-2 py-1 text-[10px] font-medium text-muted transition hover:text-text"
+                        >
+                            获取当前位置
+                        </button>
+                    </div>
+                    {location ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <input
+                                className="field min-w-0 flex-1 py-2 text-xs"
+                                value={location.label ?? ""}
+                                onChange={(event) =>
+                                    setLocation((current) =>
+                                        current
+                                            ? { ...current, label: event.target.value }
+                                            : current,
+                                    )
+                                }
+                                placeholder={`${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`}
+                            />
+                            <a
+                                href={`https://www.openstreetmap.org/?mlat=${location.lat}&mlon=${location.lng}#map=16/${location.lat}/${location.lng}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[10px] font-medium text-accent hover:underline"
+                            >
+                                看地图
+                            </a>
+                            <button
+                                type="button"
+                                onClick={() => setLocation(undefined)}
+                                className="grid size-6 place-items-center rounded text-muted hover:text-danger"
+                                aria-label="清除位置"
+                            >
+                                <X className="size-3" />
+                            </button>
+                        </div>
+                    ) : (
+                        <p className="rounded-xl border border-dashed border-line bg-surface-2/40 px-3 py-2.5 text-[10px] text-muted">
+                            可选，记录这笔消费发生的地点。
+                        </p>
+                    )}
+                </div>
+
                 <TagSelector
                     tags={tags}
                     groups={tagGroups}
                     value={tagIds}
                     onChange={setTagIds}
                 />
+
+                <div>
+                    <div className="mb-2 flex items-center justify-between">
+                        <p className="flex items-center gap-1 text-xs font-semibold text-muted">
+                            <Paperclip className="size-3" />
+                            附件
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="rounded-lg border border-line px-2 py-1 text-[10px] font-medium text-muted transition hover:text-text"
+                        >
+                            选择文件
+                        </button>
+                    </div>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept="image/*,application/pdf,text/plain"
+                        className="hidden"
+                        onChange={(event) => {
+                            const next = Array.from(event.target.files ?? []);
+                            event.target.value = "";
+                            const tooLarge = next.find(
+                                (file) => file.size > MAX_ATTACHMENT_SIZE,
+                            );
+                            if (tooLarge) {
+                                setError(`单个附件不能超过 10 MB：${tooLarge.name}`);
+                                return;
+                            }
+                            setFiles((current) => [...current, ...next]);
+                        }}
+                    />
+                    {files.length === 0 ? (
+                        <p className="rounded-xl border border-dashed border-line bg-surface-2/40 px-3 py-2.5 text-[10px] text-muted">
+                            可选，小票 / 发票 / 截图，保存后会关联到这笔流水。
+                        </p>
+                    ) : (
+                        <div className="space-y-1.5">
+                            {files.map((file, index) => (
+                                <div
+                                    key={`${file.name}-${index}`}
+                                    className="flex items-center gap-2 rounded-xl border border-line bg-surface-2/40 px-2.5 py-2 text-[11px]"
+                                >
+                                    <Paperclip className="size-3 shrink-0 text-muted" />
+                                    <span className="min-w-0 flex-1 truncate text-text">
+                                        {file.name}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setFiles((current) =>
+                                                current.filter((_, i) => i !== index),
+                                            )
+                                        }
+                                        className="grid size-5 place-items-center rounded text-muted hover:text-danger"
+                                        aria-label="移除附件"
+                                    >
+                                        <X className="size-3" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
 
                 {error && (
                     <p className="rounded-xl border border-danger/20 bg-danger-soft px-3 py-2 text-xs font-medium text-danger">

@@ -64,6 +64,35 @@ function buildBook() {
     ];
     book.bills[0].tagIds = ["tag_trip"];
     book.entries[0].tagIds = ["tag_trip"];
+    book.recurringRules = [
+        {
+            id: "recurring_rent",
+            name: "房租",
+            kind: "expense",
+            amount: 300_000,
+            frequency: "monthly",
+            interval: 1,
+            startDate: NOW,
+            nextDueDate: NOW,
+            enabled: true,
+            categoryId: "cat_food",
+            accountId: "acc_cash",
+            createdAt: NOW,
+        },
+    ];
+    book.entries[0].recurringId = "recurring_rent";
+    book.attachments = [
+        {
+            id: "attachment_receipt",
+            name: "receipt.png",
+            mimeType: "image/png",
+            size: 1024,
+            createdAt: NOW,
+        },
+    ];
+    book.entries[0].attachmentIds = ["attachment_receipt"];
+    book.entries[0].location = { lat: 31.2304, lng: 121.4737, label: "公司" };
+    book.entries[0].originalAmount = { currency: "USD", amount: 280, rate: 7.2 };
     return book;
 }
 
@@ -96,7 +125,13 @@ describe("remote chunks", () => {
         expect(rebuilt.members[0].name).toBe("我");
         expect(rebuilt.tags[0].groupId).toBe("tag_group_trip");
         expect(rebuilt.budgets[0].categoryIds).toEqual(["cat_food"]);
+        expect(rebuilt.recurringRules[0].name).toBe("房租");
         expect(rebuilt.entries[0].tagIds).toEqual(["tag_trip"]);
+        expect(rebuilt.entries[0].recurringId).toBe("recurring_rent");
+        expect(rebuilt.attachments[0].name).toBe("receipt.png");
+        expect(rebuilt.entries[0].attachmentIds).toEqual(["attachment_receipt"]);
+        expect(rebuilt.entries[0].location?.label).toBe("公司");
+        expect(rebuilt.entries[0].originalAmount?.currency).toBe("USD");
     });
 
     it("produces stable hashes for identical content", async () => {

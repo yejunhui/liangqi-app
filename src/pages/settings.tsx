@@ -6,6 +6,8 @@ import { useRef, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import {
     ArrowRight,
+    Bot,
+    ChartNoAxesColumn,
     Cloud,
     Download,
     FileJson,
@@ -19,6 +21,8 @@ import {
     Tag,
     Tags,
     Target,
+    Repeat,
+    FileSpreadsheet,
     Upload,
     Users,
 } from "lucide-react";
@@ -35,6 +39,7 @@ import {
 } from "@/domain/backup";
 import { downloadJson } from "@/utils/download";
 import { toDateInputValue } from "@/utils/date";
+import { CURRENCIES } from "@/domain/currencies";
 import { useLedgerStore } from "@/store/ledger";
 import {
     extractLibrary,
@@ -42,23 +47,9 @@ import {
     useLibraryStore,
 } from "@/store/library";
 import { useAuthStore } from "@/store/auth";
+import { isAiConfigured, useAiStore } from "@/store/ai";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
-
-const CURRENCIES = [
-    { value: "CNY", label: "人民币 CNY" },
-    { value: "USD", label: "美元 USD" },
-    { value: "EUR", label: "欧元 EUR" },
-    { value: "JPY", label: "日元 JPY" },
-    { value: "GBP", label: "英镑 GBP" },
-    { value: "HKD", label: "港币 HKD" },
-    { value: "TWD", label: "新台币 TWD" },
-    { value: "KRW", label: "韩元 KRW" },
-    { value: "THB", label: "泰铢 THB" },
-    { value: "SGD", label: "新加坡元 SGD" },
-    { value: "AUD", label: "澳元 AUD" },
-    { value: "CAD", label: "加元 CAD" },
-];
 
 const THEMES: Array<{ value: ThemeMode; label: string; icon: typeof Sun }> = [
     { value: "light", label: "浅色", icon: Sun },
@@ -73,6 +64,8 @@ export function Settings() {
     const tagGroups = useLedgerStore((state) => state.tagGroups);
     const tags = useLedgerStore((state) => state.tags);
     const budgets = useLedgerStore((state) => state.budgets);
+    const recurringRules = useLedgerStore((state) => state.recurringRules);
+    const attachments = useLedgerStore((state) => state.attachments);
     const bills = useLedgerStore((state) => state.bills);
     const entries = useLedgerStore((state) => state.entries);
     const settings = useLedgerStore((state) => state.settings);
@@ -83,6 +76,11 @@ export function Settings() {
     const activeBook = getActiveBook(library);
     const authEnabled = useAuthStore((state) => state.enabled);
     const lock = useAuthStore((state) => state.lock);
+    const ai = useAiStore();
+
+    const [aiEndpoint, setAiEndpoint] = useState(ai.endpoint);
+    const [aiModel, setAiModel] = useState(ai.model);
+    const [aiApiKey, setAiApiKey] = useState(ai.apiKey);
 
     const inputRef = useRef<HTMLInputElement>(null);
     const [pendingImport, setPendingImport] = useState<LedgerData | null>(null);
@@ -98,6 +96,8 @@ export function Settings() {
             tagGroups,
             tags,
             budgets,
+            recurringRules,
+            attachments,
             bills,
             entries,
             settings,
@@ -214,7 +214,7 @@ export function Settings() {
                     <SectionTitle
                         icon={FileJson}
                         title="货币"
-                        description="只改变显示符号，不做汇率换算。"
+                        description="账本使用一种货币作为本位币；记账时可以按外币录入，并按你填的汇率换算成本位币保存。"
                     />
                     <select
                         className="field mt-4"
@@ -233,8 +233,100 @@ export function Settings() {
                         ))}
                     </select>
                     <p className="mt-2 text-[10px] text-muted">
-                        已经记下的金额不会因为切换货币而改变数值。
+                        记账表单里可以切换外币并填写汇率；所有余额和统计仍统一换算成本位币。
                     </p>
+                </section>
+
+                <section className="card p-5">
+                    <SectionTitle
+                        icon={Bot}
+                        title="AI 助手"
+                        description="可选：连接 OpenAI 兼容接口，用 AI 解析一句话记账。密钥只保存在本机。"
+                    />
+                    <div className="mt-4 space-y-3">
+                        <label className="block">
+                            <span className="mb-1.5 block text-[10px] font-semibold text-muted">
+                                接口地址
+                            </span>
+                            <input
+                                className="field text-xs"
+                                value={aiEndpoint}
+                                onChange={(event) => setAiEndpoint(event.target.value)}
+                                placeholder="https://api.openai.com/v1/chat/completions"
+                                autoComplete="off"
+                            />
+                        </label>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <label className="block">
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
+                                    模型
+                                </span>
+                                <input
+                                    className="field text-xs"
+                                    value={aiModel}
+                                    onChange={(event) => setAiModel(event.target.value)}
+                                    placeholder="gpt-4o-mini"
+                                    autoComplete="off"
+                                />
+                            </label>
+                            <label className="block">
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
+                                    API Key
+                                </span>
+                                <input
+                                    className="field text-xs"
+                                    type="password"
+                                    value={aiApiKey}
+                                    onChange={(event) => setAiApiKey(event.target.value)}
+                                    placeholder="sk-..."
+                                    autoComplete="off"
+                                />
+                            </label>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                                size="sm"
+                                onClick={() => {
+                                    const config = {
+                                        endpoint: aiEndpoint.trim(),
+                                        model: aiModel.trim(),
+                                        apiKey: aiApiKey.trim(),
+                                    };
+                                    ai.setConfig(config);
+                                    toast(
+                                        isAiConfigured(config)
+                                            ? "AI 配置已保存"
+                                            : "AI 配置已保存，但还不完整",
+                                        "success",
+                                    );
+                                }}
+                            >
+                                保存配置
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => {
+                                    setAiEndpoint("");
+                                    setAiModel("");
+                                    setAiApiKey("");
+                                    ai.clear();
+                                    toast("AI 配置已清除", "success");
+                                }}
+                            >
+                                清除
+                            </Button>
+                            <span className="text-[10px] text-muted">
+                                {isAiConfigured(ai)
+                                    ? "已启用 AI 识别"
+                                    : "未启用，使用本地规则识别"}
+                            </span>
+                        </div>
+                        <p className="text-[10px] leading-relaxed text-muted">
+                            支持 OpenAI、DeepSeek、Moonshot 等兼容
+                            /chat/completions 的服务。请求从浏览器直接发往你填写的地址，不经过两讫服务器。
+                        </p>
+                    </div>
                 </section>
 
                 <section className="card p-5">
@@ -293,6 +385,51 @@ export function Settings() {
                         className="mt-4 flex items-center justify-between rounded-xl border border-line bg-surface-2/55 px-4 py-3 text-xs font-semibold text-text transition hover:border-line-strong"
                     >
                         打开预算管理
+                        <ArrowRight className="size-3.5 text-muted" />
+                    </Link>
+                </section>
+
+                <section className="card p-5">
+                    <SectionTitle
+                        icon={ChartNoAxesColumn}
+                        title="分析"
+                        description="月度收支、趋势、分类 / 标签 / 成员分布和消费足迹。"
+                    />
+                    <Link
+                        to="/analytics"
+                        className="mt-4 flex items-center justify-between rounded-xl border border-line bg-surface-2/55 px-4 py-3 text-xs font-semibold text-text transition hover:border-line-strong"
+                    >
+                        打开分析
+                        <ArrowRight className="size-3.5 text-muted" />
+                    </Link>
+                </section>
+
+                <section className="card p-5">
+                    <SectionTitle
+                        icon={Repeat}
+                        title="周期记账"
+                        description={`当前有 ${recurringRules.length} 条周期规则，启用的会到点自动生成流水。`}
+                    />
+                    <Link
+                        to="/recurring"
+                        className="mt-4 flex items-center justify-between rounded-xl border border-line bg-surface-2/55 px-4 py-3 text-xs font-semibold text-text transition hover:border-line-strong"
+                    >
+                        打开周期记账
+                        <ArrowRight className="size-3.5 text-muted" />
+                    </Link>
+                </section>
+
+                <section className="card p-5">
+                    <SectionTitle
+                        icon={FileSpreadsheet}
+                        title="导入账单"
+                        description="支持微信、支付宝和银行 CSV，导入前可核对列映射。"
+                    />
+                    <Link
+                        to="/import"
+                        className="mt-4 flex items-center justify-between rounded-xl border border-line bg-surface-2/55 px-4 py-3 text-xs font-semibold text-text transition hover:border-line-strong"
+                    >
+                        打开 CSV 导入
                         <ArrowRight className="size-3.5 text-muted" />
                     </Link>
                 </section>

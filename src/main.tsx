@@ -13,6 +13,12 @@ async function boot() {
     useLibraryStore.setState(library);
     useLedgerStore.setState(getActiveBook(useLibraryStore.getState()));
 
+    if (import.meta.env.PROD && "serviceWorker" in navigator) {
+        navigator.serviceWorker
+            .register(`${import.meta.env.BASE_URL}sw.js`)
+            .catch(() => undefined);
+    }
+
     const { default: App } = await import("./App");
     createRoot(document.getElementById("root")!).render(
         <StrictMode>

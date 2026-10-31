@@ -112,6 +112,32 @@ describe("account balances", () => {
         expect(getAccountBalance(bank, data.entries)).toBe(145_000);
         expect(getAccountBalance(credit, data.entries)).toBe(15_000);
     });
+
+    it("moves money between asset accounts without changing totals", () => {
+        const data = buildFixture();
+        const transfer: Entry = {
+            id: "entry_transfer",
+            kind: "transfer",
+            amount: 25_000,
+            date: NOW,
+            accountId: "acc_cash",
+            toAccountId: "acc_bank",
+            createdAt: NOW,
+        };
+        data.entries.push(transfer);
+
+        const cash = data.accounts.find((account) => account.id === "acc_cash")!;
+        const bank = data.accounts.find((account) => account.id === "acc_bank")!;
+        expect(getAccountBalance(cash, data.entries)).toBe(65_000);
+        expect(getAccountBalance(bank, data.entries)).toBe(175_000);
+        expect(getTotals(data).netWorth).toBe(
+            getTotals({ accounts: data.accounts, entries: data.entries.slice(0, -1) }).netWorth,
+        );
+        const month = getMonthTotals(data.entries, NOW);
+        expect(month.expense).toBe(30_000);
+        expect(month.income).toBe(50_000);
+        expect(month.repayment).toBe(0);
+    });
 });
 
 describe("bill lifecycle", () => {

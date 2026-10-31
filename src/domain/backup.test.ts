@@ -218,6 +218,46 @@ describe("backup validation", () => {
         });
         data.bills[0].tagIds = ["tag_trip"];
         data.entries[0].tagIds = ["tag_trip"];
+        data.attachments.push({
+            id: "attachment_receipt",
+            name: "receipt.png",
+            mimeType: "image/png",
+            size: 1024,
+            createdAt: NOW,
+        });
+        data.bills[0].attachmentIds = ["attachment_receipt"];
+        data.entries[0].attachmentIds = ["attachment_receipt"];
+        data.entries[0].location = {
+            lat: 31.2304,
+            lng: 121.4737,
+            label: "公司",
+        };
+        data.entries[0].originalAmount = {
+            currency: "USD",
+            amount: 280,
+            rate: 7.2,
+        };
+        data.bills[0].originalAmount = {
+            currency: "USD",
+            amount: 280,
+            rate: 7.2,
+        };
+        data.recurringRules.push({
+            id: "recurring_rent",
+            name: "房租",
+            kind: "expense",
+            amount: 300_000,
+            frequency: "monthly",
+            interval: 1,
+            startDate: NOW,
+            nextDueDate: NOW,
+            enabled: true,
+            categoryId: "cat_food",
+            accountId: "acc_bank",
+            memberId: "member_me",
+            createdAt: NOW,
+        });
+        data.entries[2].recurringId = "recurring_rent";
 
         const parsed = parseBackup(createExportPayload(data));
         expect(parsed.ok).toBe(true);
@@ -228,6 +268,17 @@ describe("backup validation", () => {
             expect(parsed.data.tagGroups).toHaveLength(1);
             expect(parsed.data.tags[0].groupId).toBe("tag_group_trip");
             expect(parsed.data.budgets[0].tagIds).toEqual(["tag_trip"]);
+            expect(parsed.data.recurringRules[0].frequency).toBe("monthly");
+            expect(parsed.data.entries[2].recurringId).toBe("recurring_rent");
+            expect(parsed.data.attachments[0].name).toBe("receipt.png");
+            expect(parsed.data.bills[0].attachmentIds).toEqual(["attachment_receipt"]);
+            expect(parsed.data.entries[0].attachmentIds).toEqual(["attachment_receipt"]);
+            expect(parsed.data.entries[0].location?.label).toBe("公司");
+            expect(parsed.data.entries[0].originalAmount).toEqual({
+                currency: "USD",
+                amount: 280,
+                rate: 7.2,
+            });
             expect(parsed.data.bills[0].tagIds).toEqual(["tag_trip"]);
             expect(parsed.data.entries[0].tagIds).toEqual(["tag_trip"]);
         }
@@ -239,6 +290,48 @@ describe("backup validation", () => {
         if (!rejected.ok) {
             expect(rejected.error).toContain("标签");
         }
+        const missingAttachment = buildData();
+        missingAttachment.bills[0].attachmentIds = ["missing_attachment"];
+        const rejectedAttachment = parseBackup(createExportPayload(missingAttachment));
+        expect(rejectedAttachment.ok).toBe(false);
+        if (!rejectedAttachment.ok) {
+            expect(rejectedAttachment.error).toContain("附件");
+        }
+    });
+
+    it("round-trips account transfers and rejects same-account transfers", () => {
+        const data = buildData();
+        data.entries.push({
+            id: "entry_transfer",
+            kind: "transfer",
+            amount: 50_000,
+            date: NOW,
+            accountId: "acc_cash",
+            toAccountId: "acc_bank",
+            memberId: "member_me",
+            note: "存钱",
+            createdAt: NOW,
+        });
+        const parsed = parseBackup(createExportPayload(data));
+        expect(parsed.ok).toBe(true);
+        if (parsed.ok) {
+            expect(parsed.data.entries.at(-1)).toMatchObject({
+                kind: "transfer",
+                toAccountId: "acc_bank",
+            });
+        }
+
+        const broken = buildData();
+        broken.entries.push({
+            id: "entry_transfer",
+            kind: "transfer",
+            amount: 50_000,
+            date: NOW,
+            accountId: "acc_cash",
+            toAccountId: "acc_cash",
+            createdAt: NOW,
+        });
+        expect(parseBackup(createExportPayload(broken)).ok).toBe(false);
     });
 
     it("rejects unknown tag groups and nested categories", () => {
