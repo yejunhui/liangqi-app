@@ -50,6 +50,8 @@ import {
 } from "@/store/analysis-views";
 import { cn } from "@/utils/cn";
 
+const EMPTY_VIEWS: AnalysisView[] = [];
+
 export function Analytics() {
     const bookId = useLedgerStore((state) => state.id);
     const entries = useLedgerStore((state) => state.entries);
@@ -73,7 +75,10 @@ export function Analytics() {
     const [selectedViewId, setSelectedViewId] = useState("");
     const [saveOpen, setSaveOpen] = useState(false);
     const [viewName, setViewName] = useState("");
-    const views = useAnalysisViewStore((state) => state.byBook[bookId] ?? []);
+    const views = useAnalysisViewStore((state) => {
+        const list = state.byBook[bookId];
+        return Array.isArray(list) ? list : EMPTY_VIEWS;
+    });
     const addView = useAnalysisViewStore((state) => state.addView);
     const deleteView = useAnalysisViewStore((state) => state.deleteView);
 
