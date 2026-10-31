@@ -38,6 +38,16 @@ export function Categories() {
         [categories],
     );
     const visible = filter === "expense" ? expenseCategories : incomeCategories;
+    const orderedVisible = useMemo(() => {
+        const roots = visible.filter((category) => !category.parent);
+        const result: Category[] = [];
+        for (const root of roots) {
+            result.push(root);
+            result.push(...visible.filter((category) => category.parent === root.id));
+        }
+        result.push(...visible.filter((category) => category.parent && !result.includes(category)));
+        return result;
+    }, [visible]);
 
     const tabs: TabItem<Filter>[] = [
         { value: "expense", label: "支出分类", count: expenseCategories.length },
@@ -101,12 +111,18 @@ export function Categories() {
                 />
             ) : (
                 <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-                    {visible.map((category) => {
+                    {orderedVisible.map((category) => {
                         const usage = getCategoryUsage(category.id, { entries, bills });
+                        const parent = category.parent
+                            ? categories.find((item) => item.id === category.parent)
+                            : undefined;
                         return (
                             <article
                                 key={category.id}
-                                className="card group flex items-center gap-3 p-3.5 transition hover:border-line-strong"
+                                className={cn(
+                                    "card group flex items-center gap-3 p-3.5 transition hover:border-line-strong",
+                                    category.parent && "sm:ml-5",
+                                )}
                             >
                                 <span
                                     className="grid size-10 shrink-0 place-items-center rounded-xl text-lg"
@@ -116,9 +132,11 @@ export function Categories() {
                                 </span>
                                 <div className="min-w-0 flex-1">
                                     <h3 className="truncate text-sm font-semibold text-text">
+                                        {parent ? `${parent.name} / ` : ""}
                                         {category.name}
                                     </h3>
                                     <p className="mt-0.5 text-[10px] text-muted">
+                                        {parent ? "二级分类 · " : ""}
                                         {usage > 0 ? `${usage} 处关联记录` : "还没有使用"}
                                     </p>
                                 </div>

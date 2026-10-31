@@ -155,6 +155,9 @@ export function createSeedData(now = Date.now()): LedgerData {
         accounts,
         categories,
         members: [createDefaultMember(now)],
+        tagGroups: [],
+        tags: [],
+        budgets: [],
         bills: [],
         entries: [],
         settings: {

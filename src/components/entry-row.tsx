@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { Account, Bill, Category, Entry, Member } from "@/types";
+import type { Account, Bill, Category, Entry, Member, Tag } from "@/types";
 import { Money } from "@/components/money";
 import { cn } from "@/utils/cn";
 
@@ -12,6 +12,7 @@ interface EntryRowProps {
     bills: Bill[];
     categories: Category[];
     members: Member[];
+    tags: Tag[];
     currency: string;
     onClick?: () => void;
 }
@@ -22,17 +23,24 @@ export function EntryRow({
     bills,
     categories,
     members,
+    tags,
     currency,
     onClick,
 }: EntryRowProps) {
     const category = categories.find((item) => item.id === entry.categoryId);
+    const parentCategory = category?.parent
+        ? categories.find((item) => item.id === category.parent)
+        : undefined;
     const bill = bills.find((item) => item.id === entry.billId);
     const asset = accounts.find((item) => item.id === entry.accountId);
     const liability = accounts.find((item) => item.id === entry.liabilityAccountId);
     const member = members.find((item) => item.id === entry.memberId);
+    const entryTags = (entry.tagIds ?? [])
+        .map((tagId) => tags.find((tag) => tag.id === tagId))
+        .filter((tag): tag is Tag => tag !== undefined);
 
     let emoji = category?.emoji ?? "📦";
-    let title = category?.name ?? "未分类";
+    let title = category ? `${parentCategory ? `${parentCategory.name} / ` : ""}${category.name}` : "未分类";
     let subtitle = asset?.name ?? "未指定账户";
     let sign: "positive" | "negative" | "none" = "negative";
     let amountClass = "text-text";
@@ -87,6 +95,18 @@ export function EntryRow({
                         </span>
                     )}
                     {badge && <span className={cn("chip", badge.className)}>{badge.label}</span>}
+                    {entryTags.map((tag) => (
+                        <span
+                            key={tag.id}
+                            className="chip"
+                            style={{
+                                backgroundColor: `${tag.color}20`,
+                                color: tag.color,
+                            }}
+                        >
+                            {tag.name}
+                        </span>
+                    ))}
                 </span>
                 <span className="mt-0.5 block truncate text-[11px] text-muted">{subtitle}</span>
             </span>

@@ -6,6 +6,7 @@ import type {
     Account,
     Bill,
     Book,
+    Budget,
     Category,
     Connection,
     Entry,
@@ -16,6 +17,8 @@ import type {
     Member,
     RemoteBinding,
     Settings,
+    Tag,
+    TagGroup,
 } from "@/types";
 import { createDefaultMember } from "@/domain/members";
 
@@ -100,13 +103,78 @@ function parseCategory(raw: unknown, index: number): Category {
     if (kind !== "expense" && kind !== "income") {
         throw new Error(`第 ${index + 1} 个分类类型不正确`);
     }
+    if (!optionalString(raw.parent)) {
+        throw new Error(`第 ${index + 1} 个分类父分类格式不正确`);
+    }
     return {
         id: requiredString(raw.id, "分类 id"),
         name: requiredString(raw.name, "分类名称"),
         kind,
         emoji: requiredString(raw.emoji, "分类图标"),
         color: requiredString(raw.color, "分类颜色"),
+        parent: raw.parent as string | undefined,
         createdAt: requiredTimestamp(raw.createdAt, "分类创建时间"),
+    };
+}
+
+function parseTagGroup(raw: unknown, index: number): TagGroup {
+    if (!isObject(raw)) {
+        throw new Error(`第 ${index + 1} 个标签组格式不正确`);
+    }
+    const selection = raw.selection;
+    if (selection !== "single" && selection !== "multiple") {
+        throw new Error(`第 ${index + 1} 个标签组选择方式不正确`);
+    }
+    return {
+        id: requiredString(raw.id, "标签组 id"),
+        name: requiredString(raw.name, "标签组名称"),
+        selection,
+        createdAt: requiredTimestamp(raw.createdAt, "标签组创建时间"),
+    };
+}
+
+function parseTag(raw: unknown, index: number): Tag {
+    if (!isObject(raw)) {
+        throw new Error(`第 ${index + 1} 个标签格式不正确`);
+    }
+    if (!optionalString(raw.groupId)) {
+        throw new Error(`第 ${index + 1} 个标签所属组格式不正确`);
+    }
+    return {
+        id: requiredString(raw.id, "标签 id"),
+        name: requiredString(raw.name, "标签名称"),
+        color: requiredString(raw.color, "标签颜色"),
+        groupId: raw.groupId as string | undefined,
+        createdAt: requiredTimestamp(raw.createdAt, "标签创建时间"),
+    };
+}
+
+function parseBudget(raw: unknown, index: number): Budget {
+    if (!isObject(raw)) {
+        throw new Error(`第 ${index + 1} 个预算格式不正确`);
+    }
+    const period = raw.period;
+    if (period !== "month" && period !== "year") {
+        throw new Error(`第 ${index + 1} 个预算周期不正确`);
+    }
+    const parseIds = (value: unknown, label: string): string[] => {
+        if (value === undefined) {
+            return [];
+        }
+        if (!Array.isArray(value) || value.some((item) => !isString(item))) {
+            throw new Error(`第 ${index + 1} 个预算${label}格式不正确`);
+        }
+        return [...value];
+    };
+    return {
+        id: requiredString(raw.id, "预算 id"),
+        name: requiredString(raw.name, "预算名称"),
+        period,
+        amount: requiredInteger(raw.amount, "预算金额", 1),
+        categoryIds: parseIds(raw.categoryIds, "分类"),
+        tagIds: parseIds(raw.tagIds, "标签"),
+        memberIds: parseIds(raw.memberIds, "成员"),
+        createdAt: requiredTimestamp(raw.createdAt, "预算创建时间"),
     };
 }
 
@@ -133,6 +201,12 @@ function parseBill(raw: unknown, index: number): Bill {
     ) {
         throw new Error(`第 ${index + 1} 张账单字段格式不正确`);
     }
+    if (
+        raw.tagIds !== undefined &&
+        (!Array.isArray(raw.tagIds) || raw.tagIds.some((item) => !isString(item)))
+    ) {
+        throw new Error(`第 ${index + 1} 张账单标签格式不正确`);
+    }
     if (!optionalNumber(raw.dueDate)) {
         throw new Error(`第 ${index + 1} 张账单到期日格式不正确`);
     }
@@ -147,6 +221,7 @@ function parseBill(raw: unknown, index: number): Bill {
         liabilityAccountId: requiredString(raw.liabilityAccountId, "账单负债账户"),
         categoryId: raw.categoryId as string | undefined,
         memberId: raw.memberId as string | undefined,
+        tagIds: raw.tagIds as string[] | undefined,
         title: requiredString(raw.title, "账单名称"),
         principal: requiredInteger(raw.principal, "账单金额", 1),
         purchasedAt: requiredTimestamp(raw.purchasedAt, "账单消费时间"),
@@ -177,6 +252,12 @@ function parseEntry(raw: unknown, index: number): Entry {
             throw new Error(`第 ${index + 1} 条流水 ${key} 格式不正确`);
         }
     }
+    if (
+        raw.tagIds !== undefined &&
+        (!Array.isArray(raw.tagIds) || raw.tagIds.some((item) => !isString(item)))
+    ) {
+        throw new Error(`第 ${index + 1} 条流水标签格式不正确`);
+    }
     return {
         id: requiredString(raw.id, "流水 id"),
         kind,
@@ -187,6 +268,7 @@ function parseEntry(raw: unknown, index: number): Entry {
         billId: raw.billId as string | undefined,
         categoryId: raw.categoryId as string | undefined,
         memberId: raw.memberId as string | undefined,
+        tagIds: raw.tagIds as string[] | undefined,
         note: raw.note as string | undefined,
         createdAt: requiredTimestamp(raw.createdAt, "流水创建时间"),
     };
@@ -210,6 +292,8 @@ function validateReferences(data: LedgerData): void {
     const accounts = new Map(data.accounts.map((account) => [account.id, account]));
     const categories = new Map(data.categories.map((category) => [category.id, category]));
     const members = new Map(data.members.map((member) => [member.id, member]));
+    const tagGroups = new Map(data.tagGroups.map((group) => [group.id, group]));
+    const tags = new Map(data.tags.map((tag) => [tag.id, tag]));
     const bills = new Map(data.bills.map((bill) => [bill.id, bill]));
     const entriesByBill = new Map<string, Entry[]>();
     for (const entry of data.entries) {
@@ -217,6 +301,38 @@ function validateReferences(data: LedgerData): void {
             const list = entriesByBill.get(entry.billId) ?? [];
             list.push(entry);
             entriesByBill.set(entry.billId, list);
+        }
+    }
+
+    for (const category of data.categories) {
+        if (category.parent) {
+            const parent = categories.get(category.parent);
+            if (!parent || parent.kind !== category.kind || parent.parent) {
+                throw new Error(`分类“${category.name}”的父分类不正确`);
+            }
+        }
+    }
+
+    for (const tag of data.tags) {
+        if (tag.groupId && !tagGroups.has(tag.groupId)) {
+            throw new Error(`标签“${tag.name}”的标签组不存在`);
+        }
+    }
+    for (const budget of data.budgets) {
+        for (const categoryId of budget.categoryIds) {
+            if (!categories.has(categoryId)) {
+                throw new Error(`预算“${budget.name}”关联的分类不存在`);
+            }
+        }
+        for (const tagId of budget.tagIds) {
+            if (!tags.has(tagId)) {
+                throw new Error(`预算“${budget.name}”关联的标签不存在`);
+            }
+        }
+        for (const memberId of budget.memberIds) {
+            if (!members.has(memberId)) {
+                throw new Error(`预算“${budget.name}”关联的成员不存在`);
+            }
         }
     }
 
@@ -242,6 +358,11 @@ function validateReferences(data: LedgerData): void {
     for (const bill of data.bills) {
         if (bill.memberId && !members.has(bill.memberId)) {
             throw new Error(`账单“${bill.title}”关联的成员不存在`);
+        }
+        for (const tagId of bill.tagIds ?? []) {
+            if (!tags.has(tagId)) {
+                throw new Error(`账单“${bill.title}”关联的标签不存在`);
+            }
         }
         const liability = accounts.get(bill.liabilityAccountId);
         if (!liability || liability.kind !== "liability") {
@@ -275,6 +396,11 @@ function validateReferences(data: LedgerData): void {
     for (const entry of data.entries) {
         if (entry.memberId && !members.has(entry.memberId)) {
             throw new Error("流水关联的成员不存在");
+        }
+        for (const tagId of entry.tagIds ?? []) {
+            if (!tags.has(tagId)) {
+                throw new Error("流水关联的标签不存在");
+            }
         }
         if (entry.kind === "expense") {
             if (entry.billId) {
@@ -374,12 +500,28 @@ export function parseBackup(raw: unknown): { ok: true; data: LedgerData } | { ok
             Array.isArray(raw.members) && raw.members.length > 0
                 ? raw.members.map(parseMember)
                 : [createDefaultMember()];
+        const tagGroups = Array.isArray(raw.tagGroups)
+            ? raw.tagGroups.map(parseTagGroup)
+            : [];
+        const tags = Array.isArray(raw.tags) ? raw.tags.map(parseTag) : [];
+        const budgets = Array.isArray(raw.budgets)
+            ? raw.budgets.map(parseBudget)
+            : [];
         const bills = raw.bills.map(parseBill);
         const entries = raw.entries.map(parseEntry);
         const settings = parseSettings(raw.settings);
 
         const ids = new Set<string>();
-        for (const item of [...accounts, ...categories, ...members, ...bills, ...entries]) {
+        for (const item of [
+            ...accounts,
+            ...categories,
+            ...members,
+            ...tagGroups,
+            ...tags,
+            ...budgets,
+            ...bills,
+            ...entries,
+        ]) {
             if (ids.has(item.id)) {
                 throw new Error(`存在重复 id：${item.id}`);
             }
@@ -390,6 +532,9 @@ export function parseBackup(raw: unknown): { ok: true; data: LedgerData } | { ok
             accounts,
             categories,
             members,
+            tagGroups,
+            tags,
+            budgets,
             bills,
             entries,
             settings,

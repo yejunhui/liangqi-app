@@ -28,10 +28,17 @@ export function createDefaultMember(now = Date.now()): Member {
 }
 
 export function ensureMembers<T extends LedgerData>(data: T, now = Date.now()): T {
-    if (Array.isArray(data.members) && data.members.length > 0) {
-        return data;
-    }
-    return { ...data, members: [createDefaultMember(now)] } as T;
+    const members =
+        Array.isArray(data.members) && data.members.length > 0
+            ? data.members
+            : [createDefaultMember(now)];
+    return {
+        ...data,
+        members,
+        tagGroups: Array.isArray(data.tagGroups) ? data.tagGroups : [],
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        budgets: Array.isArray(data.budgets) ? data.budgets : [],
+    };
 }
 
 export function findMember(members: Member[], memberId?: string): Member | undefined {

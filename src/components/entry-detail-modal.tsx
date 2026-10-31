@@ -30,6 +30,7 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
     const bills = useLedgerStore((state) => state.bills);
     const categories = useLedgerStore((state) => state.categories);
     const members = useLedgerStore((state) => state.members);
+    const tags = useLedgerStore((state) => state.tags);
     const entries = useLedgerStore((state) => state.entries);
     const deleteEntry = useLedgerStore((state) => state.deleteEntry);
     const currency = useCurrency();
@@ -48,6 +49,9 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
     const member = entry?.memberId
         ? members.find((item) => item.id === entry.memberId)
         : undefined;
+    const entryTags = (entry?.tagIds ?? [])
+        .map((tagId) => tags.find((item) => item.id === tagId))
+        .filter((tag): tag is (typeof tags)[number] => tag !== undefined);
 
     const kindLabel =
         entry?.kind === "expense" ? "支出" : entry?.kind === "income" ? "收入" : "还款";
@@ -201,6 +205,24 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                                         </span>
                                     </DetailRow>
                                 </>
+                            )}
+                            {entryTags.length > 0 && (
+                                <DetailRow label="标签">
+                                    <span className="flex flex-wrap justify-end gap-1">
+                                        {entryTags.map((tag) => (
+                                            <span
+                                                key={tag.id}
+                                                className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                                                style={{
+                                                    backgroundColor: `${tag.color}20`,
+                                                    color: tag.color,
+                                                }}
+                                            >
+                                                {tag.name}
+                                            </span>
+                                        ))}
+                                    </span>
+                                </DetailRow>
                             )}
                             {entry.note && <DetailRow label="备注">{entry.note}</DetailRow>}
                         </dl>

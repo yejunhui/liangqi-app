@@ -38,6 +38,32 @@ function buildBook() {
         purchasedAt: NOW - index * 1000,
         createdAt: NOW - index * 1000,
     }));
+    book.tagGroups = [
+        { id: "tag_group_trip", name: "出行", selection: "multiple", createdAt: NOW },
+    ];
+    book.tags = [
+        {
+            id: "tag_trip",
+            name: "旅行",
+            color: "#3d8bfd",
+            groupId: "tag_group_trip",
+            createdAt: NOW,
+        },
+    ];
+    book.budgets = [
+        {
+            id: "budget_food",
+            name: "餐饮预算",
+            period: "month",
+            amount: 100_000,
+            categoryIds: ["cat_food"],
+            tagIds: ["tag_trip"],
+            memberIds: ["member_me"],
+            createdAt: NOW,
+        },
+    ];
+    book.bills[0].tagIds = ["tag_trip"];
+    book.entries[0].tagIds = ["tag_trip"];
     return book;
 }
 
@@ -68,6 +94,9 @@ describe("remote chunks", () => {
         expect(rebuilt.entries).toHaveLength(2505);
         expect(rebuilt.bills).toHaveLength(1201);
         expect(rebuilt.members[0].name).toBe("我");
+        expect(rebuilt.tags[0].groupId).toBe("tag_group_trip");
+        expect(rebuilt.budgets[0].categoryIds).toEqual(["cat_food"]);
+        expect(rebuilt.entries[0].tagIds).toEqual(["tag_trip"]);
     });
 
     it("produces stable hashes for identical content", async () => {

@@ -38,6 +38,37 @@ export interface Category {
     kind: CategoryKind;
     emoji: string;
     color: string;
+    /** Optional parent category id, used for two-level categories. */
+    parent?: string;
+    createdAt: number;
+}
+
+export interface TagGroup {
+    id: string;
+    name: string;
+    selection: "single" | "multiple";
+    createdAt: number;
+}
+
+export interface Tag {
+    id: string;
+    name: string;
+    color: string;
+    groupId?: string;
+    createdAt: number;
+}
+
+export type BudgetPeriod = "month" | "year";
+
+export interface Budget {
+    id: string;
+    name: string;
+    period: BudgetPeriod;
+    /** Budget amount in cents. */
+    amount: number;
+    categoryIds: string[];
+    tagIds: string[];
+    memberIds: string[];
     createdAt: number;
 }
 
@@ -48,6 +79,7 @@ export interface Bill {
     categoryId?: string;
     /** Optional family member this bill belongs to. */
     memberId?: string;
+    tagIds?: string[];
     title: string;
     /** Original amount in cents. */
     principal: number;
@@ -74,6 +106,7 @@ export interface Entry {
     categoryId?: string;
     /** Optional family member this entry belongs to. */
     memberId?: string;
+    tagIds?: string[];
     note?: string;
     createdAt: number;
 }
@@ -87,6 +120,9 @@ export interface LedgerData {
     accounts: Account[];
     categories: Category[];
     members: Member[];
+    tagGroups: TagGroup[];
+    tags: Tag[];
+    budgets: Budget[];
     bills: Bill[];
     entries: Entry[];
     settings: Settings;

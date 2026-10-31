@@ -30,6 +30,20 @@ export function endOfMonth(timestamp: number): number {
     return date.getTime();
 }
 
+export function startOfYear(timestamp: number): number {
+    const date = new Date(timestamp);
+    date.setMonth(0, 1);
+    date.setHours(0, 0, 0, 0);
+    return date.getTime();
+}
+
+export function endOfYear(timestamp: number): number {
+    const date = new Date(timestamp);
+    date.setMonth(11, 31);
+    date.setHours(23, 59, 59, 999);
+    return date.getTime();
+}
+
 export function isSameMonth(a: number, b: number): boolean {
     const left = new Date(a);
     const right = new Date(b);

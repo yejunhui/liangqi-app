@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { Bill } from "@/types";
 import { Modal } from "@/components/modal";
 import { Button } from "@/components/button";
+import { TagSelector } from "@/components/tag-selector";
 import { fromDateInputValue, toDateInputValue } from "@/utils/date";
 import { useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
@@ -18,6 +19,8 @@ interface EditBillModalProps {
 export function EditBillModal({ bill, onClose }: EditBillModalProps) {
     const categories = useLedgerStore((state) => state.categories);
     const members = useLedgerStore((state) => state.members);
+    const tagGroups = useLedgerStore((state) => state.tagGroups);
+    const tags = useLedgerStore((state) => state.tags);
     const expenseCategories = useMemo(
         () => categories.filter((category) => category.kind === "expense"),
         [categories],
@@ -27,6 +30,7 @@ export function EditBillModal({ bill, onClose }: EditBillModalProps) {
     const [title, setTitle] = useState("");
     const [categoryId, setCategoryId] = useState("");
     const [memberId, setMemberId] = useState("");
+    const [tagIds, setTagIds] = useState<string[]>([]);
     const [dueDate, setDueDate] = useState("");
     const [note, setNote] = useState("");
     const [error, setError] = useState("");
@@ -38,6 +42,7 @@ export function EditBillModal({ bill, onClose }: EditBillModalProps) {
         setTitle(bill.title);
         setCategoryId(bill.categoryId ?? "");
         setMemberId(bill.memberId ?? "");
+        setTagIds(bill.tagIds ?? []);
         setDueDate(bill.dueDate ? toDateInputValue(bill.dueDate) : "");
         setNote(bill.note ?? "");
         setError("");
@@ -63,6 +68,7 @@ export function EditBillModal({ bill, onClose }: EditBillModalProps) {
             note,
             ...(bill.opening ? {} : { categoryId }),
             memberId,
+            tagIds,
         });
         if (!result.ok) {
             setError(result.error);
@@ -163,6 +169,13 @@ export function EditBillModal({ bill, onClose }: EditBillModalProps) {
                             placeholder="可选"
                         />
                     </label>
+
+                    <TagSelector
+                        tags={tags}
+                        groups={tagGroups}
+                        value={tagIds}
+                        onChange={setTagIds}
+                    />
 
                     {error && (
                         <p className="rounded-xl border border-danger/20 bg-danger-soft px-3 py-2 text-xs font-medium text-danger">

@@ -3,7 +3,7 @@
  */
 
 import { Pencil, Trash2 } from "lucide-react";
-import type { Account, Bill, Category, Entry, Member } from "@/types";
+import type { Account, Bill, Category, Entry, Member, Tag } from "@/types";
 import { getBillDueInfo, getBillProgress, getBillRemaining, getBillStatus } from "@/domain/ledger";
 import { formatCents } from "@/domain/money";
 import { Button } from "@/components/button";
@@ -15,6 +15,7 @@ interface BillCardProps {
     accounts: Account[];
     categories: Category[];
     members: Member[];
+    tags: Tag[];
     currency: string;
     onRepay: () => void;
     onEdit: () => void;
@@ -46,6 +47,7 @@ export function BillCard({
     accounts,
     categories,
     members,
+    tags,
     currency,
     onRepay,
     onEdit,
@@ -59,6 +61,9 @@ export function BillCard({
     const category = categories.find((item) => item.id === bill.categoryId);
     const liability = accounts.find((item) => item.id === bill.liabilityAccountId);
     const member = members.find((item) => item.id === bill.memberId);
+    const billTags = (bill.tagIds ?? [])
+        .map((tagId) => tags.find((tag) => tag.id === tagId))
+        .filter((tag): tag is Tag => tag !== undefined);
     const canDelete = !bill.opening && repaid === 0;
 
     return (
@@ -95,6 +100,18 @@ export function BillCard({
                                 {member.name}
                             </span>
                         )}
+                        {billTags.map((tag) => (
+                            <span
+                                key={tag.id}
+                                className="chip"
+                                style={{
+                                    backgroundColor: `${tag.color}20`,
+                                    color: tag.color,
+                                }}
+                            >
+                                {tag.name}
+                            </span>
+                        ))}
                     </div>
                     <p className="mt-0.5 truncate text-[11px] text-muted">
                         {liability?.name ?? "负债账户"}

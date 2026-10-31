@@ -14,6 +14,8 @@ import { Entries } from "@/pages/entries";
 import { Bills } from "@/pages/bills";
 import { Accounts } from "@/pages/accounts";
 import { Categories } from "@/pages/categories";
+import { TagsPage } from "@/pages/tags";
+import { Budgets } from "@/pages/budgets";
 import { Settings } from "@/pages/settings";
 import { DataSource } from "@/pages/data-source";
 import { Members } from "@/pages/members";
@@ -31,6 +33,8 @@ export default function App() {
                         <Route path="bills" element={<Bills />} />
                         <Route path="accounts" element={<Accounts />} />
                         <Route path="categories" element={<Categories />} />
+                        <Route path="tags" element={<TagsPage />} />
+                        <Route path="budgets" element={<Budgets />} />
                         <Route path="members" element={<Members />} />
                         <Route path="data" element={<DataSource />} />
                         <Route path="settings" element={<Settings />} />

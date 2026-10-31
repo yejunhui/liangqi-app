@@ -15,6 +15,7 @@ import {
 import type { EntryKind } from "@/types";
 import { Modal } from "@/components/modal";
 import { Button } from "@/components/button";
+import { TagSelector } from "@/components/tag-selector";
 import {
     getAccountBalance,
     getBillDueInfo,
@@ -45,6 +46,8 @@ export function EntryModal() {
     const accounts = useLedgerStore((state) => state.accounts);
     const categories = useLedgerStore((state) => state.categories);
     const members = useLedgerStore((state) => state.members);
+    const tagGroups = useLedgerStore((state) => state.tagGroups);
+    const tags = useLedgerStore((state) => state.tags);
     const bills = useLedgerStore((state) => state.bills);
     const entries = useLedgerStore((state) => state.entries);
     const addExpense = useLedgerStore((state) => state.addExpense);
@@ -57,6 +60,7 @@ export function EntryModal() {
     const [date, setDate] = useState(() => toDateInputValue(Date.now()));
     const [categoryId, setCategoryId] = useState("");
     const [memberId, setMemberId] = useState("");
+    const [tagIds, setTagIds] = useState<string[]>([]);
     const [paymentMode, setPaymentMode] = useState<"asset" | "liability">("asset");
     const [assetAccountId, setAssetAccountId] = useState("");
     const [liabilityAccountId, setLiabilityAccountId] = useState("");
@@ -119,6 +123,7 @@ export function EntryModal() {
                 : (expenseList[0]?.id ?? ""),
         );
         setMemberId(initialBill?.memberId ?? state.members[0]?.id ?? "");
+        setTagIds(initialBill?.tagIds ?? []);
         setPaymentMode(initialPaymentMode ?? "asset");
         setAssetAccountId(assetList[0]?.id ?? "");
         setLiabilityAccountId(liabilityList[0]?.id ?? "");
@@ -150,6 +155,7 @@ export function EntryModal() {
         const remaining = getBillRemaining(bill, useLedgerStore.getState().entries);
         setAmount((remaining / 100).toFixed(2));
         setMemberId(bill.memberId ?? useLedgerStore.getState().members[0]?.id ?? "");
+        setTagIds(bill.tagIds ?? []);
     }, [kind, billId]);
 
     function switchKind(next: EntryKind) {
@@ -191,6 +197,7 @@ export function EntryModal() {
                     date: timestamp,
                     categoryId,
                     memberId,
+                    tagIds,
                     note,
                     source: { type: "asset", accountId: assetAccountId },
                 });
@@ -218,6 +225,7 @@ export function EntryModal() {
                     date: timestamp,
                     categoryId,
                     memberId,
+                    tagIds,
                     note,
                     source: {
                         type: "liability",
@@ -247,6 +255,7 @@ export function EntryModal() {
                 categoryId,
                 accountId: assetAccountId,
                 memberId,
+                tagIds,
                 note,
             });
             if (!result.ok) {
@@ -269,6 +278,7 @@ export function EntryModal() {
                 billId,
                 accountId: assetAccountId,
                 memberId,
+                tagIds,
                 note,
             });
             if (!result.ok) {
@@ -645,6 +655,13 @@ export function EntryModal() {
                     </label>
                 </div>
 
+                <TagSelector
+                    tags={tags}
+                    groups={tagGroups}
+                    value={tagIds}
+                    onChange={setTagIds}
+                />
+
                 {error && (
                     <p className="rounded-xl border border-danger/20 bg-danger-soft px-3 py-2 text-xs font-medium text-danger">
                         {error}
@@ -706,10 +723,25 @@ function CategoryPicker({
     onChange,
 }: {
     label: string;
-    categories: Array<{ id: string; name: string; emoji: string; color: string }>;
+    categories: Array<{
+        id: string;
+        name: string;
+        emoji: string;
+        color: string;
+        parent?: string;
+    }>;
     value: string;
     onChange: (value: string) => void;
 }) {
+    const parentNames = new Map(categories.map((category) => [category.id, category.name]));
+    const ordered = [...categories].sort((a, b) => {
+        const parentA = a.parent ?? "";
+        const parentB = b.parent ?? "";
+        if (parentA !== parentB) {
+            return parentA.localeCompare(parentB);
+        }
+        return a.name.localeCompare(b.name, "zh-CN");
+    });
     return (
         <div>
             <p className="mb-2 text-xs font-semibold text-muted">{label}</p>
@@ -719,8 +751,11 @@ function CategoryPicker({
                 </p>
             ) : (
                 <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-                    {categories.map((category) => {
+                    {ordered.map((category) => {
                         const active = value === category.id;
+                        const parentName = category.parent
+                            ? parentNames.get(category.parent)
+                            : undefined;
                         return (
                             <button
                                 key={category.id}
@@ -743,10 +778,11 @@ function CategoryPicker({
                                 </span>
                                 <span
                                     className={cn(
-                                        "text-[10px] font-medium",
+                                        "max-w-full truncate text-[10px] font-medium",
                                         active ? "text-accent" : "text-text",
                                     )}
                                 >
+                                    {parentName ? `${parentName} / ` : ""}
                                     {category.name}
                                 </span>
                             </button>

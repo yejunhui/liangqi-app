@@ -24,6 +24,7 @@ export function Entries() {
     const bills = useLedgerStore((state) => state.bills);
     const categories = useLedgerStore((state) => state.categories);
     const members = useLedgerStore((state) => state.members);
+    const tags = useLedgerStore((state) => state.tags);
     const currency = useCurrency();
     const openEntryModal = useUIStore((state) => state.openEntryModal);
 
@@ -55,13 +56,21 @@ export function Entries() {
                     (item) => item.id === entry.liabilityAccountId,
                 );
                 const member = members.find((item) => item.id === entry.memberId);
+                const entryTags = (entry.tagIds ?? [])
+                    .map((tagId) => tags.find((item) => item.id === tagId)?.name)
+                    .filter(Boolean);
+                const parentCategory = category?.parent
+                    ? categories.find((item) => item.id === category.parent)
+                    : undefined;
                 const haystack = [
                     entry.note,
                     category?.name,
+                    parentCategory?.name,
                     bill?.title,
                     asset?.name,
                     liability?.name,
                     member?.name,
+                    ...entryTags,
                     (entry.amount / 100).toFixed(2),
                     entry.kind === "expense" ? "支出" : entry.kind === "income" ? "收入" : "还款",
                 ]
@@ -71,7 +80,7 @@ export function Entries() {
                 return haystack.includes(keyword);
             })
             .sort((a, b) => b.date - a.date || b.createdAt - a.createdAt);
-    }, [entries, filter, query, categories, bills, accounts, members]);
+    }, [entries, filter, query, categories, bills, accounts, members, tags]);
 
     const groups = useMemo(() => {
         const map = new Map<number, Entry[]>();
@@ -216,6 +225,7 @@ export function Entries() {
                                             bills={bills}
                                             categories={categories}
                                             members={members}
+                                            tags={tags}
                                             currency={currency}
                                             onClick={() => setSelectedEntry(entry)}
                                         />

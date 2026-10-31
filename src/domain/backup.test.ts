@@ -182,6 +182,100 @@ describe("backup validation", () => {
         expect(parsed.ok).toBe(false);
     });
 
+    it("round-trips tags, budgets and subcategories", () => {
+        const data = buildData();
+        data.categories.push({
+            id: "cat_breakfast",
+            name: "早餐",
+            kind: "expense",
+            emoji: "🥐",
+            color: "#f2b84b",
+            parent: "cat_food",
+            createdAt: NOW,
+        });
+        data.tagGroups.push({
+            id: "tag_group_trip",
+            name: "出行",
+            selection: "multiple",
+            createdAt: NOW,
+        });
+        data.tags.push({
+            id: "tag_trip",
+            name: "旅行",
+            color: "#3d8bfd",
+            groupId: "tag_group_trip",
+            createdAt: NOW,
+        });
+        data.budgets.push({
+            id: "budget_food",
+            name: "餐饮预算",
+            period: "month",
+            amount: 100_000,
+            categoryIds: ["cat_food"],
+            tagIds: ["tag_trip"],
+            memberIds: ["member_me"],
+            createdAt: NOW,
+        });
+        data.bills[0].tagIds = ["tag_trip"];
+        data.entries[0].tagIds = ["tag_trip"];
+
+        const parsed = parseBackup(createExportPayload(data));
+        expect(parsed.ok).toBe(true);
+        if (parsed.ok) {
+            expect(parsed.data.categories.find((item) => item.id === "cat_breakfast")?.parent).toBe(
+                "cat_food",
+            );
+            expect(parsed.data.tagGroups).toHaveLength(1);
+            expect(parsed.data.tags[0].groupId).toBe("tag_group_trip");
+            expect(parsed.data.budgets[0].tagIds).toEqual(["tag_trip"]);
+            expect(parsed.data.bills[0].tagIds).toEqual(["tag_trip"]);
+            expect(parsed.data.entries[0].tagIds).toEqual(["tag_trip"]);
+        }
+
+        const broken = buildData();
+        broken.bills[0].tagIds = ["missing_tag"];
+        const rejected = parseBackup(createExportPayload(broken));
+        expect(rejected.ok).toBe(false);
+        if (!rejected.ok) {
+            expect(rejected.error).toContain("标签");
+        }
+    });
+
+    it("rejects unknown tag groups and nested categories", () => {
+        const unknownGroup = buildData();
+        unknownGroup.tags.push({
+            id: "tag_orphan",
+            name: "孤儿",
+            color: "#3d8bfd",
+            groupId: "missing_group",
+            createdAt: NOW,
+        });
+        expect(parseBackup(createExportPayload(unknownGroup)).ok).toBe(false);
+
+        const nested = buildData();
+        nested.categories.push(
+            {
+                id: "cat_child",
+                name: "二级",
+                kind: "expense",
+                emoji: "🍱",
+                color: "#e07a5f",
+                parent: "cat_food",
+                createdAt: NOW,
+            },
+            {
+                id: "cat_grandchild",
+                name: "三级",
+                kind: "expense",
+                emoji: "🍱",
+                color: "#e07a5f",
+                parent: "cat_child",
+                createdAt: NOW,
+            },
+        );
+        expect(parseBackup(createExportPayload(nested)).ok).toBe(false);
+    });
+
     it("round-trips member ids and rejects unknown members", () => {
         const data = buildData();
         data.members.push({

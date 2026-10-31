@@ -57,11 +57,13 @@ export function CategoryModal({
 }: CategoryModalProps) {
     const addCategory = useLedgerStore((state) => state.addCategory);
     const updateCategory = useLedgerStore((state) => state.updateCategory);
+    const categories = useLedgerStore((state) => state.categories);
 
     const [name, setName] = useState("");
     const [kind, setKind] = useState<CategoryKind>("expense");
     const [emoji, setEmoji] = useState("🍜");
     const [color, setColor] = useState(COLORS[0]);
+    const [parent, setParent] = useState("");
     const [error, setError] = useState("");
 
     useEffect(() => {
@@ -73,23 +75,33 @@ export function CategoryModal({
             setKind(category.kind);
             setEmoji(category.emoji);
             setColor(category.color);
+            setParent(category.parent ?? "");
         } else {
             setName("");
             setKind(defaultKind);
             setEmoji(defaultKind === "income" ? "💰" : "🍜");
             setColor(defaultKind === "income" ? COLORS[2] : COLORS[0]);
+            setParent("");
         }
         setError("");
     }, [open, category, defaultKind]);
 
     const editing = category !== null;
+    const hasChildren =
+        category !== null && categories.some((item) => item.parent === category.id);
+    const parentOptions = categories.filter(
+        (item) =>
+            item.kind === kind &&
+            !item.parent &&
+            (!category || (item.id !== category.id && !hasChildren)),
+    );
 
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setError("");
 
         if (editing) {
-            const result = updateCategory(category.id, { name, emoji, color });
+            const result = updateCategory(category.id, { name, emoji, color, parent });
             if (!result.ok) {
                 setError(result.error);
                 return;
@@ -99,7 +111,7 @@ export function CategoryModal({
             return;
         }
 
-        const result = addCategory({ name, kind, emoji, color });
+        const result = addCategory({ name, kind, emoji, color, parent });
         if (!result.ok) {
             setError(result.error);
             return;
@@ -143,6 +155,7 @@ export function CategoryModal({
                                     onClick={() => {
                                         setKind(option.value);
                                         setEmoji(option.value === "income" ? "💰" : "🍜");
+                                        setParent("");
                                     }}
                                     className={cn(
                                         "rounded-xl border p-3 text-left transition",
@@ -172,6 +185,30 @@ export function CategoryModal({
                         placeholder={kind === "income" ? "例如：工资" : "例如：餐饮"}
                         autoFocus
                     />
+                </label>
+
+                <label className="block">
+                    <span className="mb-1.5 block text-xs font-semibold text-muted">
+                        父分类（可选）
+                    </span>
+                    <select
+                        className="field"
+                        value={parent}
+                        onChange={(event) => setParent(event.target.value)}
+                        disabled={hasChildren}
+                    >
+                        <option value="">作为一级分类</option>
+                        {parentOptions.map((item) => (
+                            <option key={item.id} value={item.id}>
+                                {item.emoji} {item.name}
+                            </option>
+                        ))}
+                    </select>
+                    <span className="mt-1.5 block text-[10px] leading-relaxed text-muted">
+                        {hasChildren
+                            ? "这个分类下已有子分类，不能再设为其他分类的子分类。"
+                            : "支持两级分类，例如「餐饮 / 午餐」。"}
+                    </span>
                 </label>
 
                 <div>
@@ -224,9 +261,15 @@ export function CategoryModal({
                         {emoji || "📦"}
                     </span>
                     <div>
-                        <p className="text-xs font-semibold text-text">{name || "分类预览"}</p>
+                        <p className="text-xs font-semibold text-text">
+                            {parent
+                                ? `${parentOptions.find((item) => item.id === parent)?.name ?? ""} / `
+                                : ""}
+                            {name || "分类预览"}
+                        </p>
                         <p className="text-[10px] text-muted">
                             {kind === "income" ? "收入分类" : "支出分类"}
+                            {parent ? " · 二级分类" : ""}
                         </p>
                     </div>
                 </div>

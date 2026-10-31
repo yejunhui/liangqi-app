@@ -59,6 +59,9 @@ function normalizeLibrary(raw: unknown): LibraryData | null {
                 Array.isArray(book.members) && book.members.length > 0
                     ? book.members
                     : [createDefaultMember()],
+            tagGroups: Array.isArray(book.tagGroups) ? book.tagGroups : [],
+            tags: Array.isArray(book.tags) ? book.tags : [],
+            budgets: Array.isArray(book.budgets) ? book.budgets : [],
         }));
     if (books.length === 0) {
         return null;
@@ -126,6 +129,9 @@ function migrateLegacyLedger(): LibraryData | null {
                 accounts: ledger.accounts as Book["accounts"],
                 categories: ledger.categories as Book["categories"],
                 members: [createDefaultMember(now)],
+                tagGroups: [],
+                tags: [],
+                budgets: [],
                 bills: ledger.bills as Book["bills"],
                 entries: ledger.entries as Book["entries"],
                 settings: ledger.settings as Book["settings"],

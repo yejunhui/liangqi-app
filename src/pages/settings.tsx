@@ -16,7 +16,9 @@ import {
     RotateCcw,
     ShieldCheck,
     Sun,
+    Tag,
     Tags,
+    Target,
     Upload,
     Users,
 } from "lucide-react";
@@ -68,6 +70,9 @@ export function Settings() {
     const accounts = useLedgerStore((state) => state.accounts);
     const categories = useLedgerStore((state) => state.categories);
     const members = useLedgerStore((state) => state.members);
+    const tagGroups = useLedgerStore((state) => state.tagGroups);
+    const tags = useLedgerStore((state) => state.tags);
+    const budgets = useLedgerStore((state) => state.budgets);
     const bills = useLedgerStore((state) => state.bills);
     const entries = useLedgerStore((state) => state.entries);
     const settings = useLedgerStore((state) => state.settings);
@@ -90,6 +95,9 @@ export function Settings() {
             accounts,
             categories,
             members,
+            tagGroups,
+            tags,
+            budgets,
             bills,
             entries,
             settings,
@@ -261,6 +269,36 @@ export function Settings() {
 
                 <section className="card p-5">
                     <SectionTitle
+                        icon={Tag}
+                        title="标签管理"
+                        description={`当前有 ${tags.length} 个标签、${tagGroups.length} 个标签组，用于跨分类标记。`}
+                    />
+                    <Link
+                        to="/tags"
+                        className="mt-4 flex items-center justify-between rounded-xl border border-line bg-surface-2/55 px-4 py-3 text-xs font-semibold text-text transition hover:border-line-strong"
+                    >
+                        打开标签管理
+                        <ArrowRight className="size-3.5 text-muted" />
+                    </Link>
+                </section>
+
+                <section className="card p-5">
+                    <SectionTitle
+                        icon={Target}
+                        title="预算管理"
+                        description={`当前有 ${budgets.length} 个预算，按月度或年度跟踪分类支出。`}
+                    />
+                    <Link
+                        to="/budgets"
+                        className="mt-4 flex items-center justify-between rounded-xl border border-line bg-surface-2/55 px-4 py-3 text-xs font-semibold text-text transition hover:border-line-strong"
+                    >
+                        打开预算管理
+                        <ArrowRight className="size-3.5 text-muted" />
+                    </Link>
+                </section>
+
+                <section className="card p-5">
+                    <SectionTitle
                         icon={ShieldCheck}
                         title="账务规则"
                         description="两讫只做三件事，保证支出不被重复计算。"
@@ -349,7 +387,7 @@ export function Settings() {
                     <SectionTitle
                         icon={FileJson}
                         title="数据管理"
-                        description="数据默认保存在浏览器 localStorage；可以导出当前账本或整个书库。"
+                        description="数据默认保存在浏览器 IndexedDB；可以导出当前账本或整个书库。"
                     />
                     <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                         <button

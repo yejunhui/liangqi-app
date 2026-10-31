@@ -14,6 +14,7 @@ import {
     Info,
     Plus,
     ReceiptText,
+    Target,
     TrendingUp,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -34,6 +35,7 @@ import {
     getTotals,
 } from "@/domain/ledger";
 import { formatCents } from "@/domain/money";
+import { getBudgetProgressList } from "@/domain/budgets";
 import {
     formatMonthLabel,
     endOfMonth,
@@ -57,6 +59,8 @@ export function Dashboard() {
     const bills = useLedgerStore((state) => state.bills);
     const categories = useLedgerStore((state) => state.categories);
     const members = useLedgerStore((state) => state.members);
+    const tags = useLedgerStore((state) => state.tags);
+    const budgets = useLedgerStore((state) => state.budgets);
     const currency = useCurrency();
     const openEntryModal = useUIStore((state) => state.openEntryModal);
     const [month, setMonth] = useState(() => startOfMonth(Date.now()));
@@ -86,6 +90,10 @@ export function Dashboard() {
         const chartEnd = isSameMonth(month, now) ? now : endOfMonth(month);
         return getRecentDailyExpenses(entries, 7, chartEnd);
     }, [entries, month, now]);
+    const budgetProgress = useMemo(
+        () => getBudgetProgressList(budgets, entries, categories, now).slice(0, 3),
+        [budgets, entries, categories, now],
+    );
 
     const canGoNext = !isSameMonth(month, now);
 
@@ -226,6 +234,73 @@ export function Dashboard() {
                     icon={AlertTriangle}
                 />
             </div>
+
+            {budgetProgress.length > 0 && (
+                <section className="card mt-4 p-5">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-sm font-bold text-text">预算进度</h2>
+                            <p className="mt-0.5 text-[11px] text-muted">
+                                按当前月度 / 年度统计
+                            </p>
+                        </div>
+                        <Link
+                            to="/budgets"
+                            className="flex items-center gap-0.5 text-[11px] font-semibold text-accent hover:underline"
+                        >
+                            全部预算
+                            <ArrowUpRight className="size-3" />
+                        </Link>
+                    </div>
+                    <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                        {budgetProgress.map(({ budget, spent, remaining, progress }) => {
+                            const over = spent > budget.amount;
+                            return (
+                                <Link
+                                    key={budget.id}
+                                    to="/budgets"
+                                    className="rounded-xl border border-line bg-surface-2/40 p-3 transition hover:border-line-strong"
+                                >
+                                    <div className="flex items-center justify-between gap-2">
+                                        <p className="truncate text-xs font-semibold text-text">
+                                            {budget.name}
+                                        </p>
+                                        <Target
+                                            className={cn(
+                                                "size-3.5 shrink-0",
+                                                over ? "text-danger" : "text-accent",
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-3">
+                                        <div
+                                            className={cn(
+                                                "h-full rounded-full",
+                                                over ? "bg-danger" : "bg-accent",
+                                            )}
+                                            style={{
+                                                width: `${Math.max(
+                                                    2,
+                                                    Math.min(100, progress * 100),
+                                                )}%`,
+                                            }}
+                                        />
+                                    </div>
+                                    <p className="mt-1.5 text-[10px] text-muted">
+                                        <span className={over ? "text-danger" : "text-text"}>
+                                            {formatCents(spent, currency)}
+                                        </span>{" "}
+                                        / {formatCents(budget.amount, currency)}
+                                        {over
+                                            ? ` · 超 ${formatCents(-remaining, currency)}`
+                                            : ""}
+                                    </p>
+                                </Link>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
 
             <div className="mt-4 grid gap-4 lg:grid-cols-3">
                 <section className="card p-5 lg:col-span-2">
@@ -414,6 +489,7 @@ export function Dashboard() {
                                 bills={bills}
                                 categories={categories}
                                 members={members}
+                                tags={tags}
                                 currency={currency}
                             />
                         ))}
