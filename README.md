@@ -118,8 +118,8 @@ repo/
 ## 部署形态
 
 - **纯静态前端**：`pnpm build` 产出 `dist/`，可部署到 Cloudflare Pages、GitHub Pages、Netlify 等；没有数据库、没有 API 服务。
-- **完全无后端**：使用 GitHub / Gitee PAT 或 WebDAV；不启用 OAuth。
-- **可选 OAuth**：只有 OAuth 需要 `server/oauth-worker` 做 code exchange，它不保存账本数据；不想部署就只用 PAT。
+- **完全无后端**：连接 GitHub / Gitee 只需要「仓库名 + 私钥」，或使用 WebDAV；不需要 OAuth 服务。
+- **OAuth Worker（可选，当前界面未启用）**：`server/oauth-worker` 代码仍保留，但当前连接界面只使用私钥。
 - **WebDAV 注意**：浏览器直连要求服务器允许 CORS；不支持 CORS 的 WebDAV 需要额外代理，那种情况下才需要后端。
 
 ### 部署到子路径
@@ -144,19 +144,20 @@ location /workbook/ {
 
 ## 登录方式
 
-### PAT Token
+### 仓库名 + 私钥
 
-- GitHub：创建有 `repo` 权限的 token。
-- Gitee：创建有 `projects` 权限的 token。
-- Token 只保存在本机 `localStorage`，不会经过两讫的服务器。建议使用只授权单个仓库的细粒度 token。
+GitHub / Gitee 只需要两个字段：
 
-### OAuth（可选）
+- **仓库名**：可以写 `family-ledger`，也可以写 `your-name/family-ledger`
+- **私钥 / Access Token**：GitHub 需要 `repo` 权限，Gitee 需要 `projects` 权限
 
-`server/oauth-worker` 是一个 Cloudflare Worker 参考实现，负责 GitHub / Gitee 的 OAuth code exchange：
+如果仓库名只写了 repo，应用会用私钥读取账号并补全 owner。分支自动使用仓库默认分支，不需要填写。
 
-- 应用打开弹窗 → Worker 跳转 GitHub / Gitee 授权 → 回调交换 token → `postMessage` 返回应用。
-- 部署和配置见 [server/oauth-worker/README.md](server/oauth-worker/README.md)。
-- 在「数据源 → OAuth 服务地址」填入 Worker 地址即可使用。
+私钥只保存在本机 `localStorage`，不会经过两讫的服务器。多个人可以共用同一个私钥；连接后在登录页选择自己的成员并输入 PIN。
+
+### OAuth Worker（当前界面未启用）
+
+`server/oauth-worker` 是 GitHub / Gitee OAuth code exchange 的参考实现；当前版本的连接界面只使用私钥，OAuth 代码保留但未接入按钮。
 
 ### WebDAV
 
@@ -191,7 +192,7 @@ pnpm preview    # 预览构建结果
    - **现在扣存款**：从现金 / 银行卡支出。
    - **先记负债**：记到信用卡 / 花呗，生成待还账单。
 4. 到「账单」页查看待还金额和到期日，点「还款」从存款账户还款。
-5. 到「数据源」页连接 GitHub / Gitee / WebDAV，选择一个远程账本，或把当前账本上传到仓库。
+5. 到「数据源」页填写仓库名和私钥连接，打开共享账本，或把当前账本上传到空仓库。
 6. 在「设置 → 数据管理」导出单账本或整个书库备份。
 
 ### 标签、分类与预算

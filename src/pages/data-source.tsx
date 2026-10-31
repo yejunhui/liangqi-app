@@ -10,7 +10,6 @@ import {
     Download,
     FolderOpen,
     HardDrive,
-    KeyRound,
     RefreshCw,
     Server,
     ShieldCheck,
@@ -44,8 +43,8 @@ import {
     disconnectBook,
 } from "@/remote/sync";
 import { listRemoteBooks, testRemoteConnection } from "@/remote/repository";
+import { parseRepositoryInput, resolveProviderLogin } from "@/remote/repo-owner";
 import { providerLabel } from "@/remote/index";
-import { startOAuth } from "@/remote/oauth";
 import {
     clearConflictBackups,
     getConflictBackups,
@@ -54,22 +53,16 @@ import { createExportPayload } from "@/domain/backup";
 import { cn } from "@/utils/cn";
 
 interface FormState {
-    owner: string;
     repo: string;
-    branch: string;
     token: string;
-    oauthBase: string;
     url: string;
     username: string;
     password: string;
 }
 
 const EMPTY_FORM: FormState = {
-    owner: "",
     repo: "",
-    branch: "",
     token: "",
-    oauthBase: "",
     url: "",
     username: "",
     password: "",
@@ -129,9 +122,9 @@ export function DataSource() {
         setProvider(target.provider);
         setForm((current) => ({
             ...current,
-            owner: target.owner ?? "",
-            repo: target.repo ?? "",
-            branch: target.branch ?? "",
+            repo: target.owner
+                ? `${target.owner}/${target.repo ?? ""}`
+                : (target.repo ?? ""),
             token: target.token ?? "",
             url: target.url ?? "",
             username: target.username ?? "",
@@ -148,26 +141,44 @@ export function DataSource() {
         setForm((current) => ({ ...current, [field]: value }));
     }
 
-    function buildConnection(): Connection {
+    async function buildConnection(): Promise<Connection> {
         const id = connection?.id ?? newId("conn");
-        const label =
-            provider === "webdav"
-                ? form.url.trim() || "WebDAV"
-                : `${providerLabel({ provider })} · ${form.owner.trim()}/${form.repo.trim()}`;
+        if (provider === "webdav") {
+            return {
+                id,
+                provider,
+                label: form.url.trim() || "WebDAV",
+                createdAt: connection?.createdAt ?? Date.now(),
+                url: form.url.trim(),
+                username: form.username,
+                password: form.password,
+            };
+        }
+
+        const repository = parseRepositoryInput(form.repo);
+        if (!repository.repo) {
+            throw new Error("请填写仓库名，例如 family-ledger 或 your-name/family-ledger");
+        }
+        let owner = repository.owner;
+        if (!owner) {
+            owner = await resolveProviderLogin(provider, form.token.trim());
+            if (!owner) {
+                throw new Error(
+                    "无法从私钥识别账号，请把仓库名写成 owner/仓库名",
+                );
+            }
+        }
+        const label = `${providerLabel({ provider })} · ${owner}/${repository.repo}`;
         return {
             id,
             provider,
             label,
             createdAt: connection?.createdAt ?? Date.now(),
-            owner: provider === "webdav" ? undefined : form.owner.trim(),
-            repo: provider === "webdav" ? undefined : form.repo.trim(),
-            branch:
-                provider === "webdav" ? undefined : form.branch.trim() || undefined,
-            token: provider === "webdav" ? undefined : form.token.trim(),
+            owner,
+            repo: repository.repo,
+            branch: undefined,
+            token: form.token.trim(),
             tokenKind: "pat",
-            url: provider === "webdav" ? form.url.trim() : undefined,
-            username: provider === "webdav" ? form.username : undefined,
-            password: provider === "webdav" ? form.password : undefined,
         };
     }
 
@@ -187,7 +198,7 @@ export function DataSource() {
         setError("");
         setBusy("connect");
         try {
-            const candidate = buildConnection();
+            const candidate = await buildConnection();
             const tested = await testRemoteConnection(candidate);
             const resolved: Connection = {
                 ...candidate,
@@ -211,23 +222,6 @@ export function DataSource() {
             );
         } catch (cause) {
             setError(cause instanceof Error ? cause.message : "连接失败");
-        } finally {
-            setBusy(null);
-        }
-    }
-
-    async function handleOAuth() {
-        if (provider === "webdav") {
-            return;
-        }
-        setError("");
-        setBusy("oauth");
-        try {
-            const token = await startOAuth(provider, form.oauthBase);
-            update("token", token);
-            toast("授权成功，点击“测试并读取账本”继续", "success");
-        } catch (cause) {
-            setError(cause instanceof Error ? cause.message : "OAuth 登录失败");
         } finally {
             setBusy(null);
         }
@@ -515,22 +509,10 @@ export function DataSource() {
                     {!isWebDav ? (
                         <>
                             <Field
-                                label="仓库 owner"
-                                value={form.owner}
-                                onChange={(value) => update("owner", value)}
-                                placeholder="例如：your-name"
-                            />
-                            <Field
                                 label="仓库名"
                                 value={form.repo}
                                 onChange={(value) => update("repo", value)}
-                                placeholder="例如：family-ledger"
-                            />
-                            <Field
-                                label="分支（可选）"
-                                value={form.branch}
-                                onChange={(value) => update("branch", value)}
-                                placeholder="留空自动使用默认分支"
+                                placeholder="family-ledger 或 your-name/family-ledger"
                             />
                             <Field
                                 label="私钥 / Access Token"
@@ -569,42 +551,8 @@ export function DataSource() {
 
                 {!isWebDav && (
                     <p className="mt-3 text-[10px] leading-relaxed text-muted">
-                        多个人可以共用同一个私钥（Token）连接这个仓库。连接后在左上角或「数据源」里选择自己的成员，新流水就会记在该成员名下；记账作者按登录成员判断，不按 token。
+                        只需要填写仓库名和私钥。仓库名可以只写 repo（自动用私钥所属账号补全），也可以写 owner/repo。分支自动使用默认分支。多个人可以共用同一个私钥，连接后各自选择成员并输入 PIN。
                     </p>
-                )}
-
-                {!isWebDav && (
-                    <div className="mt-4 rounded-xl border border-line bg-surface-2/45 p-3.5">
-                        <div className="flex items-center gap-2 text-[11px] font-semibold text-text">
-                            <KeyRound className="size-3.5 text-accent" />
-                            使用 OAuth 登录（可选）
-                        </div>
-                        <p className="mt-1 text-[10px] leading-relaxed text-muted">
-                            需要先部署{" "}
-                            <code className="rounded bg-surface px-1">
-                                server/oauth-worker
-                            </code>
-                            。PAT 和 OAuth 二选一即可。
-                        </p>
-                        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                            <input
-                                className="field py-2 text-xs"
-                                value={form.oauthBase}
-                                onChange={(event) => update("oauthBase", event.target.value)}
-                                placeholder="OAuth 服务地址，例如 https://liangqi-oauth.example.workers.dev"
-                            />
-                            <Button
-                                size="sm"
-                                variant="secondary"
-                                className="shrink-0 whitespace-nowrap"
-                                onClick={handleOAuth}
-                                disabled={busy !== null}
-                            >
-                                <Cloud className="size-3.5" />
-                                {provider === "github" ? "GitHub" : "Gitee"} 登录
-                            </Button>
-                        </div>
-                    </div>
                 )}
 
                 {error && (
