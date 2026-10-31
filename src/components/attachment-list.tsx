@@ -16,7 +16,7 @@ import {
 } from "@/domain/attachments";
 import { useLedgerStore } from "@/store/ledger";
 import { getConnectionById, useLibraryStore } from "@/store/library";
-import { downloadRemoteAttachment } from "@/remote/attachments";
+import { downloadRemoteAttachment, deleteRemoteAttachment } from "@/remote/attachments";
 import { toast } from "@/store/toast";
 
 interface AttachmentListProps {
@@ -93,6 +93,14 @@ export function AttachmentList({
         if (!result.ok) {
             toast(result.error, "error");
             return;
+        }
+        const library = useLibraryStore.getState();
+        const book = library.books.find((item) => item.id === library.activeBookId);
+        const connection = book?.remote
+            ? getConnectionById(library, book.remote.connectionId)
+            : undefined;
+        if (connection) {
+            await deleteRemoteAttachment(connection, deleting.id);
         }
         await deleteAttachmentFile(deleting.id);
         toast("附件已删除", "success");

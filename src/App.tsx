@@ -2,7 +2,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
+import { HashRouter, Navigate, Route, Routes, useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { EntryModal } from "@/components/entry-modal";
 import { QuickEntryModal } from "@/components/quick-entry-modal";
@@ -26,14 +27,38 @@ import { AiAssistant } from "@/pages/ai-assistant";
 import { Settings } from "@/pages/settings";
 import { DataSource } from "@/pages/data-source";
 import { Members } from "@/pages/members";
+import { useLedgerStore } from "@/store/ledger";
+import { useUIStore } from "@/store/ui";
 
 export default function App() {
     useApplyTheme();
+    const customCss = useLedgerStore((state) => state.settings.customCss);
+
+    useEffect(() => {
+        const id = "liangqi-custom-css";
+        const existing = document.getElementById(id);
+        if (!customCss?.trim()) {
+            existing?.remove();
+            return;
+        }
+        const style = existing instanceof HTMLStyleElement
+            ? existing
+            : document.createElement("style");
+        style.id = id;
+        style.textContent = customCss;
+        if (!existing) {
+            document.head.appendChild(style);
+        }
+        return () => {
+            style.remove();
+        };
+    }, [customCss]);
 
     return (
         <AuthGate>
             <HashRouter>
                 <Routes>
+                    <Route path="quick" element={<QuickEntryRoute />} />
                     <Route element={<Layout />}>
                         <Route index element={<Dashboard />} />
                         <Route path="entries" element={<Entries />} />
@@ -61,4 +86,18 @@ export default function App() {
             </HashRouter>
         </AuthGate>
     );
+}
+
+function QuickEntryRoute() {
+    const [params] = useSearchParams();
+    const openQuickEntry = useUIStore((state) => state.openQuickEntry);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const text = params.get("text") ?? params.get("q") ?? "";
+        openQuickEntry(text);
+        navigate("/", { replace: true });
+    }, [params, openQuickEntry, navigate]);
+
+    return null;
 }

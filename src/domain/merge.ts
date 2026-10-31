@@ -23,10 +23,64 @@ function recordTime(record: {
     return record.updatedAt ?? record.createdAt ?? 0;
 }
 
-function mergeById<T extends { id: string }>(
+type MergeableRecord = {
+    id: string;
+    updatedAt?: number;
+    createdAt?: number;
+    fieldUpdatedAt?: Record<string, number>;
+};
+
+function mergeFieldMaps(
+    local: Record<string, number> | undefined,
+    remote: Record<string, number> | undefined,
+): Record<string, number> | undefined {
+    if (!local && !remote) {
+        return undefined;
+    }
+    const result: Record<string, number> = { ...(local ?? {}) };
+    for (const [key, timestamp] of Object.entries(remote ?? {})) {
+        result[key] = Math.max(result[key] ?? 0, timestamp);
+    }
+    return result;
+}
+
+function mergeRecord<T extends MergeableRecord>(
+    local: T,
+    remote: T,
+    fields: string[],
+): T {
+    const localTime = recordTime(local);
+    const remoteTime = recordTime(remote);
+    const base = remoteTime >= localTime ? remote : local;
+    const merged: Record<string, unknown> = {
+        ...(base as unknown as Record<string, unknown>),
+    };
+    for (const field of fields) {
+        const localFieldTime = local.fieldUpdatedAt?.[field] ?? localTime;
+        const remoteFieldTime = remote.fieldUpdatedAt?.[field] ?? remoteTime;
+        if (localFieldTime > remoteFieldTime) {
+            merged[field] = (local as unknown as Record<string, unknown>)[field];
+        } else if (remoteFieldTime > localFieldTime) {
+            merged[field] = (remote as unknown as Record<string, unknown>)[field];
+        }
+    }
+    merged.updatedAt = Math.max(localTime, remoteTime);
+    const fieldUpdatedAt = mergeFieldMaps(
+        local.fieldUpdatedAt,
+        remote.fieldUpdatedAt,
+    );
+    if (fieldUpdatedAt) {
+        merged.fieldUpdatedAt = fieldUpdatedAt;
+    } else {
+        delete merged.fieldUpdatedAt;
+    }
+    return merged as T;
+}
+
+function mergeRecords<T extends MergeableRecord>(
     local: T[],
     remote: T[],
-    time: (item: T) => number,
+    fields: string[],
 ): T[] {
     const map = new Map<string, T>();
     for (const item of local) {
@@ -34,12 +88,34 @@ function mergeById<T extends { id: string }>(
     }
     for (const item of remote) {
         const current = map.get(item.id);
-        if (!current || time(item) >= time(current)) {
-            map.set(item.id, item);
-        }
+        map.set(
+            item.id,
+            current ? mergeRecord(current, item, fields) : item,
+        );
     }
     return [...map.values()];
 }
+
+const ENTRY_MERGE_FIELDS = [
+    "categoryId",
+    "memberId",
+    "tagIds",
+    "attachmentIds",
+    "note",
+    "location",
+    "originalAmount",
+    "recurringId",
+];
+
+const BILL_MERGE_FIELDS = [
+    "title",
+    "dueDate",
+    "note",
+    "categoryId",
+    "memberId",
+    "tagIds",
+    "attachmentIds",
+];
 
 function mergeConfig<T extends { id: string }>(local: T[], remote: T[]): T[] {
     const map = new Map<string, T>();
@@ -89,12 +165,12 @@ export function mergeBooks(local: Book, remote: Book): Book {
         remote.deletedConfig ?? [],
     );
     const entries = applyTombstones(
-        mergeById(local.entries, remote.entries, recordTime),
+        mergeRecords(local.entries, remote.entries, ENTRY_MERGE_FIELDS),
         deletedEntries,
         recordTime,
     );
     const bills = applyTombstones(
-        mergeById(local.bills, remote.bills, recordTime),
+        mergeRecords(local.bills, remote.bills, BILL_MERGE_FIELDS),
         deletedBills,
         recordTime,
     );

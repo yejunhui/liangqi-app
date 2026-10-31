@@ -148,6 +148,26 @@ function parseOptionalOriginalAmount(
     };
 }
 
+function parseFieldUpdatedAt(
+    value: unknown,
+    index: number,
+): Record<string, number> | undefined {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (!isObject(value)) {
+        throw new Error(`第 ${index + 1} 条记录字段更新时间格式不正确`);
+    }
+    const result: Record<string, number> = {};
+    for (const [key, timestamp] of Object.entries(value)) {
+        if (!isFiniteNumber(timestamp) || timestamp <= 0) {
+            throw new Error(`第 ${index + 1} 条记录字段更新时间格式不正确`);
+        }
+        result[key] = timestamp;
+    }
+    return result;
+}
+
 function parseTombstone(raw: unknown, index: number, label: string): Tombstone {
     if (!isObject(raw)) {
         throw new Error(`第 ${index + 1} 个${label}删除记录格式不正确`);
@@ -401,6 +421,7 @@ function parseBill(raw: unknown, index: number): Bill {
     if (raw.opening !== undefined && typeof raw.opening !== "boolean") {
         throw new Error(`第 ${index + 1} 张账单期初标记格式不正确`);
     }
+    const fieldUpdatedAt = parseFieldUpdatedAt(raw.fieldUpdatedAt, index);
     return {
         id: requiredString(raw.id, "账单 id"),
         liabilityAccountId: requiredString(raw.liabilityAccountId, "账单负债账户"),
@@ -418,6 +439,7 @@ function parseBill(raw: unknown, index: number): Bill {
         ownerId: raw.ownerId as string | undefined,
         ownerName: raw.ownerName as string | undefined,
         updatedAt: raw.updatedAt as number | undefined,
+        fieldUpdatedAt,
         createdAt: requiredTimestamp(raw.createdAt, "账单创建时间"),
     };
 }
@@ -477,6 +499,7 @@ function parseEntry(raw: unknown, index: number): Entry {
             throw new Error(`第 ${index + 1} 条流水位置格式不正确`);
         }
     }
+    const fieldUpdatedAt = parseFieldUpdatedAt(raw.fieldUpdatedAt, index);
     return {
         id: requiredString(raw.id, "流水 id"),
         kind,
@@ -497,6 +520,7 @@ function parseEntry(raw: unknown, index: number): Entry {
         ownerId: raw.ownerId as string | undefined,
         ownerName: raw.ownerName as string | undefined,
         updatedAt: raw.updatedAt as number | undefined,
+        fieldUpdatedAt,
         createdAt: requiredTimestamp(raw.createdAt, "流水创建时间"),
     };
 }
@@ -512,7 +536,24 @@ function parseSettings(raw: unknown): Settings {
     if (theme !== "light" && theme !== "dark" && theme !== "system") {
         throw new Error("主题设置格式不正确");
     }
-    return { currency: raw.currency, theme };
+    if (
+        raw.customCss !== undefined &&
+        (!isString(raw.customCss) || raw.customCss.length > 20_000)
+    ) {
+        throw new Error("自定义 CSS 格式不正确");
+    }
+    if (
+        raw.keyboardShortcuts !== undefined &&
+        typeof raw.keyboardShortcuts !== "boolean"
+    ) {
+        throw new Error("键盘快捷键设置格式不正确");
+    }
+    return {
+        currency: raw.currency,
+        theme,
+        customCss: raw.customCss as string | undefined,
+        keyboardShortcuts: raw.keyboardShortcuts as boolean | undefined,
+    };
 }
 
 function validateReferences(data: LedgerData): void {

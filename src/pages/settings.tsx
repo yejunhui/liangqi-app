@@ -12,9 +12,11 @@ import {
     Download,
     FileJson,
     Info,
+    Keyboard,
     LockKeyhole,
     Monitor,
     Moon,
+    Palette,
     RotateCcw,
     ShieldCheck,
     Sun,
@@ -91,6 +93,11 @@ export function Settings() {
     const [aiModel, setAiModel] = useState(ai.model);
     const [aiApiKey, setAiApiKey] = useState(ai.apiKey);
     const [customCurrency, setCustomCurrency] = useState("");
+    const [customCss, setCustomCss] = useState(settings.customCss ?? "");
+    const quickEntryUrl =
+        typeof window === "undefined"
+            ? ""
+            : `${window.location.origin}${window.location.pathname}#/quick?text=`;
 
     const inputRef = useRef<HTMLInputElement>(null);
     const [pendingImport, setPendingImport] = useState<LedgerData | null>(null);
@@ -286,6 +293,101 @@ export function Settings() {
                         >
                             使用
                         </Button>
+                    </div>
+                </section>
+
+                <section className="card p-5">
+                    <SectionTitle
+                        icon={Palette}
+                        title="个性化"
+                        description="自定义 CSS 和键盘快捷键，只影响当前账本。"
+                    />
+                    <textarea
+                        className="field mt-4 min-h-28 resize-y font-mono text-[11px] leading-relaxed"
+                        value={customCss}
+                        onChange={(event) => setCustomCss(event.target.value)}
+                        maxLength={20_000}
+                        placeholder={"例如：\n.account-card { border-radius: 18px; }\n:root { --accent: #0f766e; }"}
+                    />
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[10px] text-muted">
+                            {customCss.length} / 20000
+                        </span>
+                        <div className="flex gap-2">
+                            <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => {
+                                    setCustomCss("");
+                                    setSettings({ customCss: "" });
+                                    toast("自定义 CSS 已清空", "success");
+                                }}
+                            >
+                                清空
+                            </Button>
+                            <Button
+                                size="sm"
+                                onClick={() => {
+                                    setSettings({ customCss });
+                                    toast("自定义 CSS 已应用", "success");
+                                }}
+                            >
+                                应用 CSS
+                            </Button>
+                        </div>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-4">
+                        <div>
+                            <p className="flex items-center gap-1.5 text-xs font-semibold text-text">
+                                <Keyboard className="size-3.5 text-muted" />
+                                键盘快捷键
+                            </p>
+                            <p className="mt-0.5 text-[10px] text-muted">
+                                在非输入状态下：N 记一笔，Q 一句话记账
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setSettings({
+                                    keyboardShortcuts:
+                                        settings.keyboardShortcuts === false,
+                                })
+                            }
+                            className={cn(
+                                "relative h-5 w-9 shrink-0 rounded-full transition",
+                                settings.keyboardShortcuts !== false
+                                    ? "bg-accent"
+                                    : "bg-surface-3",
+                            )}
+                            aria-pressed={settings.keyboardShortcuts !== false}
+                            aria-label="开关键盘快捷键"
+                        >
+                            <span
+                                className={cn(
+                                    "absolute top-0.5 size-4 rounded-full bg-surface transition-all",
+                                    settings.keyboardShortcuts !== false
+                                        ? "left-[1.125rem]"
+                                        : "left-0.5",
+                                )}
+                            />
+                        </button>
+                    </div>
+
+                    <div className="mt-4 border-t border-line pt-4">
+                        <p className="text-xs font-semibold text-text">
+                            iOS 快捷指令 / 自动化
+                        </p>
+                        <code className="mt-2 block break-all rounded-lg border border-line bg-surface-2/60 px-2.5 py-2 text-[10px] text-muted">
+                            {quickEntryUrl}
+                        </code>
+                        <p className="mt-1.5 text-[10px] leading-relaxed text-muted">
+                            把要记账的文字做 URL 编码后接在最后，打开这个链接会直接进入「一句话记账」。例如：
+                            <code className="ml-1 break-all">
+                                {quickEntryUrl}
+                                {encodeURIComponent("昨天午饭 35 现金")}
+                            </code>
+                        </p>
                     </div>
                 </section>
 

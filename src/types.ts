@@ -163,6 +163,7 @@ export interface Bill {
     ownerId?: string;
     ownerName?: string;
     updatedAt?: number;
+    fieldUpdatedAt?: Record<string, number>;
     title: string;
     /** Original amount in cents. */
     principal: number;
@@ -196,6 +197,7 @@ export interface Entry {
     ownerId?: string;
     ownerName?: string;
     updatedAt?: number;
+    fieldUpdatedAt?: Record<string, number>;
     location?: EntryLocation;
     originalAmount?: OriginalAmount;
     note?: string;
@@ -207,6 +209,10 @@ export interface Entry {
 export interface Settings {
     currency: string;
     theme: ThemeMode;
+    /** Optional user CSS injected into the app. */
+    customCss?: string;
+    /** Enable single-key shortcuts (n = new entry, q = quick entry). Defaults to true. */
+    keyboardShortcuts?: boolean;
 }
 
 export interface LedgerData {

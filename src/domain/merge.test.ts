@@ -84,6 +84,32 @@ describe("multi-user merge", () => {
         ]);
     });
 
+    it("merges changed fields from both sides", () => {
+        const local = createSeedBook("共享账", NOW);
+        local.entries = [
+            {
+                ...entry("shared_field", "alice", 200),
+                categoryId: "cat_food",
+                note: "本地备注",
+                fieldUpdatedAt: { note: 200 },
+            },
+        ];
+        const remote = createSeedBook("共享账", NOW);
+        remote.id = local.id;
+        remote.entries = [
+            {
+                ...entry("shared_field", "alice", 300),
+                categoryId: "cat_transport",
+                note: "远程旧备注",
+                fieldUpdatedAt: { categoryId: 300, note: 100 },
+            },
+        ];
+        const merged = mergeBooks(local, remote);
+        expect(merged.entries[0].categoryId).toBe("cat_transport");
+        expect(merged.entries[0].note).toBe("本地备注");
+        expect(merged.entries[0].updatedAt).toBe(300);
+    });
+
     it("applies shared configuration tombstones", () => {
         const local = createSeedBook("共享账", NOW);
         local.tags.push({

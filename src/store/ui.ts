@@ -34,11 +34,12 @@ interface UIState {
     entryModalPaymentMode?: ExpensePaymentMode;
     entryModalPrefill?: EntryPrefill;
     quickEntryOpen: boolean;
+    quickEntrySeed?: string;
     memberModalOpen: boolean;
     bookSwitcherOpen: boolean;
     openEntryModal: (options?: EntryModalOptions) => void;
     closeEntryModal: () => void;
-    openQuickEntry: () => void;
+    openQuickEntry: (text?: string) => void;
     closeQuickEntry: () => void;
     openMemberModal: () => void;
     closeMemberModal: () => void;
@@ -53,6 +54,7 @@ export const useUIStore = create<UIState>((set) => ({
     entryModalPaymentMode: undefined,
     entryModalPrefill: undefined,
     quickEntryOpen: false,
+    quickEntrySeed: undefined,
     memberModalOpen: false,
     bookSwitcherOpen: false,
     openEntryModal(options) {
@@ -72,11 +74,11 @@ export const useUIStore = create<UIState>((set) => ({
             entryModalPrefill: undefined,
         });
     },
-    openQuickEntry() {
-        set({ quickEntryOpen: true });
+    openQuickEntry(text) {
+        set({ quickEntryOpen: true, quickEntrySeed: text });
     },
     closeQuickEntry() {
-        set({ quickEntryOpen: false });
+        set({ quickEntryOpen: false, quickEntrySeed: undefined });
     },
     openMemberModal() {
         set({ memberModalOpen: true });

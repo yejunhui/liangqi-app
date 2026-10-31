@@ -81,12 +81,49 @@ export function Layout() {
     const activeBook = useLibraryStore((state) => getActiveBook(state));
     const authEnabled = useAuthStore((state) => state.enabled);
     const lock = useAuthStore((state) => state.lock);
+    const shortcutsEnabled = useLedgerStore(
+        (state) => state.settings.keyboardShortcuts !== false,
+    );
     const totals = getTotals({ accounts, entries });
 
     useEffect(() => {
         window.scrollTo(0, 0);
         closeEntryModal();
     }, [location.pathname, closeEntryModal]);
+
+    useEffect(() => {
+        if (!shortcutsEnabled) {
+            return;
+        }
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (
+                event.metaKey ||
+                event.ctrlKey ||
+                event.altKey ||
+                event.isComposing
+            ) {
+                return;
+            }
+            const target = event.target;
+            if (
+                target instanceof HTMLElement &&
+                (target.matches("input, textarea, select") ||
+                    target.isContentEditable)
+            ) {
+                return;
+            }
+            const key = event.key.toLowerCase();
+            if (key === "n") {
+                event.preventDefault();
+                openEntryModal();
+            } else if (key === "q") {
+                event.preventDefault();
+                openQuickEntry();
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [shortcutsEnabled, openEntryModal, openQuickEntry]);
 
     return (
         <div className="min-h-dvh">

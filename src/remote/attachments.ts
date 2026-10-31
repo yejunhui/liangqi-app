@@ -11,7 +11,7 @@ import { createRemoteAdapter } from "@/remote/index";
 import { remoteAttachmentPath } from "@/remote/paths";
 import { loadAttachmentFile, saveAttachmentFile } from "@/domain/attachments";
 
-export const MAX_REMOTE_ATTACHMENT_SIZE = 5 * 1024 * 1024;
+export const MAX_REMOTE_ATTACHMENT_SIZE = 10 * 1024 * 1024;
 
 interface RemoteAttachmentFile {
     app: "liangqi";
@@ -107,5 +107,25 @@ export async function downloadRemoteAttachment(
         return blob;
     } catch {
         return undefined;
+    }
+}
+
+/** Best-effort remote cleanup; batch-capable adapters can delete files. */
+export async function deleteRemoteAttachment(
+    connection: Connection,
+    attachmentId: string,
+): Promise<boolean> {
+    try {
+        const adapter = createRemoteAdapter(connection);
+        if (!adapter.writeFiles) {
+            return false;
+        }
+        await adapter.writeFiles(
+            [{ path: remoteAttachmentPath(attachmentId), text: null }],
+            "liangqi: delete attachment",
+        );
+        return true;
+    } catch {
+        return false;
     }
 }

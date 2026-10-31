@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ClipboardPaste, Mic, MicOff, Sparkles } from "lucide-react";
 import { Modal } from "@/components/modal";
 import { Button } from "@/components/button";
@@ -49,6 +49,7 @@ function getRecognition(): SpeechRecognitionLike | null {
 
 export function QuickEntryModal() {
     const open = useUIStore((state) => state.quickEntryOpen);
+    const seed = useUIStore((state) => state.quickEntrySeed);
     const close = useUIStore((state) => state.closeQuickEntry);
     const openEntryModal = useUIStore((state) => state.openEntryModal);
     const categories = useLedgerStore((state) => state.categories);
@@ -64,6 +65,16 @@ export function QuickEntryModal() {
     );
     const [aiLoading, setAiLoading] = useState(false);
     const [aiError, setAiError] = useState("");
+
+    useEffect(() => {
+        if (!open) {
+            return;
+        }
+        setText(seed ?? "");
+        setAiSuggestion(null);
+        setAiError("");
+        setListening(false);
+    }, [open, seed]);
 
     const parsed = useMemo(
         () => parseQuickEntry({ text, categories, accounts }),

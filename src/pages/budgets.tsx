@@ -3,14 +3,16 @@
  */
 
 import { useMemo, useState } from "react";
-import { Pencil, Plus, Target, Trash2 } from "lucide-react";
+import { Pencil, Plus, Sparkles, Target, Trash2 } from "lucide-react";
 import type { Budget } from "@/types";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/button";
 import { BudgetModal } from "@/components/budget-modal";
+import { BudgetSuggestionsModal } from "@/components/budget-suggestions-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { getBudgetProgressList } from "@/domain/budgets";
+import { suggestBudgets } from "@/domain/budget-suggestions";
 import { formatCents } from "@/domain/money";
 import { useCurrency, useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
@@ -28,6 +30,7 @@ export function Budgets() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
     const [deletingBudget, setDeletingBudget] = useState<Budget | null>(null);
+    const [suggestionsOpen, setSuggestionsOpen] = useState(false);
     const [now] = useState(() => Date.now());
 
     const progressList = useMemo(
@@ -37,6 +40,10 @@ export function Budgets() {
     const totalAmount = progressList.reduce((sum, item) => sum + item.budget.amount, 0);
     const totalSpent = progressList.reduce((sum, item) => sum + item.spent, 0);
     const overCount = progressList.filter((item) => item.spent > item.budget.amount).length;
+    const suggestions = useMemo(
+        () => suggestBudgets(entries, categories, budgets, now),
+        [entries, categories, budgets, now],
+    );
 
     function openCreate() {
         setEditingBudget(null);
@@ -68,10 +75,19 @@ export function Budgets() {
                 title="预算"
                 description="按分类、标签或成员设置月度 / 年度预算，超支会在首页提醒。"
                 action={
-                    <Button onClick={openCreate}>
-                        <Plus className="size-4" />
-                        添加预算
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="secondary"
+                            onClick={() => setSuggestionsOpen(true)}
+                        >
+                            <Sparkles className="size-4" />
+                            智能建议
+                        </Button>
+                        <Button onClick={openCreate}>
+                            <Plus className="size-4" />
+                            添加预算
+                        </Button>
+                    </div>
                 }
             />
 
@@ -266,6 +282,13 @@ export function Budgets() {
                     setModalOpen(false);
                     setEditingBudget(null);
                 }}
+            />
+
+            <BudgetSuggestionsModal
+                open={suggestionsOpen}
+                suggestions={suggestions}
+                currency={currency}
+                onClose={() => setSuggestionsOpen(false)}
             />
 
             <ConfirmDialog

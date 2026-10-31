@@ -668,6 +668,13 @@ const createActions = (
             }
         }
 
+        const changedAt = Date.now();
+        const changedFields = (
+            ["categoryId", "memberId", "tagIds", "note"] as const
+        ).filter((key) => patch[key] !== undefined);
+        const fieldTimes = Object.fromEntries(
+            changedFields.map((key) => [key, changedAt]),
+        );
         set({
             entries: state.entries.map((entry) => {
                 if (!ids.includes(entry.id)) {
@@ -683,7 +690,11 @@ const createActions = (
                     ...(patch.note !== undefined
                         ? { note: cleanNote(patch.note) }
                         : {}),
-                    updatedAt: Date.now(),
+                    updatedAt: changedAt,
+                    fieldUpdatedAt: {
+                        ...entry.fieldUpdatedAt,
+                        ...fieldTimes,
+                    },
                 };
             }),
             bills: state.bills.map((bill) => {
@@ -703,7 +714,11 @@ const createActions = (
                         ? { memberId: patch.memberId }
                         : {}),
                     ...(tagResult ? { tagIds: tagResult.tagIds } : {}),
-                    updatedAt: Date.now(),
+                    updatedAt: changedAt,
+                    fieldUpdatedAt: {
+                        ...bill.fieldUpdatedAt,
+                        ...fieldTimes,
+                    },
                 };
             }),
         });
@@ -804,6 +819,19 @@ const createActions = (
         }
         const nextTagIds = tagResult?.tagIds;
         const changedAt = Date.now();
+        const changedFields = (
+            ["title", "dueDate", "note", "categoryId", "memberId", "tagIds"] as const
+        ).filter((key) => patch[key] !== undefined);
+        const billFieldTimes = Object.fromEntries(
+            changedFields.map((key) => [key, changedAt]),
+        );
+        const entryFieldTimes = Object.fromEntries(
+            changedFields
+                .filter((key) =>
+                    ["categoryId", "memberId", "tagIds"].includes(key),
+                )
+                .map((key) => [key, changedAt]),
+        );
 
         const updateEntries =
             patch.categoryId !== undefined ||
@@ -831,6 +859,10 @@ const createActions = (
                                   ? nextTagIds
                                   : item.tagIds,
                           updatedAt: changedAt,
+                          fieldUpdatedAt: {
+                              ...item.fieldUpdatedAt,
+                              ...billFieldTimes,
+                          },
                       }
                     : item,
             ),
@@ -849,6 +881,10 @@ const createActions = (
                                     ? { tagIds: nextTagIds }
                                     : {}),
                                 updatedAt: changedAt,
+                                fieldUpdatedAt: {
+                                    ...entry.fieldUpdatedAt,
+                                    ...entryFieldTimes,
+                                },
                             }
                           : entry,
                   )
@@ -1701,6 +1737,10 @@ const createActions = (
                                         ]),
                                     ],
                                     updatedAt: changedAt,
+                                    fieldUpdatedAt: {
+                                        ...entry.fieldUpdatedAt,
+                                        attachmentIds: changedAt,
+                                    },
                                 }
                               : entry,
                       )
@@ -1718,6 +1758,10 @@ const createActions = (
                                         ]),
                                     ],
                                     updatedAt: changedAt,
+                                    fieldUpdatedAt: {
+                                        ...bill.fieldUpdatedAt,
+                                        attachmentIds: changedAt,
+                                    },
                                 }
                               : bill,
                       )
@@ -1746,6 +1790,10 @@ const createActions = (
                               (id) => id !== attachmentId,
                           ),
                           updatedAt: changedAt,
+                          fieldUpdatedAt: {
+                              ...entry.fieldUpdatedAt,
+                              attachmentIds: changedAt,
+                          },
                       }
                     : entry,
             ),
@@ -1757,6 +1805,10 @@ const createActions = (
                               (id) => id !== attachmentId,
                           ),
                           updatedAt: changedAt,
+                          fieldUpdatedAt: {
+                              ...bill.fieldUpdatedAt,
+                              attachmentIds: changedAt,
+                          },
                       }
                     : bill,
             ),

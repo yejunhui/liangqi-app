@@ -10,8 +10,10 @@ import {
     ChartNoAxesColumn,
     ChevronLeft,
     ChevronRight,
+    Download,
     ExternalLink,
     MapPin,
+    Printer,
     ReceiptText,
     SlidersHorizontal,
     Tags,
@@ -31,12 +33,15 @@ import {
 } from "@/domain/ledger";
 import { filterEntries, type EntryFilter } from "@/domain/filters";
 import { formatCents, formatPercent } from "@/domain/money";
+import { buildReportHtml, createEntriesCsv, openReportPrint } from "@/domain/reports";
+import { downloadText } from "@/utils/download";
 import {
     endOfMonth,
     formatMonthLabel,
     isInMonth,
     isSameMonth,
     startOfMonth,
+    toDateInputValue,
 } from "@/utils/date";
 import { useCurrency, useLedgerStore } from "@/store/ledger";
 import {
@@ -322,6 +327,35 @@ export function Analytics() {
         setSaveOpen(false);
     }
 
+    function exportCsv() {
+        downloadText(
+            `liangqi-${toDateInputValue(month).slice(0, 7)}.csv`,
+            createEntriesCsv({
+                entries: filteredMonthEntries,
+                categories,
+                accounts,
+                members,
+                tags,
+            }),
+            "text/csv;charset=utf-8",
+        );
+    }
+
+    function printReport() {
+        openReportPrint(
+            buildReportHtml({
+                title: "两讫月报",
+                periodLabel: formatMonthLabel(month),
+                currency,
+                entries: filteredMonthEntries,
+                categories,
+                accounts,
+                members,
+                tags,
+            }),
+        );
+    }
+
     const expenseChange =
         previousTotals.expense > 0
             ? (totals.expense - previousTotals.expense) / previousTotals.expense
@@ -425,6 +459,24 @@ export function Analytics() {
                         >
                             <Bookmark className="size-3.5" />
                             保存视图
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={exportCsv}
+                            disabled={filteredMonthEntries.length === 0}
+                        >
+                            <Download className="size-3.5" />
+                            CSV
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={printReport}
+                            disabled={filteredMonthEntries.length === 0}
+                        >
+                            <Printer className="size-3.5" />
+                            PDF
                         </Button>
                     </div>
                 </div>
