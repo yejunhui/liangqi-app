@@ -70,19 +70,29 @@
 ```text
 repo/
 └── liangqi/
-    ├── index.json          # 账本清单：id、名称、币种、更新时间、流水数
+    ├── index.json                 # 账本清单：id、名称、币种、更新时间、流水数
     └── books/
-        ├── <bookId>.json   # 账本 A 的完整数据
-        └── <bookId>.json   # 账本 B 的完整数据
+        └── <bookId>/
+            ├── meta.json          # 账户、分类、成员、设置、账本信息
+            ├── manifest.json      # 分片清单、哈希、条数
+            ├── entries-0.json     # 第 0–999 条流水
+            ├── entries-1000.json  # 第 1000–1999 条流水
+            └── bills-0.json       # 账单分片
 ```
+
+每个分片默认 1000 条。`manifest.json` 记录每个分片的路径、起始位置、条数和内容哈希。
+
+旧版单文件格式 `books/<bookId>.json` 仍然可以读取；下一次推送时会写入新的分片格式，旧文件不会影响新数据。
 
 连接远程时先读取 `index.json`，列出仓库里的所有账本；用户选择一个打开，或把当前本地账本上传进去。
 
 ## 同步规则
 
-- **本地立即写**：每次修改先写浏览器 `localStorage`，界面立刻更新。
+- **本地立即写**：每次修改先写浏览器 IndexedDB，界面立刻更新；localStorage 作为兜底镜像。
 - **远程优先读取**：账本已连接远程且在线时，打开账本、窗口重新聚焦、恢复网络时先拉远程。
 - **自动推送**：本地修改后延迟约 1.8 秒推送到远程；失败不阻塞记账。
+- **分片上传**：只上传内容哈希发生变化的分片；GitHub 通过 Git Data API 把多个分片合并成一次 commit，Gitee / WebDAV 按文件写入。
+- **拉取**：读取 `manifest.json` 和当前全部分片；分片格式避免了单个 JSON 超过 GitHub Contents API 限制。
 - **离线回退**：远程不可用时继续使用本地，恢复后自动补推。
 - **冲突处理**：MVP 按账本 `updatedAt` 判断，远程版本优先；被覆盖的本地版本保存在「数据源 → 冲突备份」，最多 10 份。
 - **不做逐条合并**：多人同时编辑同一账本时，后同步的一方会以远程版本为准。需要 CRDT / 逐条合并可以后续扩展。
@@ -191,7 +201,7 @@ pnpm preview    # 预览构建结果
 
 ## 数据与隐私
 
-- 本地书库保存在浏览器 `localStorage`，键名：`liangqi-library-v2`。
+- 本地书库优先保存在浏览器 **IndexedDB**（`keyval-store` / `liangqi-library-v2`），同时保留 `localStorage` 镜像作为兜底。
 - 旧版单账本 `liangqi-ledger-v1` / `zhaibu-ledger-v1` 会在首次启动时迁移到书库，旧键保留，方便回滚。
 - 旧的 `zhaibu` 单账本备份仍可导入；新导出使用 `liangqi` 标识。
 - 远程模式下，账本数据保存在你自己的 GitHub / Gitee 仓库或 WebDAV 服务器；两讫没有自己的数据服务器。
@@ -209,6 +219,7 @@ pnpm preview    # 预览构建结果
 - Vite 8
 - Tailwind CSS 4
 - Zustand（书库 + 当前账本状态）
+- IndexedDB（`idb-keyval`，本地主存储）
 - React Router 7（HashRouter，静态托管无需服务端重写）
 - Vitest（账务、备份、远程适配器测试）
 - Lucide React（界面图标，ISC 许可）
@@ -226,9 +237,10 @@ src/
 │   ├── backup.ts      # 单账本 / 书库备份与校验
 │   └── seed.ts        # 默认账户、分类和账本
 ├── remote/
-│   ├── git-contents.ts # GitHub / Gitee Contents API
+│   ├── chunks.ts       # 分片、哈希、manifest
+│   ├── git-contents.ts # GitHub / Gitee；GitHub 使用 Git Data API 批量提交
 │   ├── webdav.ts       # WebDAV GET / PUT / MKCOL
-│   ├── repository.ts   # index.json + books/*.json
+│   ├── repository.ts   # index.json + meta.json + manifest + 分片
 │   ├── sync.ts         # 拉取、推送、冲突处理
 │   └── oauth.ts        # OAuth 弹窗
 ├── store/
@@ -262,6 +274,7 @@ server/
 
 - [ ] S3 兼容存储
 - [ ] SQLite 备份快照
+- [ ] 分片增量拉取 / 操作日志
 - [ ] PWA（离线缓存、安装到桌面）
 - [ ] 微信 / 支付宝账单 CSV 导入
 - [ ] 多币种汇率换算（目前只改变显示货币，不做换算）

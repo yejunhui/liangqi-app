@@ -3,20 +3,33 @@
  */
 
 import type {
+    Bill,
     Book,
     Connection,
+    Entry,
     RemoteBookFile,
+    RemoteBookManifest,
     RemoteBookSummary,
     RemoteIndex,
+    RemoteChunkRef,
 } from "@/types";
 import { createRemoteAdapter } from "@/remote/index";
 import { ensureMembers } from "@/domain/members";
 import {
     REMOTE_INDEX_PATH,
+    remoteBookManifestPath,
+    remoteBookMetaPath,
     remoteBookPath,
 } from "@/remote/paths";
 import { RemoteConflictError, RemoteError } from "@/remote/errors";
 import type { RemoteAdapter, RemoteFile } from "@/remote/adapter";
+import {
+    buildRemotePayload,
+    bookFromParts,
+    parseChunkFile,
+    parseManifest,
+    parseMetaFile,
+} from "@/remote/chunks";
 
 function isObject(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -70,6 +83,7 @@ export function parseRemoteIndex(text: string): RemoteIndex {
     return { app: "liangqi", version: 1, books };
 }
 
+/** Legacy single-file format (v1), kept for migration. */
 export function parseRemoteBookFile(text: string): RemoteBookFile {
     let raw: unknown;
     try {
@@ -103,17 +117,6 @@ export function summarizeBook(book: Book): RemoteBookSummary {
         currency: book.settings.currency,
         entryCount: book.entries.length,
     };
-}
-
-export function serializeRemoteBook(book: Book): string {
-    const file: RemoteBookFile = {
-        app: "liangqi",
-        version: 1,
-        // The remote copy should not carry a local connection binding.
-        book: { ...book, remote: undefined },
-        updatedAt: book.updatedAt,
-    };
-    return JSON.stringify(file, null, 2);
 }
 
 async function readIndex(
@@ -170,6 +173,7 @@ export interface RemoteBookRecord {
     book: Book;
     revision?: string;
     updatedAt: number;
+    manifest?: RemoteBookManifest;
 }
 
 export async function testRemoteConnection(
@@ -187,11 +191,56 @@ export async function listRemoteBooks(
     return index.books;
 }
 
+async function readChunks<T>(
+    adapter: RemoteAdapter,
+    refs: RemoteChunkRef[],
+): Promise<T[]> {
+    const texts = await Promise.all(
+        refs.map(async (ref) => {
+            const file = await adapter.readFile(ref.path);
+            if (!file) {
+                throw new RemoteError(`缺少远程分片 ${ref.path}`);
+            }
+            return file.text;
+        }),
+    );
+    return texts.flatMap((text) => parseChunkFile<T>(text));
+}
+
 export async function pullRemoteBook(
     connection: Connection,
     bookId: string,
 ): Promise<RemoteBookRecord | null> {
     const adapter = createRemoteAdapter(connection);
+
+    const manifestFile = await adapter.readFile(remoteBookManifestPath(bookId));
+    if (manifestFile) {
+        const manifest = parseManifest(manifestFile.text);
+        const metaFile = await adapter.readFile(remoteBookMetaPath(bookId));
+        if (!metaFile) {
+            throw new RemoteError("远程账本缺少 meta.json");
+        }
+        const meta = parseMetaFile(metaFile.text);
+        const [entries, bills] = await Promise.all([
+            readChunks<Entry>(adapter, manifest.chunks.entries),
+            readChunks<Bill>(adapter, manifest.chunks.bills),
+        ]);
+        if (
+            entries.length !== manifest.entryCount ||
+            bills.length !== manifest.billCount
+        ) {
+            throw new RemoteError("远程分片数量与 manifest 不一致");
+        }
+        const book = ensureMembers(bookFromParts(meta, entries, bills));
+        return {
+            book,
+            revision: manifestFile.revision,
+            updatedAt: manifest.updatedAt,
+            manifest,
+        };
+    }
+
+    // Legacy v1: one full JSON file per book.
     const file: RemoteFile | null = await adapter.readFile(remoteBookPath(bookId));
     if (!file) {
         return null;
@@ -204,44 +253,116 @@ export async function pullRemoteBook(
     };
 }
 
+function changedChunks(
+    current: RemoteChunkRef[] | undefined,
+    next: RemoteChunkRef[],
+): RemoteChunkRef[] {
+    const currentMap = new Map(
+        (current ?? []).map((chunk) => [chunk.path, chunk.hash]),
+    );
+    return next.filter((chunk) => currentMap.get(chunk.path) !== chunk.hash);
+}
+
 export async function pushRemoteBook(
     connection: Connection,
     book: Book,
-): Promise<{ revision?: string }> {
+): Promise<{ revision?: string; manifest: RemoteBookManifest }> {
     const adapter = createRemoteAdapter(connection);
-    const path = remoteBookPath(book.id);
-    let current: RemoteFile | null = null;
-    try {
-        current = await adapter.readFile(path);
-    } catch (error) {
-        if (!(error instanceof RemoteError) || error.status !== 404) {
-            throw error;
+    const manifestPath = remoteBookManifestPath(book.id);
+    const metaPath = remoteBookMetaPath(book.id);
+
+    let currentManifest: RemoteBookManifest | null = null;
+    const currentFile = await adapter.readFile(manifestPath);
+    if (currentFile) {
+        currentManifest = parseManifest(currentFile.text);
+        if (currentManifest.updatedAt > book.updatedAt) {
+            const remote = await pullRemoteBook(connection, book.id);
+            if (remote) {
+                throw new RemoteNewerError(remote.book, remote.revision);
+            }
+        }
+    } else {
+        // Migration path: do not overwrite a newer legacy single-file book.
+        const legacyFile = await adapter.readFile(remoteBookPath(book.id));
+        if (legacyFile) {
+            const legacy = parseRemoteBookFile(legacyFile.text);
+            if (legacy.book.updatedAt > book.updatedAt) {
+                throw new RemoteNewerError(legacy.book, legacyFile.revision);
+            }
         }
     }
 
-    if (current) {
-        const remote = parseRemoteBookFile(current.text);
-        if (remote.book.updatedAt > book.updatedAt) {
-            throw new RemoteNewerError(remote.book, current.revision);
+    const payload = await buildRemotePayload(book);
+    const files: Array<{ path: string; text: string | null }> = [];
+
+    if (!currentManifest || currentManifest.metaHash !== payload.metaHash) {
+        files.push({ path: metaPath, text: payload.metaText });
+    }
+
+    const changedEntries = changedChunks(
+        currentManifest?.chunks.entries,
+        payload.manifest.chunks.entries,
+    );
+    const changedBills = changedChunks(
+        currentManifest?.chunks.bills,
+        payload.manifest.chunks.bills,
+    );
+    for (const chunk of [...payload.entries, ...payload.bills]) {
+        if (
+            changedEntries.some((ref) => ref.path === chunk.path) ||
+            changedBills.some((ref) => ref.path === chunk.path)
+        ) {
+            files.push({ path: chunk.path, text: chunk.text });
         }
     }
 
-    try {
-        const result = await adapter.writeFile(
-            path,
-            serializeRemoteBook(book),
-            current?.revision,
+    // Batch-capable adapters can also remove chunks that no longer exist.
+    if (currentManifest && adapter.writeFiles) {
+        const nextPaths = new Set(
+            [
+                ...payload.manifest.chunks.entries,
+                ...payload.manifest.chunks.bills,
+            ].map((chunk) => chunk.path),
         );
+        for (const ref of [
+            ...currentManifest.chunks.entries,
+            ...currentManifest.chunks.bills,
+        ]) {
+            if (!nextPaths.has(ref.path)) {
+                files.push({ path: ref.path, text: null });
+            }
+        }
+    }
+
+    files.push({
+        path: manifestPath,
+        text: JSON.stringify(payload.manifest, null, 2),
+    });
+
+    try {
+        if (adapter.writeFiles) {
+            await adapter.writeFiles(files, `liangqi: sync ${book.name}`);
+        } else {
+            for (const file of files) {
+                if (file.text !== null) {
+                    await adapter.writeFile(file.path, file.text);
+                }
+            }
+        }
         await updateIndex(adapter, book);
-        return { revision: result.revision };
     } catch (error) {
         if (error instanceof RemoteConflictError) {
-            const latest = await adapter.readFile(path);
-            if (latest) {
-                const remote = parseRemoteBookFile(latest.text);
-                throw new RemoteNewerError(remote.book, latest.revision);
+            const remote = await pullRemoteBook(connection, book.id);
+            if (remote) {
+                throw new RemoteNewerError(remote.book, remote.revision);
             }
         }
         throw error;
     }
+
+    const writtenManifest = await adapter.readFile(manifestPath);
+    return {
+        revision: writtenManifest?.revision,
+        manifest: payload.manifest,
+    };
 }

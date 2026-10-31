@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { Book, Connection, RemoteBinding } from "@/types";
+import type { Book, Connection, RemoteBinding, RemoteBookManifest } from "@/types";
 import {
     getConnectionById,
     useLibraryStore,
@@ -24,6 +24,7 @@ export interface SyncResult {
     book?: Book;
     message: string;
     revision?: string;
+    manifest?: RemoteBookManifest;
 }
 
 function comparable(book: Book): string {
@@ -37,6 +38,7 @@ function withBinding(
     revision: string | undefined,
     lastSyncedAt: number,
     autoSync = true,
+    manifest?: RemoteBookManifest,
 ): Book {
     const binding: RemoteBinding = {
         connectionId: connection.id,
@@ -44,6 +46,7 @@ function withBinding(
         revision,
         lastSyncedAt,
         autoSync,
+        manifest,
     };
     return { ...book, remote: binding };
 }
@@ -94,6 +97,7 @@ export async function reconcileBook(
             book: remote.book,
             message: "已拉取远程更新",
             revision: remote.revision,
+            manifest: remote.manifest,
         };
     }
 
@@ -110,6 +114,7 @@ export async function reconcileBook(
             book: remote.book,
             message: "本地和远程都有修改，按远程优先处理，并保留本地冲突备份",
             revision: remote.revision,
+            manifest: remote.manifest,
         };
     }
 
@@ -118,6 +123,7 @@ export async function reconcileBook(
         book: remote.book,
         message: "已是最新",
         revision: remote.revision,
+        manifest: remote.manifest,
     };
 }
 
@@ -149,6 +155,7 @@ export async function syncBookNow(bookId?: string): Promise<SyncResult> {
                 pushed.revision,
                 book.updatedAt,
                 latest.remote?.autoSync ?? book.remote.autoSync,
+                pushed.manifest,
             );
             useLibraryStore.getState().upsertBook(syncedBook);
             if (useLibraryStore.getState().activeBookId === book.id) {
@@ -158,6 +165,7 @@ export async function syncBookNow(bookId?: string): Promise<SyncResult> {
                 action: "push",
                 book: syncedBook,
                 revision: pushed.revision,
+                manifest: pushed.manifest,
                 message: "已上传到远程",
             };
         } catch (error) {
@@ -203,6 +211,7 @@ export async function syncBookNow(bookId?: string): Promise<SyncResult> {
             result.revision,
             remoteBook.updatedAt,
             latest.remote?.autoSync ?? book.remote.autoSync,
+            result.manifest,
         );
         useLibraryStore.getState().upsertBook(syncedBook);
         if (useLibraryStore.getState().activeBookId === book.id) {
@@ -223,6 +232,7 @@ export async function syncBookNow(bookId?: string): Promise<SyncResult> {
             result.revision,
             result.book.updatedAt,
             latest.remote?.autoSync ?? book.remote.autoSync,
+            result.manifest,
         );
         useLibraryStore.getState().upsertBook(syncedBook);
         if (useLibraryStore.getState().activeBookId === book.id) {
@@ -254,6 +264,7 @@ export async function openRemoteBook(
         remote.revision,
         remote.book.updatedAt,
         true,
+        remote.manifest,
     );
     library.upsertBook(localBook);
     activateBook(localBook.id);
@@ -279,6 +290,7 @@ export async function uploadCurrentBook(
             pushed.revision,
             book.updatedAt,
             true,
+            pushed.manifest,
         );
         useLibraryStore.getState().upsertBook(bound);
         useLedgerStore.setState({ remote: bound.remote });
@@ -286,6 +298,7 @@ export async function uploadCurrentBook(
             action: "push",
             book: bound,
             revision: pushed.revision,
+            manifest: pushed.manifest,
             message: "当前账本已上传，并绑定到这个仓库",
         };
     } catch (error) {

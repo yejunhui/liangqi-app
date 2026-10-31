@@ -96,6 +96,155 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
         }
     }
 
+    let resolvedBranch: string | undefined = config.branch;
+
+    async function resolveBranch(): Promise<string> {
+        if (resolvedBranch) {
+            return resolvedBranch;
+        }
+        const response = await request(repoUrl());
+        if (!response.ok) {
+            throw new RemoteError(`读取 ${label} 默认分支失败`, response.status);
+        }
+        const data = (await response.json()) as Record<string, unknown>;
+        if (typeof data.default_branch !== "string") {
+            throw new RemoteError(`${label} 没有返回默认分支`);
+        }
+        resolvedBranch = data.default_branch;
+        return resolvedBranch;
+    }
+
+    function gitUrl(path: string): string {
+        return `${base}/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(
+            config.repo,
+        )}/git/${path}`;
+    }
+
+    function refPath(branch: string): string {
+        return branch
+            .split("/")
+            .map((segment) => encodeURIComponent(segment))
+            .join("/");
+    }
+
+    async function writeFilesGitHub(
+        files: Array<{ path: string; text: string | null }>,
+        message: string,
+    ): Promise<void> {
+        if (files.length === 0) {
+            return;
+        }
+        const branch = await resolveBranch();
+        const branchRef = refPath(branch);
+
+        const refResponse = await request(gitUrl(`ref/heads/${branchRef}`));
+        if (refResponse.status === 404) {
+            throw new RemoteError(`${label} 分支 ${branch} 不存在`, 404);
+        }
+        if (!refResponse.ok) {
+            throw new RemoteError(`读取 ${label} 分支失败`, refResponse.status);
+        }
+        const refData = (await refResponse.json()) as Record<string, unknown>;
+        const refObject = refData.object as Record<string, unknown> | undefined;
+        const commitSha =
+            typeof refObject?.sha === "string" ? refObject.sha : undefined;
+        if (!commitSha) {
+            throw new RemoteError("无法读取远程 commit");
+        }
+
+        const commitResponse = await request(gitUrl(`commits/${commitSha}`));
+        if (!commitResponse.ok) {
+            throw new RemoteError("读取远程 commit 失败", commitResponse.status);
+        }
+        const commitData = (await commitResponse.json()) as Record<string, unknown>;
+        const tree = commitData.tree as Record<string, unknown> | undefined;
+        const baseTreeSha = typeof tree?.sha === "string" ? tree.sha : undefined;
+        if (!baseTreeSha) {
+            throw new RemoteError("无法读取远程 tree");
+        }
+
+        const treeEntries = await Promise.all(
+            files.map(async (file) => {
+                if (file.text === null) {
+                    return {
+                        path: file.path,
+                        mode: "100644",
+                        type: "blob",
+                        sha: null,
+                    };
+                }
+                const blobResponse = await request(gitUrl("blobs"), {
+                    method: "POST",
+                    body: JSON.stringify({
+                        content: encodeBase64Utf8(file.text),
+                        encoding: "base64",
+                    }),
+                });
+                if (!blobResponse.ok) {
+                    throw new RemoteError("创建远程 blob 失败", blobResponse.status);
+                }
+                const blob = (await blobResponse.json()) as Record<string, unknown>;
+                if (typeof blob.sha !== "string") {
+                    throw new RemoteError("远程 blob 没有返回 sha");
+                }
+                return {
+                    path: file.path,
+                    mode: "100644",
+                    type: "blob",
+                    sha: blob.sha,
+                };
+            }),
+        );
+
+        const treeResponse = await request(gitUrl("trees"), {
+            method: "POST",
+            body: JSON.stringify({
+                base_tree: baseTreeSha,
+                tree: treeEntries,
+            }),
+        });
+        if (!treeResponse.ok) {
+            throw new RemoteError("创建远程 tree 失败", treeResponse.status);
+        }
+        const newTree = (await treeResponse.json()) as Record<string, unknown>;
+        if (typeof newTree.sha !== "string") {
+            throw new RemoteError("远程 tree 没有返回 sha");
+        }
+
+        const newCommitResponse = await request(gitUrl("commits"), {
+            method: "POST",
+            body: JSON.stringify({
+                message,
+                tree: newTree.sha,
+                parents: [commitSha],
+            }),
+        });
+        if (!newCommitResponse.ok) {
+            throw new RemoteError("创建远程 commit 失败", newCommitResponse.status);
+        }
+        const newCommit = (await newCommitResponse.json()) as Record<string, unknown>;
+        if (typeof newCommit.sha !== "string") {
+            throw new RemoteError("远程 commit 没有返回 sha");
+        }
+
+        const updateResponse = await request(
+            gitUrl(`refs/heads/${branchRef}`),
+            {
+                method: "PATCH",
+                body: JSON.stringify({
+                    sha: newCommit.sha,
+                    force: false,
+                }),
+            },
+        );
+        if (updateResponse.status === 409 || updateResponse.status === 422) {
+            throw new RemoteConflictError();
+        }
+        if (!updateResponse.ok) {
+            throw new RemoteError("更新远程分支失败", updateResponse.status);
+        }
+    }
+
     return {
         provider: config.provider,
 
@@ -212,5 +361,7 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
         async ensureDirectory() {
             // Git contents APIs create parent paths automatically.
         },
+
+        ...(config.provider === "github" ? { writeFiles: writeFilesGitHub } : {}),
     };
 }

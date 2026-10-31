@@ -442,7 +442,7 @@ export function Settings() {
                     <div className="mt-4 grid gap-3 text-[11px] leading-relaxed text-muted sm:grid-cols-2">
                         <div className="rounded-xl border border-line bg-surface-2/55 p-3.5">
                             <p className="font-semibold text-text">版本</p>
-                            <p className="mt-1">0.3.0 · 书库格式 v2</p>
+                            <p className="mt-1">0.4.0 · 书库格式 v2</p>
                         </div>
                         <div className="rounded-xl border border-line bg-surface-2/55 p-3.5">
                             <p className="font-semibold text-text">许可证</p>

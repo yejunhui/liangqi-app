@@ -37,6 +37,7 @@ respective authors.
 | `react`, `react-dom` | Meta Platforms, Inc. and affiliates |
 | `react-router-dom` | Remix Software, Inc. |
 | `zustand` | Paul Henschel |
+| `idb-keyval` | Jake Archibald |
 | `clsx` | Luke Edwards |
 | `vite`, `@vitejs/plugin-react` | VoidZero Inc. / Vite contributors |
 | `tailwindcss`, `@tailwindcss/vite` | Tailwind Labs, Inc. |

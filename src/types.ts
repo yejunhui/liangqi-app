@@ -125,6 +125,8 @@ export interface RemoteBinding {
     revision?: string;
     lastSyncedAt?: number;
     autoSync: boolean;
+    /** Cache of the remote chunk manifest, used for incremental uploads. */
+    manifest?: RemoteBookManifest;
 }
 
 export interface Book extends LedgerData {
@@ -148,6 +150,35 @@ export interface RemoteBookSummary {
     updatedAt: number;
     currency: string;
     entryCount: number;
+}
+
+export interface RemoteChunkRef {
+    path: string;
+    start: number;
+    count: number;
+    hash: string;
+}
+
+export interface RemoteBookManifest {
+    app: "liangqi";
+    version: 2;
+    bookId: string;
+    name: string;
+    updatedAt: number;
+    currency: string;
+    entryCount: number;
+    billCount: number;
+    metaHash: string;
+    chunks: {
+        entries: RemoteChunkRef[];
+        bills: RemoteChunkRef[];
+    };
+}
+
+export interface RemoteBookMetaFile {
+    app: "liangqi";
+    version: 2;
+    book: Omit<Book, "entries" | "bills" | "remote">;
 }
 
 export interface RemoteIndex {

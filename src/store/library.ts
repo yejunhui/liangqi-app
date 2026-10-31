@@ -3,6 +3,7 @@
  */
 
 import { create } from "zustand";
+import { get, set } from "idb-keyval";
 import type {
     Book,
     Connection,
@@ -14,6 +15,7 @@ import { createDefaultMember } from "@/domain/members";
 import { newId } from "@/utils/id";
 
 export const LIBRARY_STORAGE_KEY = "liangqi-library-v2";
+const LIBRARY_IDB_KEY = "liangqi-library-v2";
 const LEGACY_LEDGER_KEYS = ["liangqi-ledger-v1", "zhaibu-ledger-v1"] as const;
 
 type PersistedLedger = {
@@ -158,22 +160,59 @@ function createInitialLibrary(): LibraryData {
 
     const migrated = migrateLegacyLedger();
     if (migrated) {
-        saveLibrary(migrated);
         return migrated;
     }
 
     const book = createSeedBook();
-    const library: LibraryData = {
+    return {
         version: 2,
         books: [book],
         activeBookId: book.id,
         connections: [],
     };
-    saveLibrary(library);
-    return library;
+}
+
+async function loadLibraryFromIdb(): Promise<LibraryData | null> {
+    try {
+        const raw = await get(LIBRARY_IDB_KEY);
+        return normalizeLibrary(raw);
+    } catch {
+        return null;
+    }
+}
+
+let idbWriteQueue: Promise<void> = Promise.resolve();
+
+async function saveLibraryToIdb(library: LibraryData): Promise<void> {
+    idbWriteQueue = idbWriteQueue
+        .catch(() => undefined)
+        .then(async () => {
+            try {
+                await set(LIBRARY_IDB_KEY, library);
+            } catch {
+                // Fallback to localStorage.
+            }
+        });
+    return idbWriteQueue;
+}
+
+/**
+ * IndexedDB is the primary local store. localStorage is kept as a synchronous
+ * fallback for older browsers and for the initial module state.
+ */
+export async function bootstrapLibrary(): Promise<LibraryData> {
+    const fromIdb = await loadLibraryFromIdb();
+    if (fromIdb) {
+        return fromIdb;
+    }
+    const initial = createInitialLibrary();
+    saveLibrary(initial);
+    await saveLibraryToIdb(initial);
+    return initial;
 }
 
 export function saveLibrary(library: LibraryData): boolean {
+    void saveLibraryToIdb(library);
     if (typeof window === "undefined") {
         return false;
     }

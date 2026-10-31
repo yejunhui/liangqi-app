@@ -22,5 +22,10 @@ export interface RemoteAdapter {
         text: string,
         revision?: string,
     ): Promise<{ revision?: string }>;
+    /** Optional batch write. GitHub implements this with the Git Data API. */
+    writeFiles?(
+        files: Array<{ path: string; text: string | null }>,
+        message: string,
+    ): Promise<void>;
     ensureDirectory(path: string): Promise<void>;
 }
