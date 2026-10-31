@@ -6,53 +6,119 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
     ArrowUpRight,
+    Bookmark,
     ChartNoAxesColumn,
     ChevronLeft,
     ChevronRight,
     ExternalLink,
     MapPin,
     ReceiptText,
+    SlidersHorizontal,
     Tags,
+    Trash2,
     Users,
+    X,
 } from "lucide-react";
 import type { Entry } from "@/types";
 import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/button";
+import { Modal } from "@/components/modal";
 import { EntryDetailModal } from "@/components/entry-detail-modal";
 import { CategoryBars } from "@/components/category-bars";
 import {
     getCategoryBreakdown,
     getMonthTotals,
 } from "@/domain/ledger";
+import { filterEntries, type EntryFilter } from "@/domain/filters";
 import { formatCents, formatPercent } from "@/domain/money";
 import {
+    endOfMonth,
     formatMonthLabel,
     isInMonth,
     isSameMonth,
     startOfMonth,
 } from "@/utils/date";
 import { useCurrency, useLedgerStore } from "@/store/ledger";
+import {
+    useAnalysisViewStore,
+    type AnalysisView,
+} from "@/store/analysis-views";
 import { cn } from "@/utils/cn";
 
 export function Analytics() {
+    const bookId = useLedgerStore((state) => state.id);
     const entries = useLedgerStore((state) => state.entries);
     const categories = useLedgerStore((state) => state.categories);
     const tags = useLedgerStore((state) => state.tags);
     const members = useLedgerStore((state) => state.members);
+    const accounts = useLedgerStore((state) => state.accounts);
     const currency = useCurrency();
     const [month, setMonth] = useState(() => startOfMonth(Date.now()));
     const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
     const [activeLocationKey, setActiveLocationKey] = useState("");
     const [now] = useState(() => Date.now());
+    const [filterOpen, setFilterOpen] = useState(false);
+    const [filter, setFilter] = useState({
+        categoryId: "",
+        memberId: "",
+        accountId: "",
+        tagId: "",
+        keyword: "",
+    });
+    const [selectedViewId, setSelectedViewId] = useState("");
+    const [saveOpen, setSaveOpen] = useState(false);
+    const [viewName, setViewName] = useState("");
+    const views = useAnalysisViewStore((state) => state.byBook[bookId] ?? []);
+    const addView = useAnalysisViewStore((state) => state.addView);
+    const deleteView = useAnalysisViewStore((state) => state.deleteView);
 
-    const totals = useMemo(() => getMonthTotals(entries, month), [entries, month]);
+    const baseFilter = useMemo<EntryFilter>(
+        () => ({
+            categoryId: filter.categoryId || undefined,
+            memberId: filter.memberId || undefined,
+            accountId: filter.accountId || undefined,
+            tagId: filter.tagId || undefined,
+            keyword: filter.keyword.trim() || undefined,
+        }),
+        [filter],
+    );
+    const activeFilterCount = Object.values(filter).filter(
+        (value) => value.trim() !== "",
+    ).length;
+    const filteredMonthEntries = useMemo(
+        () =>
+            filterEntries(
+                entries,
+                { ...baseFilter, start: month, end: endOfMonth(month) },
+                categories,
+            ),
+        [entries, baseFilter, month, categories],
+    );
+
+    const totals = useMemo(
+        () => getMonthTotals(filteredMonthEntries, month),
+        [filteredMonthEntries, month],
+    );
     const previousMonth = useMemo(() => {
         const date = new Date(month);
         date.setMonth(date.getMonth() - 1);
         return startOfMonth(date.getTime());
     }, [month]);
     const previousTotals = useMemo(
-        () => getMonthTotals(entries, previousMonth),
-        [entries, previousMonth],
+        () =>
+            getMonthTotals(
+                filterEntries(
+                    entries,
+                    {
+                        ...baseFilter,
+                        start: previousMonth,
+                        end: endOfMonth(previousMonth),
+                    },
+                    categories,
+                ),
+                previousMonth,
+            ),
+        [entries, baseFilter, previousMonth, categories],
     );
     const canGoNext = !isSameMonth(month, now);
 
@@ -61,7 +127,11 @@ export function Analytics() {
             string,
             { name: string; emoji: string; color: string; amount: number }
         >();
-        for (const item of getCategoryBreakdown(entries, categories, month)) {
+        for (const item of getCategoryBreakdown(
+            filteredMonthEntries,
+            categories,
+            month,
+        )) {
             const category = categories.find((entry) => entry.id === item.categoryId);
             const root = category?.parent
                 ? categories.find((entry) => entry.id === category.parent)
@@ -84,7 +154,7 @@ export function Analytics() {
         return list
             .map((item) => ({ ...item, share: total > 0 ? item.amount / total : 0 }))
             .sort((a, b) => b.amount - a.amount);
-    }, [entries, categories, month]);
+    }, [filteredMonthEntries, categories, month]);
     const categoryItems = categoryRollup.map((item) => ({
         categoryId: item.categoryId,
         name: item.name,
@@ -96,7 +166,7 @@ export function Analytics() {
 
     const tagBreakdown = useMemo(() => {
         const map = new Map<string, number>();
-        for (const entry of entries) {
+        for (const entry of filteredMonthEntries) {
             if (entry.kind !== "expense" || !isInMonth(entry.date, month)) {
                 continue;
             }
@@ -118,11 +188,11 @@ export function Analytics() {
             })
             .sort((a, b) => b.amount - a.amount)
             .slice(0, 8);
-    }, [entries, tags, month]);
+    }, [filteredMonthEntries, tags, month]);
 
     const memberBreakdown = useMemo(() => {
         const map = new Map<string, number>();
-        for (const entry of entries) {
+        for (const entry of filteredMonthEntries) {
             if (entry.kind !== "expense" || !isInMonth(entry.date, month)) {
                 continue;
             }
@@ -142,7 +212,7 @@ export function Analytics() {
                 };
             })
             .sort((a, b) => b.amount - a.amount);
-    }, [entries, members, month]);
+    }, [filteredMonthEntries, members, month]);
 
     const trend = useMemo(() => {
         return Array.from({ length: 6 }, (_, index) => {
@@ -150,23 +220,30 @@ export function Analytics() {
             const date = new Date(month);
             date.setMonth(date.getMonth() - offset);
             const start = startOfMonth(date.getTime());
+            const monthly = filterEntries(
+                entries,
+                {
+                    ...baseFilter,
+                    start,
+                    end: endOfMonth(start),
+                },
+                categories,
+            );
             return {
                 start,
-                ...getMonthTotals(entries, start),
+                ...getMonthTotals(monthly, start),
             };
         });
-    }, [entries, month]);
+    }, [entries, baseFilter, categories, month]);
     const trendMax = Math.max(1, ...trend.flatMap((item) => [item.expense, item.income]));
 
     const topExpenses = useMemo(
         () =>
-            entries
-                .filter(
-                    (entry) => entry.kind === "expense" && isInMonth(entry.date, month),
-                )
+            filteredMonthEntries
+                .filter((entry) => entry.kind === "expense")
                 .sort((a, b) => b.amount - a.amount)
                 .slice(0, 8),
-        [entries, month],
+        [filteredMonthEntries],
     );
 
     const locations = useMemo(() => {
@@ -213,6 +290,38 @@ export function Analytics() {
         });
     }
 
+    function applyView(view: AnalysisView | undefined) {
+        setSelectedViewId(view?.id ?? "");
+        setFilter({
+            categoryId: view?.filter.categoryId ?? "",
+            memberId: view?.filter.memberId ?? "",
+            accountId: view?.filter.accountId ?? "",
+            tagId: view?.filter.tagId ?? "",
+            keyword: view?.filter.keyword ?? "",
+        });
+    }
+
+    function clearFilters() {
+        setSelectedViewId("");
+        setFilter({
+            categoryId: "",
+            memberId: "",
+            accountId: "",
+            tagId: "",
+            keyword: "",
+        });
+    }
+
+    function saveView() {
+        if (!viewName.trim()) {
+            return;
+        }
+        const id = addView(bookId, viewName, baseFilter);
+        setSelectedViewId(id);
+        setViewName("");
+        setSaveOpen(false);
+    }
+
     const expenseChange =
         previousTotals.expense > 0
             ? (totals.expense - previousTotals.expense) / previousTotals.expense
@@ -250,6 +359,215 @@ export function Analytics() {
                     </div>
                 }
             />
+
+            <section className="card mb-4 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                        <span className="grid size-8 place-items-center rounded-lg bg-surface-2 text-muted">
+                            <SlidersHorizontal className="size-4" />
+                        </span>
+                        <div>
+                            <h2 className="text-sm font-bold text-text">自定义分析</h2>
+                            <p className="text-[10px] text-muted">
+                                组合分类、标签、账户、成员和关键词，保存成自己的分析视图
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <select
+                            className="field w-auto min-w-[8rem] py-1.5 text-[11px]"
+                            value={selectedViewId}
+                            onChange={(event) => {
+                                const view = views.find(
+                                    (item) => item.id === event.target.value,
+                                );
+                                applyView(view);
+                            }}
+                        >
+                            <option value="">未保存视图</option>
+                            {views.map((view) => (
+                                <option key={view.id} value={view.id}>
+                                    {view.name}
+                                </option>
+                            ))}
+                        </select>
+                        {selectedViewId && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    deleteView(bookId, selectedViewId);
+                                    setSelectedViewId("");
+                                }}
+                                className="grid size-8 place-items-center rounded-lg border border-line text-muted transition hover:border-danger/30 hover:bg-danger-soft hover:text-danger"
+                                aria-label="删除分析视图"
+                            >
+                                <Trash2 className="size-3.5" />
+                            </button>
+                        )}
+                        <Button
+                            size="sm"
+                            variant={filterOpen || activeFilterCount > 0 ? "primary" : "secondary"}
+                            onClick={() => setFilterOpen((current) => !current)}
+                        >
+                            <SlidersHorizontal className="size-3.5" />
+                            筛选
+                            {activeFilterCount > 0 && (
+                                <span className="rounded-full bg-surface/25 px-1.5 text-[10px]">
+                                    {activeFilterCount}
+                                </span>
+                            )}
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setSaveOpen(true)}
+                            disabled={activeFilterCount === 0}
+                        >
+                            <Bookmark className="size-3.5" />
+                            保存视图
+                        </Button>
+                    </div>
+                </div>
+
+                {filterOpen && (
+                    <div className="mt-4 border-t border-line pt-4">
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                            <label className="block">
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
+                                    分类
+                                </span>
+                                <select
+                                    className="field py-2 text-xs"
+                                    value={filter.categoryId}
+                                    onChange={(event) => {
+                                        setSelectedViewId("");
+                                        setFilter((current) => ({
+                                            ...current,
+                                            categoryId: event.target.value,
+                                        }));
+                                    }}
+                                >
+                                    <option value="">全部分类</option>
+                                    {categories.map((category) => {
+                                        const parent = category.parent
+                                            ? categories.find(
+                                                  (item) => item.id === category.parent,
+                                              )
+                                            : undefined;
+                                        return (
+                                            <option key={category.id} value={category.id}>
+                                                {category.emoji}{" "}
+                                                {parent ? `${parent.name} / ` : ""}
+                                                {category.name}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
+                            </label>
+                            <label className="block">
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
+                                    标签
+                                </span>
+                                <select
+                                    className="field py-2 text-xs"
+                                    value={filter.tagId}
+                                    onChange={(event) => {
+                                        setSelectedViewId("");
+                                        setFilter((current) => ({
+                                            ...current,
+                                            tagId: event.target.value,
+                                        }));
+                                    }}
+                                >
+                                    <option value="">全部标签</option>
+                                    {tags.map((tag) => (
+                                        <option key={tag.id} value={tag.id}>
+                                            {tag.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="block">
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
+                                    成员
+                                </span>
+                                <select
+                                    className="field py-2 text-xs"
+                                    value={filter.memberId}
+                                    onChange={(event) => {
+                                        setSelectedViewId("");
+                                        setFilter((current) => ({
+                                            ...current,
+                                            memberId: event.target.value,
+                                        }));
+                                    }}
+                                >
+                                    <option value="">全部成员</option>
+                                    {members.map((member) => (
+                                        <option key={member.id} value={member.id}>
+                                            {member.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="block">
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
+                                    账户
+                                </span>
+                                <select
+                                    className="field py-2 text-xs"
+                                    value={filter.accountId}
+                                    onChange={(event) => {
+                                        setSelectedViewId("");
+                                        setFilter((current) => ({
+                                            ...current,
+                                            accountId: event.target.value,
+                                        }));
+                                    }}
+                                >
+                                    <option value="">全部账户</option>
+                                    {accounts.map((account) => (
+                                        <option key={account.id} value={account.id}>
+                                            {account.emoji} {account.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="block">
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
+                                    关键词
+                                </span>
+                                <input
+                                    className="field py-2 text-xs"
+                                    value={filter.keyword}
+                                    onChange={(event) => {
+                                        setSelectedViewId("");
+                                        setFilter((current) => ({
+                                            ...current,
+                                            keyword: event.target.value,
+                                        }));
+                                    }}
+                                    placeholder="备注、分类、记账人"
+                                />
+                            </label>
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-[10px] text-muted">
+                                分析视图保存在本机，按账本区分；上方月份仍然是时间维度。
+                            </p>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={clearFilters}
+                                disabled={activeFilterCount === 0}
+                            >
+                                <X className="size-3.5" />
+                                清空筛选
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </section>
 
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <Metric
@@ -525,6 +843,51 @@ export function Analytics() {
                 <ChartNoAxesColumn className="size-3" />
                 统计只包含支出和收入，转账和还款不会重复计入
             </p>
+
+            <Modal
+                open={saveOpen}
+                onClose={() => setSaveOpen(false)}
+                title="保存分析视图"
+                description="保存当前的分类、标签、账户、成员和关键词组合；时间维度继续使用上方月份。"
+                size="sm"
+                footer={
+                    <div className="flex gap-2">
+                        <Button
+                            variant="secondary"
+                            className="flex-1"
+                            onClick={() => setSaveOpen(false)}
+                        >
+                            取消
+                        </Button>
+                        <Button
+                            className="flex-1"
+                            onClick={saveView}
+                            disabled={!viewName.trim()}
+                        >
+                            保存
+                        </Button>
+                    </div>
+                }
+            >
+                <label className="block">
+                    <span className="mb-1.5 block text-xs font-semibold text-muted">
+                        视图名称
+                    </span>
+                    <input
+                        className="field"
+                        value={viewName}
+                        onChange={(event) => setViewName(event.target.value)}
+                        placeholder="例如：家庭餐饮、旅行支出、某成员账单"
+                        autoFocus
+                        onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                                event.preventDefault();
+                                saveView();
+                            }
+                        }}
+                    />
+                </label>
+            </Modal>
 
             <EntryDetailModal
                 entry={selectedEntry}

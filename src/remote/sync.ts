@@ -27,6 +27,7 @@ import {
 } from "@/domain/merge";
 import { RemoteError } from "@/remote/errors";
 import { getMemberForBook, useMemberSessionStore } from "@/store/member-session";
+import { uploadPendingAttachments } from "@/remote/attachments";
 
 export type SyncAction = "push" | "pull" | "conflict" | "noop" | "local-only";
 
@@ -135,11 +136,16 @@ async function pushWithRetry(
     let merged = false;
     let lastError: unknown;
     for (let attempt = 0; attempt < 3; attempt += 1) {
+        const withAttachments = await uploadPendingAttachments(
+            connection,
+            candidate.attachments,
+        );
+        const prepared = { ...candidate, attachments: withAttachments };
         const toPush = {
-            ...candidate,
+            ...prepared,
             updatedAt: Math.max(
                 Date.now(),
-                candidate.updatedAt,
+                prepared.updatedAt,
                 remoteCopy?.updatedAt ?? 0,
             ),
         };

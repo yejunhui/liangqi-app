@@ -17,6 +17,10 @@ export interface Member {
     name: string;
     color: string;
     createdAt: number;
+    /** Optional PBKDF2 hash for the member's login PIN. */
+    pinHash?: string;
+    pinSalt?: string;
+    pinIterations?: number;
 }
 
 export interface Actor {
@@ -127,6 +131,8 @@ export interface Attachment {
     createdAt: number;
     ownerId?: string;
     ownerName?: string;
+    /** Set after the file itself has been uploaded to the remote repository. */
+    remoteUploadedAt?: number;
 }
 
 export interface EntryLocation {
@@ -214,6 +220,8 @@ export interface LedgerData {
     attachments: Attachment[];
     deletedEntries: Tombstone[];
     deletedBills: Tombstone[];
+    /** Tombstones for shared configuration (accounts, categories, tags, members, budgets, etc.). */
+    deletedConfig: Tombstone[];
     bills: Bill[];
     entries: Entry[];
     settings: Settings;

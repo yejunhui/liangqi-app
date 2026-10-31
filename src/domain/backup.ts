@@ -190,6 +190,13 @@ function parseAttachment(raw: unknown, index: number): Attachment {
     if (!isObject(raw)) {
         throw new Error(`第 ${index + 1} 个附件格式不正确`);
     }
+    if (
+        !optionalString(raw.ownerId) ||
+        !optionalString(raw.ownerName) ||
+        !optionalNumber(raw.remoteUploadedAt)
+    ) {
+        throw new Error(`第 ${index + 1} 个附件字段格式不正确`);
+    }
     return {
         id: requiredString(raw.id, "附件 id"),
         name: requiredString(raw.name, "附件名称"),
@@ -198,6 +205,7 @@ function parseAttachment(raw: unknown, index: number): Attachment {
         createdAt: requiredTimestamp(raw.createdAt, "附件创建时间"),
         ownerId: raw.ownerId as string | undefined,
         ownerName: raw.ownerName as string | undefined,
+        remoteUploadedAt: raw.remoteUploadedAt as number | undefined,
     };
 }
 
@@ -327,11 +335,33 @@ function parseMember(raw: unknown, index: number): Member {
     if (!isObject(raw)) {
         throw new Error(`第 ${index + 1} 个成员格式不正确`);
     }
+    if (
+        !optionalString(raw.pinHash) ||
+        !optionalString(raw.pinSalt) ||
+        !optionalNumber(raw.pinIterations)
+    ) {
+        throw new Error(`第 ${index + 1} 个成员 PIN 格式不正确`);
+    }
+    if (
+        (raw.pinHash === undefined) !== (raw.pinSalt === undefined) ||
+        (raw.pinHash === undefined) !== (raw.pinIterations === undefined)
+    ) {
+        throw new Error(`第 ${index + 1} 个成员 PIN 不完整`);
+    }
+    if (
+        raw.pinIterations !== undefined &&
+        (!isFiniteNumber(raw.pinIterations) || raw.pinIterations <= 0)
+    ) {
+        throw new Error(`第 ${index + 1} 个成员 PIN 迭代次数不正确`);
+    }
     return {
         id: requiredString(raw.id, "成员 id"),
         name: requiredString(raw.name, "成员名称"),
         color: requiredString(raw.color, "成员颜色"),
         createdAt: requiredTimestamp(raw.createdAt, "成员创建时间"),
+        pinHash: raw.pinHash as string | undefined,
+        pinSalt: raw.pinSalt as string | undefined,
+        pinIterations: raw.pinIterations as number | undefined,
     };
 }
 
@@ -783,6 +813,11 @@ export function parseBackup(raw: unknown): { ok: true; data: LedgerData } | { ok
         const deletedBills = Array.isArray(raw.deletedBills)
             ? raw.deletedBills.map((item, index) => parseTombstone(item, index, "账单"))
             : [];
+        const deletedConfig = Array.isArray(raw.deletedConfig)
+            ? raw.deletedConfig.map((item, index) =>
+                  parseTombstone(item, index, "共享配置"),
+              )
+            : [];
         const bills = raw.bills.map(parseBill);
         const entries = raw.entries.map(parseEntry);
         const settings = parseSettings(raw.settings);
@@ -817,6 +852,7 @@ export function parseBackup(raw: unknown): { ok: true; data: LedgerData } | { ok
             attachments,
             deletedEntries,
             deletedBills,
+            deletedConfig,
             bills,
             entries,
             settings,

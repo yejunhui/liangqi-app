@@ -42,6 +42,7 @@ export function ensureMembers<T extends LedgerData>(data: T, now = Date.now()): 
         attachments: Array.isArray(data.attachments) ? data.attachments : [],
         deletedEntries: Array.isArray(data.deletedEntries) ? data.deletedEntries : [],
         deletedBills: Array.isArray(data.deletedBills) ? data.deletedBills : [],
+        deletedConfig: Array.isArray(data.deletedConfig) ? data.deletedConfig : [],
     };
 }
 

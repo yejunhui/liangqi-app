@@ -41,8 +41,14 @@ export function isImageAttachment(attachment: Attachment): boolean {
     return attachment.mimeType.startsWith("image/");
 }
 
-export async function openAttachmentFile(attachment: Attachment): Promise<boolean> {
-    const blob = await loadAttachmentFile(attachment.id);
+export async function openAttachmentFile(
+    attachment: Attachment,
+    loadRemote?: () => Promise<Blob | undefined>,
+): Promise<boolean> {
+    let blob = await loadAttachmentFile(attachment.id);
+    if (!blob && loadRemote) {
+        blob = await loadRemote();
+    }
     if (!blob) {
         return false;
     }

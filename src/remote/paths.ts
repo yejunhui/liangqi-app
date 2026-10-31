@@ -57,3 +57,7 @@ export function remoteChunkPath(
 export function remoteBackupPath(bookId: string, timestamp: number): string {
     return `${REMOTE_BACKUPS_DIR}/${bookId}-${timestamp}.json`;
 }
+
+export function remoteAttachmentPath(attachmentId: string): string {
+    return `${REMOTE_ROOT}/attachments/${attachmentId}.json`;
+}

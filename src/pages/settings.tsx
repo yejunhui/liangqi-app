@@ -72,6 +72,7 @@ export function Settings() {
     const attachments = useLedgerStore((state) => state.attachments);
     const deletedEntries = useLedgerStore((state) => state.deletedEntries);
     const deletedBills = useLedgerStore((state) => state.deletedBills);
+    const deletedConfig = useLedgerStore((state) => state.deletedConfig);
     const bills = useLedgerStore((state) => state.bills);
     const entries = useLedgerStore((state) => state.entries);
     const settings = useLedgerStore((state) => state.settings);
@@ -109,6 +110,7 @@ export function Settings() {
             attachments,
             deletedEntries,
             deletedBills,
+            deletedConfig,
             bills,
             entries,
             settings,

@@ -84,6 +84,25 @@ describe("multi-user merge", () => {
         ]);
     });
 
+    it("applies shared configuration tombstones", () => {
+        const local = createSeedBook("共享账", NOW);
+        local.tags.push({
+            id: "tag_deleted",
+            name: "要删除的标签",
+            color: "#0f766e",
+            createdAt: NOW,
+        });
+        const remote = createSeedBook("共享账", NOW);
+        remote.tags = [];
+        remote.deletedConfig = [
+            { id: "tag_deleted", deletedAt: NOW + 1, ownerId: "alice" },
+        ];
+
+        const merged = mergeBooks(local, remote);
+        expect(merged.tags.some((item) => item.id === "tag_deleted")).toBe(false);
+        expect(merged.deletedConfig).toHaveLength(1);
+    });
+
     it("produces stable signatures independent of array order", () => {
         const local = createSeedBook("共享账", NOW);
         local.entries = [entry("b", "bob", 1), entry("a", "alice", 1)];

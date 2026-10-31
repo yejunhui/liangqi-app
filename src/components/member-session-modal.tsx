@@ -3,10 +3,12 @@
  */
 
 import { useMemo, useState } from "react";
-import { Check, Plus, UserRound, Users } from "lucide-react";
+import type { Member } from "@/types";
+import { Check, LockKeyhole, Plus, UserRound, Users } from "lucide-react";
 import { Modal } from "@/components/modal";
 import { Button } from "@/components/button";
 import { MemberModal } from "@/components/member-modal";
+import { hasMemberPin, verifyMemberPin } from "@/domain/member-pin";
 import { useLedgerStore } from "@/store/ledger";
 import {
     useActiveMember,
@@ -25,6 +27,10 @@ export function MemberSessionModal() {
     const activeMember = useActiveMember();
     const setActiveMember = useMemberSessionStore((state) => state.setActiveMember);
     const [createOpen, setCreateOpen] = useState(false);
+    const [pending, setPending] = useState<Member | null>(null);
+    const [pin, setPin] = useState("");
+    const [pinError, setPinError] = useState("");
+    const [verifying, setVerifying] = useState(false);
 
     const ordered = useMemo(
         () =>
@@ -40,9 +46,40 @@ export function MemberSessionModal() {
         [members, activeMember?.id],
     );
 
-    function choose(memberId: string, name: string) {
-        setActiveMember(bookId, memberId);
-        toast(`当前记账成员：${name}`, "success");
+    function choose(member: Member) {
+        if (hasMemberPin(member)) {
+            setPending(member);
+            setPin("");
+            setPinError("");
+            return;
+        }
+        setActiveMember(bookId, member.id);
+        toast(`当前记账成员：${member.name}`, "success");
+        close();
+    }
+
+    async function confirmPin() {
+        if (!pending) {
+            return;
+        }
+        setVerifying(true);
+        setPinError("");
+        const valid = await verifyMemberPin(pin, pending);
+        setVerifying(false);
+        if (!valid) {
+            setPinError("PIN 不正确");
+            return;
+        }
+        setActiveMember(bookId, pending.id);
+        toast(`当前记账成员：${pending.name}`, "success");
+        setPending(null);
+        close();
+    }
+
+    function handleClose() {
+        setPending(null);
+        setPin("");
+        setPinError("");
         close();
     }
 
@@ -50,26 +87,104 @@ export function MemberSessionModal() {
         <>
             <Modal
                 open={open}
-                onClose={close}
-                title="选择我的成员"
-                description="同一个仓库可以由多人使用；选择你登录的成员后，新流水会记在这个成员名下。"
+                onClose={handleClose}
+                title={pending ? "输入成员 PIN" : "选择我的成员"}
+                description={
+                    pending
+                        ? `切换到“${pending.name}”需要验证成员 PIN。`
+                        : "同一个仓库可以由多人使用；选择你登录的成员后，新流水会记在这个成员名下。"
+                }
                 size="sm"
                 footer={
-                    <div className="flex gap-2">
-                        <Button
-                            variant="secondary"
-                            className="flex-1"
-                            onClick={() => setCreateOpen(true)}
-                        >
-                            <Plus className="size-3.5" />
-                            新建成员
-                        </Button>
-                        <Button className="flex-1" onClick={close}>
-                            关闭
-                        </Button>
-                    </div>
+                    pending ? (
+                        <div className="flex gap-2">
+                            <Button
+                                variant="secondary"
+                                className="flex-1"
+                                onClick={() => setPending(null)}
+                            >
+                                返回
+                            </Button>
+                            <Button
+                                type="submit"
+                                form="member-pin-form"
+                                className="flex-1"
+                                disabled={verifying || pin.length < 4}
+                            >
+                                {verifying ? "验证中…" : "确认登录"}
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="flex gap-2">
+                            <Button
+                                variant="secondary"
+                                className="flex-1"
+                                onClick={() => setCreateOpen(true)}
+                            >
+                                <Plus className="size-3.5" />
+                                新建成员
+                            </Button>
+                            <Button className="flex-1" onClick={handleClose}>
+                                关闭
+                            </Button>
+                        </div>
+                    )
                 }
             >
+                {pending ? (
+                    <form
+                        id="member-pin-form"
+                        className="space-y-4"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            void confirmPin();
+                        }}
+                    >
+                        <div className="flex items-center gap-3 rounded-xl border border-line bg-surface-2/55 p-3">
+                            <span
+                                className="grid size-10 shrink-0 place-items-center rounded-full text-sm font-bold text-white"
+                                style={{ backgroundColor: pending.color }}
+                            >
+                                {pending.name.slice(0, 1)}
+                            </span>
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-bold text-text">
+                                    {pending.name}
+                                </p>
+                                <p className="text-[10px] text-muted">
+                                    PIN 已设置，验证后才能在该成员名下记账
+                                </p>
+                            </div>
+                        </div>
+                        <label className="block">
+                            <span className="mb-1.5 block text-xs font-semibold text-muted">
+                                成员 PIN
+                            </span>
+                            <input
+                                className="field text-center text-lg tracking-[0.5em]"
+                                type="password"
+                                inputMode="numeric"
+                                maxLength={12}
+                                value={pin}
+                                onChange={(event) => {
+                                    setPin(event.target.value.replace(/\D/g, ""));
+                                    setPinError("");
+                                }}
+                                placeholder="••••"
+                                autoFocus
+                                autoComplete="off"
+                            />
+                        </label>
+                        {pinError && (
+                            <p className="rounded-xl border border-danger/20 bg-danger-soft px-3 py-2 text-xs font-medium text-danger">
+                                {pinError}
+                            </p>
+                        )}
+                        <p className="text-[10px] leading-relaxed text-muted">
+                            成员 PIN 使用 PBKDF2 哈希后随成员信息保存在仓库中，仓库里不会出现明文 PIN。
+                        </p>
+                    </form>
+                ) : (
                 <div className="space-y-4">
                     <div className="flex items-center gap-3 rounded-xl border border-accent/25 bg-accent-soft/45 p-3">
                         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-sm font-bold text-surface">
@@ -94,7 +209,7 @@ export function MemberSessionModal() {
                                 <button
                                     key={member.id}
                                     type="button"
-                                    onClick={() => choose(member.id, member.name)}
+                                    onClick={() => choose(member)}
                                     className={cn(
                                         "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition",
                                         active
@@ -116,6 +231,9 @@ export function MemberSessionModal() {
                                             {active ? "当前登录成员" : "选择这个成员"}
                                         </span>
                                     </span>
+                                    {hasMemberPin(member) && (
+                                        <LockKeyhole className="size-3.5 shrink-0 text-muted" />
+                                    )}
                                     {active && <Check className="size-4 shrink-0 text-accent" />}
                                 </button>
                             );
@@ -137,6 +255,7 @@ export function MemberSessionModal() {
                         同一个私钥可以被多人使用；身份由这里选择的成员决定，而不是 token。
                     </p>
                 </div>
+                )}
             </Modal>
 
             <MemberModal

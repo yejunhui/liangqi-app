@@ -15,6 +15,8 @@ import {
     saveAttachmentFile,
 } from "@/domain/attachments";
 import { useLedgerStore } from "@/store/ledger";
+import { getConnectionById, useLibraryStore } from "@/store/library";
+import { downloadRemoteAttachment } from "@/remote/attachments";
 import { toast } from "@/store/toast";
 
 interface AttachmentListProps {
@@ -98,9 +100,19 @@ export function AttachmentList({
     }
 
     async function handleOpen(attachment: Attachment) {
-        const opened = await openAttachmentFile(attachment);
+        const library = useLibraryStore.getState();
+        const book = library.books.find((item) => item.id === library.activeBookId);
+        const connection = book?.remote
+            ? getConnectionById(library, book.remote.connectionId)
+            : undefined;
+        const opened = await openAttachmentFile(
+            attachment,
+            connection
+                ? () => downloadRemoteAttachment(connection, attachment)
+                : undefined,
+        );
         if (!opened) {
-            toast("附件文件不在本机：它可能来自其他设备的同步", "info");
+            toast("附件文件不在本机，远程也没有找到", "info");
         }
     }
 
@@ -160,7 +172,8 @@ export function AttachmentList({
                                     {attachment.name}
                                 </span>
                                 <span className="block text-[9px] text-muted">
-                                    {formatFileSize(attachment.size)}
+                                    {formatFileSize(attachment.size)} ·{" "}
+                                    {attachment.remoteUploadedAt ? "已同步" : "仅本机"}
                                 </span>
                             </button>
                             {!readOnly && (

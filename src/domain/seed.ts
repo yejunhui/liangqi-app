@@ -162,6 +162,7 @@ export function createSeedData(now = Date.now()): LedgerData {
         attachments: [],
         deletedEntries: [],
         deletedBills: [],
+        deletedConfig: [],
         bills: [],
         entries: [],
         settings: {

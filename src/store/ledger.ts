@@ -25,6 +25,7 @@ import type {
     Tag,
     TagGroup,
     ThemeMode,
+    Tombstone,
 } from "@/types";
 import { createSeedData } from "@/domain/seed";
 import {
@@ -176,10 +177,21 @@ export interface LedgerActions {
             Pick<Bill, "title" | "dueDate" | "note" | "categoryId" | "memberId" | "tagIds">
         >,
     ) => Result;
-    addMember: (input: { name: string; color: string }) => Result & { id?: string };
+    addMember: (input: {
+        name: string;
+        color: string;
+        pinHash?: string;
+        pinSalt?: string;
+        pinIterations?: number;
+    }) => Result & { id?: string };
     updateMember: (
         memberId: string,
-        patch: Partial<Pick<Member, "name" | "color">>,
+        patch: Partial<
+            Pick<
+                Member,
+                "name" | "color" | "pinHash" | "pinSalt" | "pinIterations"
+            >
+        >,
     ) => Result;
     deleteMember: (memberId: string) => Result;
     addTagGroup: (input: TagGroupInput) => Result & { id?: string };
@@ -268,6 +280,13 @@ function isValidDate(value: number): boolean {
 
 function fail(error: string): { ok: false; error: string } {
     return { ok: false, error };
+}
+
+function tombstone(list: Tombstone[], id: string, ownerId?: string): Tombstone[] {
+    return [
+        ...list.filter((item) => item.id !== id),
+        { id, deletedAt: Date.now(), ownerId },
+    ];
 }
 
 function canModify(record: { ownerId?: string }): boolean {
@@ -924,7 +943,14 @@ const createActions = (
         if (usedByEntry || usedByBill) {
             return fail("该账户已有流水或账单，不能删除");
         }
-        set({ accounts: state.accounts.filter((item) => item.id !== accountId) });
+        set({
+            accounts: state.accounts.filter((item) => item.id !== accountId),
+            deletedConfig: tombstone(
+                state.deletedConfig,
+                accountId,
+                getActiveMember()?.id,
+            ),
+        });
         return { ok: true };
     },
 
@@ -1009,7 +1035,14 @@ const createActions = (
         if (used || usedByBill || usedByBudget) {
             return fail("该分类已有流水、账单或预算，不能删除");
         }
-        set({ categories: state.categories.filter((item) => item.id !== categoryId) });
+        set({
+            categories: state.categories.filter((item) => item.id !== categoryId),
+            deletedConfig: tombstone(
+                state.deletedConfig,
+                categoryId,
+                getActiveMember()?.id,
+            ),
+        });
         return { ok: true };
     },
 
@@ -1023,6 +1056,9 @@ const createActions = (
             id: newId("member"),
             name,
             color: input.color || "#0f766e",
+            pinHash: input.pinHash,
+            pinSalt: input.pinSalt,
+            pinIterations: input.pinIterations,
             createdAt: Date.now(),
         };
         set({ members: [...state.members, member] });
@@ -1076,7 +1112,14 @@ const createActions = (
         if (usedByEntry || usedByBill || usedByBudget || ownedRecords) {
             return fail("该成员已有记账、流水、账单或预算，不能删除");
         }
-        set({ members: state.members.filter((item) => item.id !== memberId) });
+        set({
+            members: state.members.filter((item) => item.id !== memberId),
+            deletedConfig: tombstone(
+                state.deletedConfig,
+                memberId,
+                getActiveMember()?.id,
+            ),
+        });
         return { ok: true };
     },
 
@@ -1129,7 +1172,14 @@ const createActions = (
         if (state.tags.some((tag) => tag.groupId === groupId)) {
             return fail("请先删除这个标签组下的标签");
         }
-        set({ tagGroups: state.tagGroups.filter((item) => item.id !== groupId) });
+        set({
+            tagGroups: state.tagGroups.filter((item) => item.id !== groupId),
+            deletedConfig: tombstone(
+                state.deletedConfig,
+                groupId,
+                getActiveMember()?.id,
+            ),
+        });
         return { ok: true };
     },
 
@@ -1204,7 +1254,14 @@ const createActions = (
         if (usedByEntry || usedByBill || usedByBudget) {
             return fail("该标签已有流水、账单或预算，不能删除");
         }
-        set({ tags: state.tags.filter((item) => item.id !== tagId) });
+        set({
+            tags: state.tags.filter((item) => item.id !== tagId),
+            deletedConfig: tombstone(
+                state.deletedConfig,
+                tagId,
+                getActiveMember()?.id,
+            ),
+        });
         return { ok: true };
     },
 
@@ -1296,7 +1353,14 @@ const createActions = (
         if (!state.budgets.some((item) => item.id === budgetId)) {
             return fail("预算不存在");
         }
-        set({ budgets: state.budgets.filter((item) => item.id !== budgetId) });
+        set({
+            budgets: state.budgets.filter((item) => item.id !== budgetId),
+            deletedConfig: tombstone(
+                state.deletedConfig,
+                budgetId,
+                getActiveMember()?.id,
+            ),
+        });
         return { ok: true };
     },
 
@@ -1481,6 +1545,11 @@ const createActions = (
                 entry.recurringId === ruleId
                     ? { ...entry, recurringId: undefined }
                     : entry,
+            ),
+            deletedConfig: tombstone(
+                state.deletedConfig,
+                ruleId,
+                getActiveMember()?.id,
             ),
         });
         return { ok: true };
@@ -1691,6 +1760,11 @@ const createActions = (
                       }
                     : bill,
             ),
+            deletedConfig: tombstone(
+                state.deletedConfig,
+                attachmentId,
+                getActiveMember()?.id,
+            ),
         });
         return { ok: true };
     },
@@ -1714,6 +1788,7 @@ const createActions = (
             attachments: data.attachments,
             deletedEntries: data.deletedEntries,
             deletedBills: data.deletedBills,
+            deletedConfig: data.deletedConfig,
             bills: data.bills,
             entries: data.entries,
             settings: data.settings,
@@ -1744,6 +1819,7 @@ export function extractBook(state: LedgerState): Book {
         attachments: state.attachments,
         deletedEntries: state.deletedEntries,
         deletedBills: state.deletedBills,
+        deletedConfig: state.deletedConfig,
         bills: state.bills,
         entries: state.entries,
         settings: state.settings,

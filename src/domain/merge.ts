@@ -84,6 +84,10 @@ export function mergeBooks(local: Book, remote: Book): Book {
         local.deletedBills ?? [],
         remote.deletedBills ?? [],
     );
+    const deletedConfig = mergeTombstones(
+        local.deletedConfig ?? [],
+        remote.deletedConfig ?? [],
+    );
     const entries = applyTombstones(
         mergeById(local.entries, remote.entries, recordTime),
         deletedEntries,
@@ -94,26 +98,32 @@ export function mergeBooks(local: Book, remote: Book): Book {
         deletedBills,
         recordTime,
     );
+    const config = <T extends { id: string; createdAt?: number; updatedAt?: number }>(
+        localItems: T[],
+        remoteItems: T[],
+    ) =>
+        applyTombstones(
+            mergeConfig(localItems, remoteItems),
+            deletedConfig,
+            recordTime,
+        );
 
     return {
         id: remote.id,
         name: remote.name || local.name,
         createdAt: Math.min(local.createdAt, remote.createdAt),
         updatedAt: Math.max(local.updatedAt, remote.updatedAt),
-        accounts: mergeConfig(local.accounts, remote.accounts),
-        categories: mergeConfig(local.categories, remote.categories),
-        members: mergeConfig(local.members, remote.members),
-        tagGroups: mergeConfig(local.tagGroups, remote.tagGroups),
-        tags: mergeConfig(local.tags, remote.tags),
-        budgets: mergeConfig(local.budgets, remote.budgets),
-        recurringRules: mergeById(
-            local.recurringRules,
-            remote.recurringRules,
-            recordTime,
-        ),
-        attachments: mergeConfig(local.attachments, remote.attachments),
+        accounts: config(local.accounts, remote.accounts),
+        categories: config(local.categories, remote.categories),
+        members: config(local.members, remote.members),
+        tagGroups: config(local.tagGroups, remote.tagGroups),
+        tags: config(local.tags, remote.tags),
+        budgets: config(local.budgets, remote.budgets),
+        recurringRules: config(local.recurringRules, remote.recurringRules),
+        attachments: config(local.attachments, remote.attachments),
         deletedEntries,
         deletedBills,
+        deletedConfig,
         bills,
         entries,
         settings: remote.settings,
@@ -144,6 +154,7 @@ export function bookContentSignature(book: Book): string {
         attachments: sortedById(book.attachments),
         deletedEntries: sortedById(book.deletedEntries),
         deletedBills: sortedById(book.deletedBills),
+        deletedConfig: sortedById(book.deletedConfig),
         bills: sortedById(book.bills),
         entries: sortedById(book.entries),
         settings: book.settings,

@@ -3,7 +3,14 @@
  */
 
 import { useMemo, useState } from "react";
-import { ListChecks, Plus, ReceiptText, Search, X } from "lucide-react";
+import {
+    ListChecks,
+    Plus,
+    ReceiptText,
+    Search,
+    SlidersHorizontal,
+    X,
+} from "lucide-react";
 import type { Entry, EntryKind } from "@/types";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/button";
@@ -12,13 +19,43 @@ import { EntryRow } from "@/components/entry-row";
 import { EntryDetailModal } from "@/components/entry-detail-modal";
 import { BatchEditModal } from "@/components/batch-edit-modal";
 import { EmptyState } from "@/components/empty-state";
-import { formatCents } from "@/domain/money";
-import { formatDate, formatRelativeDay, formatWeekday, startOfDay } from "@/utils/date";
+import { formatCents, parseAmountToCents } from "@/domain/money";
+import { matchesEntryFilter, type EntryFilter } from "@/domain/filters";
+import {
+    endOfDay,
+    formatDate,
+    formatRelativeDay,
+    formatWeekday,
+    fromDateInputValue,
+    startOfDay,
+} from "@/utils/date";
 import { useCurrency, useLedgerStore } from "@/store/ledger";
 import { useActiveMember } from "@/store/member-session";
 import { useUIStore } from "@/store/ui";
 
 type Filter = "all" | EntryKind;
+
+interface AdvancedFilterState {
+    start: string;
+    end: string;
+    categoryId: string;
+    memberId: string;
+    accountId: string;
+    tagId: string;
+    minAmount: string;
+    maxAmount: string;
+}
+
+const EMPTY_ADVANCED: AdvancedFilterState = {
+    start: "",
+    end: "",
+    categoryId: "",
+    memberId: "",
+    accountId: "",
+    tagId: "",
+    minAmount: "",
+    maxAmount: "",
+};
 
 export function Entries() {
     const accounts = useLedgerStore((state) => state.accounts);
@@ -34,6 +71,8 @@ export function Entries() {
 
     const [filter, setFilter] = useState<Filter>("all");
     const [query, setQuery] = useState("");
+    const [filterOpen, setFilterOpen] = useState(false);
+    const [advanced, setAdvanced] = useState<AdvancedFilterState>(EMPTY_ADVANCED);
     const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -49,10 +88,33 @@ export function Entries() {
         };
     }, [entries]);
 
+    const advancedFilter = useMemo<EntryFilter>(() => {
+        const start = advanced.start ? fromDateInputValue(advanced.start) : null;
+        const end = advanced.end ? fromDateInputValue(advanced.end) : null;
+        return {
+            categoryId: advanced.categoryId || undefined,
+            memberId: advanced.memberId || undefined,
+            accountId: advanced.accountId || undefined,
+            tagId: advanced.tagId || undefined,
+            start: start !== null ? startOfDay(start) : undefined,
+            end: end !== null ? endOfDay(end) : undefined,
+            minAmount: advanced.minAmount
+                ? parseAmountToCents(advanced.minAmount) ?? undefined
+                : undefined,
+            maxAmount: advanced.maxAmount
+                ? parseAmountToCents(advanced.maxAmount) ?? undefined
+                : undefined,
+        };
+    }, [advanced]);
+    const activeFilterCount = Object.values(advanced).filter(
+        (value) => value.trim() !== "",
+    ).length;
+
     const filtered = useMemo(() => {
         const keyword = query.trim().toLowerCase();
         return entries
             .filter((entry) => filter === "all" || entry.kind === filter)
+            .filter((entry) => matchesEntryFilter(entry, advancedFilter, categories))
             .filter((entry) => {
                 if (!keyword) {
                     return true;
@@ -95,7 +157,7 @@ export function Entries() {
                 return haystack.includes(keyword);
             })
             .sort((a, b) => b.date - a.date || b.createdAt - a.createdAt);
-    }, [entries, filter, query, categories, bills, accounts, members, tags]);
+    }, [entries, filter, query, categories, bills, accounts, members, tags, advancedFilter]);
 
     const groups = useMemo(() => {
         const map = new Map<number, Entry[]>();
@@ -119,7 +181,8 @@ export function Entries() {
         { value: "transfer", label: "转账", count: counts.transfer },
     ];
 
-    const hasFilter = filter !== "all" || query.trim() !== "";
+    const hasFilter =
+        filter !== "all" || query.trim() !== "" || activeFilterCount > 0;
     const selectedEntries = useMemo(
         () => entries.filter((entry) => selectedIds.has(entry.id)),
         [entries, selectedIds],
@@ -203,29 +266,229 @@ export function Entries() {
                 }
             />
 
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <Tabs items={tabs} value={filter} onChange={setFilter} />
-                <div className="relative w-full sm:w-72">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted" />
-                    <input
-                        type="search"
-                        value={query}
-                        onChange={(event) => setQuery(event.target.value)}
-                        placeholder="搜索备注、分类、账户"
-                        aria-label="搜索流水"
-                        className="field py-2 pl-9 pr-9 text-xs"
-                    />
-                    {query && (
-                        <button
-                            type="button"
-                            onClick={() => setQuery("")}
-                            className="absolute right-2.5 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded text-muted transition hover:text-text"
-                            aria-label="清空搜索"
+            <div className="mb-4 space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <Tabs items={tabs} value={filter} onChange={setFilter} />
+                    <div className="flex w-full gap-2 sm:w-auto">
+                        <div className="relative min-w-0 flex-1 sm:w-72">
+                            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted" />
+                            <input
+                                type="search"
+                                value={query}
+                                onChange={(event) => setQuery(event.target.value)}
+                                placeholder="搜索备注、分类、账户"
+                                aria-label="搜索流水"
+                                className="field py-2 pl-9 pr-9 text-xs"
+                            />
+                            {query && (
+                                <button
+                                    type="button"
+                                    onClick={() => setQuery("")}
+                                    className="absolute right-2.5 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded text-muted transition hover:text-text"
+                                    aria-label="清空搜索"
+                                >
+                                    <X className="size-3.5" />
+                                </button>
+                            )}
+                        </div>
+                        <Button
+                            variant={filterOpen || activeFilterCount > 0 ? "primary" : "secondary"}
+                            onClick={() => setFilterOpen((current) => !current)}
+                            className="shrink-0"
                         >
-                            <X className="size-3.5" />
-                        </button>
-                    )}
+                            <SlidersHorizontal className="size-4" />
+                            筛选
+                            {activeFilterCount > 0 && (
+                                <span className="rounded-full bg-surface/25 px-1.5 text-[10px]">
+                                    {activeFilterCount}
+                                </span>
+                            )}
+                        </Button>
+                    </div>
                 </div>
+
+                {filterOpen && (
+                    <div className="card p-4">
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                            <label className="block">
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
+                                    开始日期
+                                </span>
+                                <input
+                                    type="date"
+                                    className="field py-2 text-xs"
+                                    value={advanced.start}
+                                    onChange={(event) =>
+                                        setAdvanced((current) => ({
+                                            ...current,
+                                            start: event.target.value,
+                                        }))
+                                    }
+                                />
+                            </label>
+                            <label className="block">
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
+                                    结束日期
+                                </span>
+                                <input
+                                    type="date"
+                                    className="field py-2 text-xs"
+                                    value={advanced.end}
+                                    onChange={(event) =>
+                                        setAdvanced((current) => ({
+                                            ...current,
+                                            end: event.target.value,
+                                        }))
+                                    }
+                                />
+                            </label>
+                            <label className="block">
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
+                                    分类
+                                </span>
+                                <select
+                                    className="field py-2 text-xs"
+                                    value={advanced.categoryId}
+                                    onChange={(event) =>
+                                        setAdvanced((current) => ({
+                                            ...current,
+                                            categoryId: event.target.value,
+                                        }))
+                                    }
+                                >
+                                    <option value="">全部分类</option>
+                                    {categories.map((category) => {
+                                        const parent = category.parent
+                                            ? categories.find(
+                                                  (item) => item.id === category.parent,
+                                              )
+                                            : undefined;
+                                        return (
+                                            <option key={category.id} value={category.id}>
+                                                {category.emoji}{" "}
+                                                {parent ? `${parent.name} / ` : ""}
+                                                {category.name}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
+                            </label>
+                            <label className="block">
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
+                                    成员
+                                </span>
+                                <select
+                                    className="field py-2 text-xs"
+                                    value={advanced.memberId}
+                                    onChange={(event) =>
+                                        setAdvanced((current) => ({
+                                            ...current,
+                                            memberId: event.target.value,
+                                        }))
+                                    }
+                                >
+                                    <option value="">全部成员</option>
+                                    {members.map((member) => (
+                                        <option key={member.id} value={member.id}>
+                                            {member.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="block">
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
+                                    账户
+                                </span>
+                                <select
+                                    className="field py-2 text-xs"
+                                    value={advanced.accountId}
+                                    onChange={(event) =>
+                                        setAdvanced((current) => ({
+                                            ...current,
+                                            accountId: event.target.value,
+                                        }))
+                                    }
+                                >
+                                    <option value="">全部账户</option>
+                                    {accounts.map((account) => (
+                                        <option key={account.id} value={account.id}>
+                                            {account.emoji} {account.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="block">
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
+                                    标签
+                                </span>
+                                <select
+                                    className="field py-2 text-xs"
+                                    value={advanced.tagId}
+                                    onChange={(event) =>
+                                        setAdvanced((current) => ({
+                                            ...current,
+                                            tagId: event.target.value,
+                                        }))
+                                    }
+                                >
+                                    <option value="">全部标签</option>
+                                    {tags.map((tag) => (
+                                        <option key={tag.id} value={tag.id}>
+                                            {tag.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="block">
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
+                                    最小金额
+                                </span>
+                                <input
+                                    className="field py-2 text-xs"
+                                    inputMode="decimal"
+                                    value={advanced.minAmount}
+                                    onChange={(event) =>
+                                        setAdvanced((current) => ({
+                                            ...current,
+                                            minAmount: event.target.value,
+                                        }))
+                                    }
+                                    placeholder="0.00"
+                                />
+                            </label>
+                            <label className="block">
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
+                                    最大金额
+                                </span>
+                                <input
+                                    className="field py-2 text-xs"
+                                    inputMode="decimal"
+                                    value={advanced.maxAmount}
+                                    onChange={(event) =>
+                                        setAdvanced((current) => ({
+                                            ...current,
+                                            maxAmount: event.target.value,
+                                        }))
+                                    }
+                                    placeholder="不限"
+                                />
+                            </label>
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-[10px] text-muted">
+                                筛选会和上方类型、搜索关键词同时生效。
+                            </p>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setAdvanced(EMPTY_ADVANCED)}
+                                disabled={activeFilterCount === 0}
+                            >
+                                清空条件
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {selectMode && (
@@ -281,6 +544,7 @@ export function Entries() {
                                     onClick={() => {
                                         setFilter("all");
                                         setQuery("");
+                                        setAdvanced(EMPTY_ADVANCED);
                                     }}
                                 >
                                     清空筛选

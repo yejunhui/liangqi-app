@@ -7,6 +7,11 @@ import type { Member } from "@/types";
 import { Modal } from "@/components/modal";
 import { Button } from "@/components/button";
 import { MEMBER_COLORS } from "@/domain/members";
+import {
+    hasMemberPin,
+    hashMemberPin,
+    validateMemberPin,
+} from "@/domain/member-pin";
 import { useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
@@ -23,6 +28,8 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
     const updateMember = useLedgerStore((state) => state.updateMember);
     const [name, setName] = useState("");
     const [color, setColor] = useState<string>(MEMBER_COLORS[0]);
+    const [pin, setPin] = useState("");
+    const [removePin, setRemovePin] = useState(false);
     const [error, setError] = useState("");
 
     useEffect(() => {
@@ -31,20 +38,57 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
         }
         setName(member?.name ?? "");
         setColor(member?.color ?? MEMBER_COLORS[0]);
+        setPin("");
+        setRemovePin(false);
         setError("");
     }, [open, member]);
 
     const editing = member !== null;
+    const existingPin = member !== null && hasMemberPin(member);
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setError("");
         if (!name.trim()) {
             setError("成员名称不能为空");
             return;
         }
+        const pinValue = pin.trim();
+        if (pinValue) {
+            const invalid = validateMemberPin(pinValue);
+            if (invalid) {
+                setError(invalid);
+                return;
+            }
+        }
+        let pinFields:
+            | {
+                  pinHash?: string;
+                  pinSalt?: string;
+                  pinIterations?: number;
+              }
+            | undefined;
+        try {
+            if (pinValue) {
+                pinFields = await hashMemberPin(pinValue);
+            } else if (removePin) {
+                pinFields = {
+                    pinHash: undefined,
+                    pinSalt: undefined,
+                    pinIterations: undefined,
+                };
+            }
+        } catch (cause) {
+            setError(cause instanceof Error ? cause.message : "PIN 处理失败");
+            return;
+        }
+
         if (editing) {
-            const result = updateMember(member.id, { name, color });
+            const result = updateMember(member.id, {
+                name,
+                color,
+                ...(pinFields ?? {}),
+            });
             if (!result.ok) {
                 setError(result.error);
                 return;
@@ -53,7 +97,7 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
             onClose();
             return;
         }
-        const result = addMember({ name, color });
+        const result = addMember({ name, color, ...(pinFields ?? {}) });
         if (!result.ok) {
             setError(result.error);
             return;
@@ -114,6 +158,60 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
                             />
                         ))}
                     </div>
+                </div>
+
+                <div className="rounded-xl border border-line bg-surface-2/40 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                        <div>
+                            <p className="text-xs font-semibold text-text">成员 PIN</p>
+                            <p className="mt-0.5 text-[10px] text-muted">
+                                可选，4–12 位数字；切换成员时需要输入
+                            </p>
+                        </div>
+                        {existingPin && !removePin && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setPin("");
+                                    setRemovePin(true);
+                                }}
+                                className="text-[10px] font-medium text-danger hover:underline"
+                            >
+                                清除 PIN
+                            </button>
+                        )}
+                    </div>
+                    {removePin ? (
+                        <div className="mt-2 flex items-center justify-between rounded-lg bg-danger-soft/50 px-2.5 py-2">
+                            <span className="text-[10px] text-danger">
+                                保存后会清除已有 PIN
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setRemovePin(false)}
+                                className="text-[10px] font-medium text-text hover:underline"
+                            >
+                                取消
+                            </button>
+                        </div>
+                    ) : (
+                        <input
+                            className="field mt-2 text-xs tracking-widest"
+                            type="password"
+                            inputMode="numeric"
+                            maxLength={12}
+                            value={pin}
+                            onChange={(event) =>
+                                setPin(event.target.value.replace(/\D/g, ""))
+                            }
+                            placeholder={
+                                existingPin
+                                    ? "留空保持现有 PIN，输入新 PIN 可修改"
+                                    : "设置成员 PIN（可选）"
+                            }
+                            autoComplete="new-password"
+                        />
+                    )}
                 </div>
 
                 <div className="flex items-center gap-3 rounded-xl border border-line bg-surface-2/55 p-3">
