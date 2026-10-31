@@ -81,6 +81,7 @@ export function Settings() {
     const [aiEndpoint, setAiEndpoint] = useState(ai.endpoint);
     const [aiModel, setAiModel] = useState(ai.model);
     const [aiApiKey, setAiApiKey] = useState(ai.apiKey);
+    const [customCurrency, setCustomCurrency] = useState("");
 
     const inputRef = useRef<HTMLInputElement>(null);
     const [pendingImport, setPendingImport] = useState<LedgerData | null>(null);
@@ -235,6 +236,32 @@ export function Settings() {
                     <p className="mt-2 text-[10px] text-muted">
                         记账表单里可以切换外币并填写汇率；所有余额和统计仍统一换算成本位币。
                     </p>
+                    <div className="mt-3 flex gap-2">
+                        <input
+                            className="field text-xs"
+                            value={customCurrency}
+                            onChange={(event) => setCustomCurrency(event.target.value)}
+                            placeholder="自定义代码，如 BTC"
+                            maxLength={3}
+                            autoComplete="off"
+                        />
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                                const code = customCurrency.trim().toUpperCase();
+                                if (!/^[A-Z]{3}$/.test(code)) {
+                                    toast("请输入 3 位货币代码", "error");
+                                    return;
+                                }
+                                setSettings({ currency: code });
+                                setCustomCurrency("");
+                                toast(`本位币已切换为 ${code}`, "success");
+                            }}
+                        >
+                            使用
+                        </Button>
+                    </div>
                 </section>
 
                 <section className="card p-5">
@@ -516,7 +543,7 @@ export function Settings() {
                         )}
                     </div>
                     <p className="mt-3 text-[10px] leading-relaxed text-muted">
-                        密码使用 PBKDF2 哈希后保存在本机，仅保护界面访问，不加密 localStorage 里的账本数据。忘记密码只能清除浏览器数据。
+                        密码使用 PBKDF2 哈希后保存在本机，仅保护界面访问，不加密 IndexedDB / localStorage 里的账本数据。忘记密码只能清除浏览器数据。
                     </p>
                 </section>
 
