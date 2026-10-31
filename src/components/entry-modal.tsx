@@ -236,7 +236,9 @@ export function EntryModal() {
                 return;
             }
             setExchangeRate(formatExchangeRate(quote.rate));
-            setRateStatus(quote.stale ? "cached" : "live");
+            setRateStatus(
+                quote.source === "live" && !quote.stale ? "live" : "cached",
+            );
             setRateFetchedAt(quote.fetchedAt);
             setAutoRate(true);
         });
@@ -261,7 +263,7 @@ export function EntryModal() {
             return null;
         }
         setExchangeRate(formatExchangeRate(quote.rate));
-        setRateStatus(quote.stale ? "cached" : "live");
+        setRateStatus(quote.source === "live" && !quote.stale ? "live" : "cached");
         setRateFetchedAt(quote.fetchedAt);
         setAutoRate(true);
         return quote;
@@ -659,7 +661,7 @@ export function EntryModal() {
                                             : ""
                                     }`
                                   : rateStatus === "cached"
-                                    ? "实时汇率源不可用，使用本机缓存汇率，可手动修改"
+                                    ? "使用本机缓存汇率，可点「实时」刷新或手动修改"
                                     : rateStatus === "unavailable"
                                       ? "实时汇率不可用，请手动填写汇率"
                                       : rateStatus === "manual"
