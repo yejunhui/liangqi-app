@@ -26,6 +26,7 @@ import {
     Target,
     Repeat,
     FileSpreadsheet,
+    Heart,
     Upload,
     UserRound,
     Users,
@@ -801,17 +802,29 @@ export function Settings() {
                                 </a>{" "}{` ${t("发布。")}`}</p>
                         </div>
                     </div>
-                    <p className="mt-3 text-[10px] leading-relaxed text-muted">{t("两讫是独立实现。功能思路受")}{" "}
+                    <div className="mt-4 flex flex-col gap-4 rounded-xl border border-line bg-surface-2/55 p-4 sm:flex-row sm:items-center">
+                        <div className="min-w-0 flex-1">
+                            <p className="flex items-center gap-2 text-xs font-semibold text-text">
+                                <Heart className="size-3.5 text-danger" />
+                                {t("支持两讫")}
+                            </p>
+                            <p className="mt-1 text-[10px] leading-relaxed text-muted">
+                                {t("如果这个项目对你有帮助，欢迎用支付宝扫码支持。")}
+                            </p>
+                        </div>
                         <a
-                            href="https://github.com/glink25/Cent"
+                            href={`${import.meta.env.BASE_URL}support/alipay.jpg`}
                             target="_blank"
                             rel="noreferrer"
-                            className="font-semibold text-accent hover:underline"
+                            className="shrink-0 self-center rounded-xl border border-line bg-white p-1.5 transition hover:border-line-strong"
                         >
-                            Cent
-                        </a>{" "}{` ${t(
-    "启发；Cent 版权归 glink25 所有，采用 CC BY-NC-SA 4.0。本项目未复制 Cent\n                        的源代码、文案或素材。名称「两讫」与双栏 Logo 为原创；界面图标使用\n                        Lucide（ISC）和系统 Emoji。"
-)}`}</p>
+                            <img
+                                src={`${import.meta.env.BASE_URL}support/alipay-qr.jpg`}
+                                alt={t("支付宝赞赏码")}
+                                className="h-40 w-40 rounded-lg object-contain sm:h-48 sm:w-48"
+                            />
+                        </a>
+                    </div>
                 </section>
             </div>
 

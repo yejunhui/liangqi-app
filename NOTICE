@@ -20,29 +20,9 @@ Brand assets
 
 The name "两讫 / LIANGQI" and the two-column logo are original to this project.
 UI icons come from Lucide (ISC license) and the operating system's Emoji font.
-No Cent icons, copy, or screenshots are included. See THIRD_PARTY_NOTICES.md
-for third-party license notices.
+No third-party app icons, copy, or screenshots are included. See
+THIRD_PARTY_NOTICES.md for third-party license notices.
 
 The name and logo have not undergone a formal trademark clearance search. If
 you plan a commercial release, perform your own trademark search in the
 relevant countries and classes.
-
----
-
-Attribution / inspiration
--------------------------
-
-Liangqi is an independent implementation. It does not contain source code,
-copy, or assets from the Cent project. The technical independence audit is in
-docs/licensing.md.
-
-Feature ideas were inspired by Cent:
-  Cent
-  Copyright (c) 2025 glink25
-  https://github.com/glink25/Cent
-  Licensed under CC BY-NC-SA 4.0
-
-Cent's license does not apply to Liangqi's original code. If you intend to
-combine code from Cent with this project, review the license compatibility
-first; CC BY-NC-SA 4.0 and GPL-3.0 are not compatible without permission from
-the original author.

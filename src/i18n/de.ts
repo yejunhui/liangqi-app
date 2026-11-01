@@ -648,7 +648,6 @@ export const DE: Record<string, string> = {
     "两讫 · 本地优先记账 · 数据以账本为准": "Liangqi · Local-first-Buchhaltung · Ihr Buch ist die maßgebliche Quelle",
     "两讫 · 银货两讫，账目两清": "Liangqi · Klare Konten, beglichene Schulden",
     "两讫 AI": "Liangqi AI",
-    "两讫是独立实现。功能思路受": "Liangqi ist eine unabhängige Implementierung. Die Funktionsideen sind inspiriert von",
     "两讫已锁定": "Liangqi ist gesperrt",
     "两讫月报": "Liangqi-Monatsbericht",
     "两讫只做三件事，保证支出不被重复计算。": "Liangqi macht nur drei Dinge, damit Ausgaben nicht doppelt gezählt werden.",
@@ -738,7 +737,6 @@ export const DE: Record<string, string> = {
     "其他": "Sonstiges",
     "其他人连接同一个仓库后，也需要选择自己的成员；不能直接修改或删除你记的账。成员列表会同步到仓库，新增成员后所有设备可见。": "Andere Personen, die dasselbe Repository verbinden, müssen ebenfalls ihr eigenes Mitglied wählen; sie können Ihre Einträge nicht direkt bearbeiten oder löschen. Die Mitgliederliste wird ins Repository synchronisiert, sodass neue Mitglieder auf allen Geräten sichtbar sind.",
     "其他收入": "Sonstige Einnahmen",
-    "启发；Cent 版权归 glink25 所有，采用 CC BY-NC-SA 4.0。本项目未复制 Cent\n                        的源代码、文案或素材。名称「两讫」与双栏 Logo 为原创；界面图标使用\n                        Lucide（ISC）和系统 Emoji。": "Inspiriert von Cent; das Urheberrecht an Cent liegt bei glink25 und steht unter CC BY-NC-SA 4.0. Dieses Projekt kopiert nicht den\n                        Quellcode, die Texte oder Assets von Cent. Der Name „Liangqi“ und das zweispaltige Logo sind eigenständig; UI-Symbole verwenden\n                        Lucide (ISC) und System-Emojis.",
     "启用": "Aktivieren",
     "启用密码": "Passwort aktivieren",
     "启用中": "Aktiviert",
@@ -1418,5 +1416,8 @@ export const DE: Record<string, string> = {
     "WebDAV 连接失败（HTTP {0}）": "WebDAV-Verbindung fehlgeschlagen (HTTP {0})",
     "WebDAV 密码": "WebDAV-Passwort",
     "WebDAV 认证失败，请检查账号和密码": "WebDAV-Authentifizierung fehlgeschlagen. Prüfen Sie Benutzername und Passwort.",
-    "WebDAV 用户名": "WebDAV-Benutzername"
+    "WebDAV 用户名": "WebDAV-Benutzername",
+    "支持两讫": "Liangqi unterstützen",
+    "如果这个项目对你有帮助，欢迎用支付宝扫码支持。": "Wenn dir dieses Projekt hilft, kannst du es per Alipay-QR-Code unterstützen.",
+    "支付宝赞赏码": "Alipay-Spenden-QR-Code"
 };

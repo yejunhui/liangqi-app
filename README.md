@@ -4,7 +4,7 @@
 
 **在线使用：** https://arksc.cn:8002/workbook/  
 **源码仓库：** https://gitee.com/PharaohMan/liangqi-app  
-**开源协议：** GPL-3.0-or-later · [独立实现审计](docs/licensing.md)
+**开源协议：** GPL-3.0-or-later
 
 两讫是一个**本地优先、可连接远程仓库**的记账 Web App，专门把两类支出分开：
 
@@ -116,11 +116,21 @@ repo/
 - **逐条合并**：同步时把远程和本地的流水、账单按 id 合并，双方新增都会保留；同一 id 的标题、备注、分类、成员、标签、附件等字段按 `fieldUpdatedAt` 逐字段取舍。
 - **删除墓碑**：删除流水 / 账单时写入 `deletedEntries` / `deletedBills` 墓碑，删除账户 / 分类 / 标签 / 成员 / 预算 / 周期规则 / 附件时写入 `deletedConfig`，其他设备同步后一起删除，不会因为对方还持有旧副本而复活。
 - **作者保护**：流水、账单、周期规则和附件记录作者 id。非作者只能查看，不能修改或删除；还款、新增流水不受影响。
-- **共享配置**：账户、分类、标签、成员、预算、周期规则、附件等是账本级共享配置，按 id 合并，重复 id 以远程版本为准，并应用共享配置墓碑。
+- **共享配置**：账户、分类、标签、成员、预算、周期规则、附件等是账本级共享配置，按 id 合并；账户、分类、标签等重复 id 以远程版本为准，成员按 `updatedAt` / `fieldUpdatedAt` 逐字段合并，避免旧副本覆盖新密码。并应用共享配置墓碑。
 - **冲突备份**：实际写入前如果发现本地和远程都有修改，会先保存一份本地版本到「数据源 → 冲突备份」，最多 10 份。
 - **离线回退**：远程不可用时继续使用本地，恢复后自动合并并补推。
 
 ## 部署形态
+
+完整、面向普通用户的部署步骤见 **[docs/deployment.md](docs/deployment.md)**，包括：
+
+- 直接使用在线地址和安装 PWA
+- Netlify Drop / Cloudflare Pages / Gitee Pages
+- Nginx + HTTPS 自建部署
+- 共享账连接、成员登录和备份
+- 常见问题排查
+
+简要说明：
 
 - **纯静态前端**：`pnpm build` 产出 `dist/`，可部署到 Cloudflare Pages、GitHub Pages、Netlify 等；没有数据库、没有 API 服务。
 - **完全无后端**：连接 GitHub / Gitee 只需要「仓库名 + 私钥」，或使用 WebDAV；不需要 OAuth 服务。
@@ -408,19 +418,19 @@ server/
 - [ ] 原生 iOS / Android 壳（可选，Capacitor）
 - [ ] 更完整的组件测试与端到端测试
 
+## 支持项目
+
+如果两讫对你有帮助，欢迎用支付宝扫码支持后续开发。
+
+<img src="public/support/alipay-qr.jpg" alt="支付宝赞赏码" width="260" />
+
 ## 许可证
 
-本项目以 **GNU General Public License v3.0 or later（GPL-3.0-or-later）** 发布，完整文本见 [LICENSE](LICENSE)。独立实现审计见 [docs/licensing.md](docs/licensing.md)。
-
-### 与 Cent 的关系
-
-两讫是**独立实现**，不是 Cent 的 fork，不包含 Cent 的源代码、文案或素材。功能思路受开源项目 [Cent](https://github.com/glink25/Cent) 启发；Cent 版权归 glink25 所有，采用 CC BY-NC-SA 4.0。
-
-Cent 的许可证**不适用于本项目**；本项目的原创代码按 GPL-3.0-or-later 发布。如果你打算把 Cent 的代码合并进来，需要注意 CC BY-NC-SA 4.0 与 GPLv3 不兼容（NonCommercial 与 ShareAlike 条款冲突），必须先取得 Cent 作者授权。
+本项目以 **GNU General Public License v3.0 or later（GPL-3.0-or-later）** 发布，完整文本见 [LICENSE](LICENSE)。
 
 ### 品牌与素材
 
-「两讫 / LIANGQI」名称和双栏 Logo 为本项目原创。界面图标使用 Lucide（ISC 许可）和系统 Emoji，不包含 Cent 的图标、文案或截图素材。
+「两讫 / LIANGQI」名称和双栏 Logo 为本项目原创。界面图标使用 Lucide（ISC 许可）和系统 Emoji，不包含第三方应用的图标、文案或截图素材。
 
 名称与 Logo 尚未做正式的商标注册检索；如果计划商业发行，请在目标国家 / 类目自行做商标查询。本项目不声称拥有任何注册商标。
 
@@ -429,9 +439,7 @@ Cent 的许可证**不适用于本项目**；本项目的原创代码按 GPL-3.0
 ## License
 
 Liangqi is released under the **GNU General Public License v3.0 or later
-(GPL-3.0-or-later)**. See [LICENSE](LICENSE) for the full text. The
-independence audit against Cent is documented in
-[docs/licensing.md](docs/licensing.md).
+(GPL-3.0-or-later)**. See [LICENSE](LICENSE) for the full text.
 
 ## 免责声明
 

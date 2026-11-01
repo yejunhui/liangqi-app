@@ -648,7 +648,6 @@ export const FR: Record<string, string> = {
     "两讫 · 本地优先记账 · 数据以账本为准": "Liangqi · Comptabilité locale en priorité · Le registre fait foi",
     "两讫 · 银货两讫，账目两清": "Liangqi · Comptes soldés, dettes réglées",
     "两讫 AI": "Liangqi AI",
-    "两讫是独立实现。功能思路受": "Liangqi est une implémentation indépendante. Ses idées fonctionnelles s’inspirent de",
     "两讫已锁定": "Liangqi est verrouillé",
     "两讫月报": "Rapport mensuel Liangqi",
     "两讫只做三件事，保证支出不被重复计算。": "Liangqi fait seulement trois choses pour éviter de compter deux fois les dépenses.",
@@ -738,7 +737,6 @@ export const FR: Record<string, string> = {
     "其他": "Autre",
     "其他人连接同一个仓库后，也需要选择自己的成员；不能直接修改或删除你记的账。成员列表会同步到仓库，新增成员后所有设备可见。": "Les autres personnes qui se connectent au même dépôt doivent aussi choisir leur propre membre ; elles ne peuvent ni modifier ni supprimer directement les écritures que vous avez enregistrées. La liste des membres se synchronise avec le dépôt ; les nouveaux membres apparaissent sur tous les appareils.",
     "其他收入": "Autres revenus",
-    "启发；Cent 版权归 glink25 所有，采用 CC BY-NC-SA 4.0。本项目未复制 Cent\n                        的源代码、文案或素材。名称「两讫」与双栏 Logo 为原创；界面图标使用\n                        Lucide（ISC）和系统 Emoji。": "Inspiré par Cent ; les droits d’auteur de Cent appartiennent à glink25 et sont sous licence CC BY-NC-SA 4.0. Ce projet ne copie ni le code source, ni les textes, ni les ressources de Cent. Le nom « Liangqi » et le logo à deux colonnes sont originaux ; les icônes de l’interface utilisent\n                        Lucide (ISC) et les emojis système.",
     "启用": "Activer",
     "启用密码": "Activer le mot de passe",
     "启用中": "Activé",
@@ -1419,4 +1417,7 @@ export const FR: Record<string, string> = {
     "WebDAV 密码": "Mot de passe WebDAV",
     "WebDAV 认证失败，请检查账号和密码": "Échec de l’authentification WebDAV. Vérifiez le nom d’utilisateur et le mot de passe.",
     "WebDAV 用户名": "Nom d’utilisateur WebDAV",
+    "支持两讫": "Soutenir Liangqi",
+    "如果这个项目对你有帮助，欢迎用支付宝扫码支持。": "Si ce projet vous est utile, vous pouvez le soutenir en scannant le code QR Alipay.",
+    "支付宝赞赏码": "QR code de soutien Alipay"
 };
