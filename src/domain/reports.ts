@@ -3,7 +3,7 @@
  */
 
 import type { Account, Category, Entry, Member, Tag } from "@/types";
-import { formatCents, formatCentsPlain } from "@/domain/money";
+import { formatCents } from "@/domain/money";
 import { isRecognizedExpense } from "@/domain/ledger";
 import { toDateInputValue } from "@/utils/date";
 import { getLocale, t } from "@/i18n";
@@ -84,7 +84,7 @@ export function createEntriesCsv(input: {
             return [
                 toDateInputValue(entry.date),
                 entryKindLabel(entry),
-                formatCentsPlain(entry.amount),
+                (entry.amount / 100).toFixed(2),
                 entryCategoryName(entry, input.categories),
                 entryAccountName(entry, input.accounts),
                 member?.name ?? "",

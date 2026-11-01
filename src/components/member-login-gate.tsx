@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Member } from "@/types";
 import { Button } from "@/components/button";
 import { Logo } from "@/components/logo";
+import { LanguageSelect } from "@/components/language-select";
 import { MemberModal } from "@/components/member-modal";
 import {
     hasMemberPin,
@@ -310,6 +311,9 @@ export function MemberLoginGate() {
                     )}
 
                     <p className="mt-5 text-center text-[9px] leading-relaxed text-muted">{t("同一个私钥可以由多人共用；成员身份由登录决定，而不是 token。锁定或新会话打开后需要重新登录。")}</p>
+                    <div className="mt-3 flex justify-center">
+                        <LanguageSelect />
+                    </div>
                 </div>
             </div>
 

@@ -23,6 +23,7 @@ import type {
 } from "@/types";
 import { Button } from "@/components/button";
 import { Logo } from "@/components/logo";
+import { LanguageSelect } from "@/components/language-select";
 import { Tabs, type TabItem } from "@/components/tabs";
 import { useLibraryStore, getActiveBook } from "@/store/library";
 import { openRemoteBook, uploadCurrentBook } from "@/remote/sync";
@@ -477,6 +478,9 @@ export function WelcomeGate() {
                     )}
 
                     <p className="mt-5 text-center text-[9px] leading-relaxed text-muted">{t("私钥和连接信息只保存在本机；成员密码以 PBKDF2\n                        哈希保存在共享仓库里。")}</p>
+                    <div className="mt-3 flex justify-center">
+                        <LanguageSelect />
+                    </div>
                 </div>
             </div>
         </div>

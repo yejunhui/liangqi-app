@@ -5,16 +5,16 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
-import {
-    bootstrapLibrary,
-    getActiveBook,
-    useLibraryStore,
-} from "@/store/library";
-import { useLedgerStore } from "@/store/ledger";
-import { getLanguage } from "@/i18n";
+import { getLanguage, loadLanguage } from "@/i18n";
 
 async function boot() {
+    await loadLanguage(getLanguage());
     document.documentElement.lang = getLanguage();
+
+    const { bootstrapLibrary, getActiveBook, useLibraryStore } = await import(
+        "@/store/library"
+    );
+    const { useLedgerStore } = await import("@/store/ledger");
     const library = await bootstrapLibrary();
     useLibraryStore.setState(library);
     useLedgerStore.setState(getActiveBook(useLibraryStore.getState()));

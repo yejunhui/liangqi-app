@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { Entry } from "@/types";
 import { createSeedData } from "@/domain/seed";
 import { buildReportHtml } from "@/domain/reports";
-import { setLanguage } from "@/i18n";
+import { loadLanguage, setLanguage } from "@/i18n";
 
 const NOW = new Date(2026, 9, 31, 12).getTime();
 
@@ -25,13 +25,15 @@ function fixture() {
     return data;
 }
 
-afterEach(() => {
+afterEach(async () => {
     setLanguage("zh-CN");
+    await loadLanguage("zh-CN");
 });
 
 describe("report localization", () => {
-    it("renders report labels in English", () => {
+    it("renders report labels in English", async () => {
         setLanguage("en-US");
+        await loadLanguage("en-US");
         const data = fixture();
         const html = buildReportHtml({
             title: "Monthly report",
@@ -51,8 +53,9 @@ describe("report localization", () => {
         expect(html).not.toContain("流水明细");
     });
 
-    it("keeps report labels Chinese in Chinese mode", () => {
+    it("keeps report labels Chinese in Chinese mode", async () => {
         setLanguage("zh-CN");
+        await loadLanguage("zh-CN");
         const data = fixture();
         const html = buildReportHtml({
             title: "月报",

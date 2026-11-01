@@ -60,6 +60,7 @@ import { cn } from "@/utils/cn";
 
 import {
     getLanguage,
+    LANGUAGES,
     setLanguage,
     t,
     type Language,
@@ -69,11 +70,6 @@ const THEMES: Array<{ value: ThemeMode; label: string; icon: typeof Sun }> = [
     { value: "light", label: t("浅色"), icon: Sun },
     { value: "dark", label: t("深色"), icon: Moon },
     { value: "system", label: t("跟随系统"), icon: Monitor },
-];
-
-const LANGUAGES: Array<{ value: Language; label: string; hint: string }> = [
-    { value: "zh-CN", label: "简体中文", hint: "Chinese" },
-    { value: "en-US", label: "English", hint: "English" },
 ];
 
 export function Settings() {
@@ -250,38 +246,28 @@ export function Settings() {
                         title={t("界面语言")}
                         description={t("只影响这台设备的界面，不会写入共享账本。")}
                     />
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                        {LANGUAGES.map((item) => {
-                            const active = language === item.value;
-                            return (
-                                <button
-                                    key={item.value}
-                                    type="button"
-                                    aria-pressed={active}
-                                    onClick={() => {
-                                        if (active) {
-                                            return;
-                                        }
-                                        setLanguage(item.value);
-                                        window.location.reload();
-                                    }}
-                                    className={cn(
-                                        "rounded-xl border px-3 py-3 text-left transition",
-                                        active
-                                            ? "border-accent bg-accent-soft/70 text-accent"
-                                            : "border-line bg-surface text-text hover:border-line-strong",
-                                    )}
-                                >
-                                    <span className="block text-xs font-semibold">
-                                        {item.label}
-                                    </span>
-                                    <span className="mt-0.5 block text-[10px] text-muted">
-                                        {item.hint}
-                                    </span>
-                                </button>
-                            );
-                        })}
-                    </div>
+                    <select
+                        className="field mt-4"
+                        value={language}
+                        aria-label={t("界面语言")}
+                        onChange={(event) => {
+                            const next = event.target.value as Language;
+                            if (next === language) {
+                                return;
+                            }
+                            setLanguage(next);
+                            window.location.reload();
+                        }}
+                    >
+                        {LANGUAGES.map((item) => (
+                            <option key={item.code} value={item.code}>
+                                {item.label}
+                            </option>
+                        ))}
+                    </select>
+                    <p className="mt-2 text-[10px] text-muted">
+                        {LANGUAGES.find((item) => item.code === language)?.englishName}
+                    </p>
                 </section>
 
                 <section className="card p-5">

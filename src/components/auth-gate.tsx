@@ -6,6 +6,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/button";
+import { LanguageSelect } from "@/components/language-select";
 import { useAuthStore } from "@/store/auth";
 
 import { t } from "@/i18n";
@@ -101,6 +102,9 @@ function LockScreen() {
                     </Button>
 
                     <p className="mt-4 text-center text-[10px] leading-relaxed text-muted">{t("这只保护界面访问，不会加密本机 localStorage 数据。忘记密码只能清除浏览器数据。")}</p>
+                    <div className="mt-4 flex justify-center">
+                        <LanguageSelect />
+                    </div>
                 </form>
             </div>
         </div>
