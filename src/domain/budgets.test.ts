@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { Budget, Category, Entry } from "@/types";
+import type { Bill, Budget, Category, Entry } from "@/types";
 import { createSeedData } from "@/domain/seed";
 import { getBudgetProgress, getBudgetSpent } from "@/domain/budgets";
 
@@ -99,6 +99,49 @@ describe("budgets", () => {
         const data = fixture();
         const other = budget({ categoryIds: [], memberIds: ["missing"] });
         expect(getBudgetSpent(other, data.entries, data.categories, NOW)).toBe(0);
+    });
+
+    it("counts repayments but not unpaid credit purchases", () => {
+        const data = fixture();
+        const bill: Bill = {
+            id: "bill_credit",
+            liabilityAccountId: "acc_credit",
+            categoryId: "cat_food",
+            title: "赊账午餐",
+            principal: 5_000,
+            purchasedAt: NOW,
+            createdAt: NOW,
+        };
+        data.bills.push(bill);
+        data.entries.push(
+            {
+                id: "e_credit",
+                kind: "expense",
+                amount: 5_000,
+                date: NOW,
+                liabilityAccountId: "acc_credit",
+                billId: bill.id,
+                categoryId: "cat_food",
+                memberId: "member_me",
+                createdAt: NOW,
+            },
+            {
+                id: "e_repay",
+                kind: "repayment",
+                amount: 3_000,
+                date: NOW,
+                accountId: "acc_bank",
+                liabilityAccountId: "acc_credit",
+                billId: bill.id,
+                categoryId: "cat_food",
+                memberId: "member_me",
+                createdAt: NOW,
+            },
+        );
+
+        expect(getBudgetSpent(budget(), data.entries, data.categories, NOW)).toBe(
+            23_000,
+        );
     });
 
     it("uses year periods", () => {

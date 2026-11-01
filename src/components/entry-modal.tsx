@@ -400,7 +400,7 @@ export function EntryModal() {
                     return;
                 }
                 createdEntryId = result.entryId;
-                toast("已生成待还账单，存款没有变动", "success");
+                toast("已生成待还账单，存款不变，暂不计支出", "success");
             }
         } else if (kind === "income") {
             if (!categoryId) {
@@ -479,7 +479,7 @@ export function EntryModal() {
                 return;
             }
             createdEntryId = result.entryId;
-            toast("还款已记录，不会重复计入支出", "success");
+            toast("还款已记录，计入支出", "success");
         }
 
         if (createdEntryId && files.length > 0) {
@@ -948,7 +948,7 @@ export function EntryModal() {
                                     <div className="rounded-xl border border-line bg-surface-2/60 p-3.5">
                                         <div className="flex items-center gap-2 text-[11px] font-semibold text-text">
                                             <Info className="size-3.5 text-accent" />
-                                            还款不会重复计入支出
+                                            还款会减少存款和负债，并计入支出
                                         </div>
                                         <div className="mt-2 space-y-1 text-[11px] text-muted">
                                             <div className="flex justify-between">

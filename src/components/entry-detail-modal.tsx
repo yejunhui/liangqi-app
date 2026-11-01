@@ -140,7 +140,7 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                             </p>
                             {entry.kind === "repayment" && (
                                 <span className="mt-2 inline-flex chip bg-accent-soft text-accent">
-                                    不计入支出
+                                    计入支出
                                 </span>
                             )}
                         </div>

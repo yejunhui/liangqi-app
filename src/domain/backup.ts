@@ -799,7 +799,13 @@ function validateReferences(data: LedgerData): void {
                 throw new Error("还款流水的负债账户与账单不一致");
             }
             if (entry.categoryId) {
-                throw new Error("还款流水不应设置支出分类");
+                const category = categories.get(entry.categoryId);
+                if (!category || category.kind !== "expense") {
+                    throw new Error("还款流水关联的支出分类不存在");
+                }
+                if (bill.categoryId !== entry.categoryId) {
+                    throw new Error("还款流水的分类与账单不一致");
+                }
             }
         }
     }

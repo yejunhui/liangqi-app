@@ -15,6 +15,7 @@ import type {
 } from "@/types";
 import { createRemoteAdapter } from "@/remote/index";
 import { ensureMembers } from "@/domain/members";
+import { ensureRepaymentCategories } from "@/domain/ledger";
 import {
     REMOTE_INDEX_PATH,
     legacyRemoteBookManifestPath,
@@ -103,10 +104,10 @@ export function parseRemoteBookFile(text: string): RemoteBookFile {
     return {
         app: "liangqi",
         version: 1,
-        book: {
+        book: ensureRepaymentCategories({
             ...raw.book,
             members: ensureMembers(raw.book).members,
-        },
+        }),
         updatedAt:
             typeof raw.updatedAt === "number" ? raw.updatedAt : raw.book.updatedAt,
     };

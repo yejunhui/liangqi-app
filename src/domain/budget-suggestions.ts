@@ -4,6 +4,7 @@
 
 import type { Budget, Category, Entry } from "@/types";
 import { startOfMonth } from "@/utils/date";
+import { isRecognizedExpense } from "@/domain/ledger";
 
 export interface BudgetSuggestion {
     categoryId: string;
@@ -40,7 +41,7 @@ export function suggestBudgets(
     const categoryMap = new Map(categories.map((category) => [category.id, category]));
 
     for (const entry of entries) {
-        if (entry.kind !== "expense" || entry.date < start || entry.date > end) {
+        if (!isRecognizedExpense(entry) || entry.date < start || entry.date > end) {
             continue;
         }
         const category = entry.categoryId ? categoryMap.get(entry.categoryId) : undefined;

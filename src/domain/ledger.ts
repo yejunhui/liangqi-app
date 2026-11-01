@@ -5,12 +5,12 @@
  *
  * Core model:
  * - Cash expense: asset ↓, expense ↑
- * - Credit expense: liability ↑, expense ↑ (asset unchanged)
- * - Repayment: asset ↓, liability ↓ (expense unchanged)
+ * - Credit expense: liability ↑ (asset unchanged, expense recognized on repayment)
+ * - Repayment: asset ↓, liability ↓, expense ↑
  * - Income: asset ↑, income ↑
  */
 
-import type { Account, Bill, BillStatus, Category, Entry, LedgerData } from "@/types";
+import type { Account, Bill, BillStatus, Book, Category, Entry, LedgerData } from "@/types";
 import { formatDate, isInMonth, startOfDay } from "@/utils/date";
 import { formatCents } from "@/domain/money";
 
@@ -54,6 +54,51 @@ export function getAccountBalance(account: Account, entries: Entry[]): number {
 
 export function getAssetAccounts(accounts: Account[]): Account[] {
     return accounts.filter((account) => account.kind === "asset");
+}
+
+/**
+ * Expense recognition is cash/debt-payment based:
+ * - cash expense is recognised immediately;
+ * - credit purchase only adds a liability and is recognised when repaid;
+ * - repayment is recognised as the expense for the period it is paid.
+ */
+export function isRecognizedExpense(entry: Entry): boolean {
+    return (
+        entry.kind === "repayment" ||
+        (entry.kind === "expense" && !entry.liabilityAccountId)
+    );
+}
+
+/**
+ * Older repayments were created before repayment categories were copied from
+ * their bills. Fill them in once so category/tag/member analysis stays useful.
+ */
+export function ensureRepaymentCategories(book: Book): Book {
+    const billsById = new Map(book.bills.map((bill) => [bill.id, bill]));
+    const at = Date.now();
+    let changed = false;
+    const entries = book.entries.map((entry) => {
+        if (entry.kind !== "repayment" || !entry.billId || entry.categoryId) {
+            return entry;
+        }
+        const categoryId = billsById.get(entry.billId)?.categoryId;
+        if (!categoryId) {
+            return entry;
+        }
+        changed = true;
+        return {
+            ...entry,
+            categoryId,
+            updatedAt: Math.max(entry.updatedAt ?? 0, at),
+            fieldUpdatedAt: {
+                ...entry.fieldUpdatedAt,
+                categoryId: at,
+            },
+        };
+    });
+    return changed
+        ? { ...book, entries, updatedAt: Math.max(book.updatedAt, at) }
+        : book;
 }
 
 export function getLiabilityAccounts(accounts: Account[]): Account[] {
@@ -173,12 +218,13 @@ export function getMonthTotals(entries: Entry[], monthTimestamp: number): MonthT
         if (!isInMonth(entry.date, monthTimestamp)) {
             continue;
         }
-        if (entry.kind === "expense") {
-            totals.expense += entry.amount;
-        } else if (entry.kind === "income") {
+        if (entry.kind === "income") {
             totals.income += entry.amount;
         } else if (entry.kind === "repayment") {
             totals.repayment += entry.amount;
+            totals.expense += entry.amount;
+        } else if (isRecognizedExpense(entry)) {
+            totals.expense += entry.amount;
         }
     }
 
@@ -205,7 +251,7 @@ export function getCategoryBreakdown(
     let total = 0;
 
     for (const entry of entries) {
-        if (entry.kind !== "expense" || !isInMonth(entry.date, monthTimestamp)) {
+        if (!isRecognizedExpense(entry) || !isInMonth(entry.date, monthTimestamp)) {
             continue;
         }
         const key = entry.categoryId ?? "uncategorized";
@@ -244,7 +290,9 @@ export function getRecentDailyExpenses(entries: Entry[], days = 7, now = Date.no
         const amount = entries
             .filter(
                 (entry) =>
-                    entry.kind === "expense" && entry.date >= dayStart && entry.date <= dayEnd,
+                    isRecognizedExpense(entry) &&
+                    entry.date >= dayStart &&
+                    entry.date <= dayEnd,
             )
             .reduce((total, entry) => total + entry.amount, 0);
         result.push({ timestamp: dayStart, amount });

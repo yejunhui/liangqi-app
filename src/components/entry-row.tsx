@@ -63,7 +63,7 @@ export function EntryRow({
         subtitle = `${asset?.name ?? "账户"} → ${liability?.name ?? "负债"}`;
         amountClass = "text-muted";
         badge = {
-            label: "不计支出",
+            label: "计入支出",
             className: "bg-accent-soft text-accent",
         };
     } else if (entry.kind === "transfer") {
@@ -77,7 +77,7 @@ export function EntryRow({
             className: "bg-surface-3 text-muted",
         };
     } else if (entry.billId) {
-        title = bill?.title ?? category?.name ?? "赊账支出";
+        title = bill?.title ?? category?.name ?? "赊账";
         subtitle = `${liability?.name ?? "负债"} · 赊账`;
         amountClass = "text-liability";
         badge = {

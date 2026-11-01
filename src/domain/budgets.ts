@@ -4,6 +4,7 @@
 
 import type { Budget, Category, Entry } from "@/types";
 import { endOfMonth, endOfYear, startOfMonth, startOfYear } from "@/utils/date";
+import { isRecognizedExpense } from "@/domain/ledger";
 
 export interface BudgetProgress {
     budget: Budget;
@@ -50,7 +51,7 @@ export function getBudgetSpent(
 
     return entries
         .filter((entry) => {
-            if (entry.kind !== "expense" || entry.date < start || entry.date > end) {
+            if (!isRecognizedExpense(entry) || entry.date < start || entry.date > end) {
                 return false;
             }
             if (categoryIds && (!entry.categoryId || !categoryIds.has(entry.categoryId))) {

@@ -20,6 +20,7 @@ import { EntryDetailModal } from "@/components/entry-detail-modal";
 import { BatchEditModal } from "@/components/batch-edit-modal";
 import { EmptyState } from "@/components/empty-state";
 import { formatCents, parseAmountToCents } from "@/domain/money";
+import { isRecognizedExpense } from "@/domain/ledger";
 import { matchesEntryFilter, type EntryFilter } from "@/domain/filters";
 import {
     endOfDay,
@@ -144,7 +145,9 @@ export function Entries() {
                     ...entryTags,
                     (entry.amount / 100).toFixed(2),
                     entry.kind === "expense"
-                        ? "支出"
+                        ? entry.billId
+                            ? "赊账 支出"
+                            : "支出"
                         : entry.kind === "income"
                           ? "收入"
                           : entry.kind === "transfer"
@@ -560,7 +563,7 @@ export function Entries() {
                 ) : (
                     groups.map(([day, dayEntries]) => {
                         const expense = dayEntries
-                            .filter((entry) => entry.kind === "expense")
+                            .filter(isRecognizedExpense)
                             .reduce((sum, entry) => sum + entry.amount, 0);
                         const income = dayEntries
                             .filter((entry) => entry.kind === "income")
@@ -587,15 +590,20 @@ export function Entries() {
                                     </div>
                                     <div className="flex items-center gap-2 text-[10px] tabular-nums text-muted">
                                         {expense > 0 && (
-                                            <span>支出 {formatCents(expense, currency)}</span>
+                                            <span>
+                                                支出 {formatCents(expense, currency)}
+                                                {repayment > 0
+                                                    ? `（含还款 ${formatCents(
+                                                          repayment,
+                                                          currency,
+                                                      )}）`
+                                                    : ""}
+                                            </span>
                                         )}
                                         {income > 0 && (
                                             <span className="text-success">
                                                 收入 {formatCents(income, currency)}
                                             </span>
-                                        )}
-                                        {repayment > 0 && (
-                                            <span>还款 {formatCents(repayment, currency)}</span>
                                         )}
                                     </div>
                                 </div>

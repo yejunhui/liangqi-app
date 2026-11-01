@@ -274,7 +274,7 @@ export function QuickEntryModal() {
                                     {suggestion.kind === "income"
                                         ? "收入"
                                         : suggestion.paymentMode === "liability"
-                                          ? "赊账支出"
+                                          ? "赊账（只记负债）"
                                           : "现金支出"}
                                 </p>
                                 <p className="mt-0.5 text-2xl font-bold tabular-nums text-text">

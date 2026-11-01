@@ -15,6 +15,7 @@ import {
     getOpenBills,
     getOutstandingTotal,
     getTotals,
+    isRecognizedExpense,
 } from "@/domain/ledger";
 import { getBudgetProgressList } from "@/domain/budgets";
 import { formatCents } from "@/domain/money";
@@ -49,7 +50,7 @@ export function buildLedgerContext(
         (entry) => entry.date >= yearStart.getTime() && entry.date <= now,
     );
     const yearExpense = yearEntries
-        .filter((entry) => entry.kind === "expense")
+        .filter(isRecognizedExpense)
         .reduce((sum, entry) => sum + entry.amount, 0);
     const yearIncome = yearEntries
         .filter((entry) => entry.kind === "income")
@@ -88,7 +89,10 @@ export function buildLedgerContext(
         )}，收入 ${formatCents(monthTotals.income, currency)}，结余 ${formatCents(
             monthTotals.net,
             currency,
-        )}，还款 ${formatCents(monthTotals.repayment, currency)}（还款不计支出）`,
+        )}，还款 ${formatCents(monthTotals.repayment, currency)}（计入支出）`,
+    );
+    lines.push(
+        "口径：现金支出立即计入；赊账消费只记负债，还款时计入支出；转账不计收支。",
     );
     lines.push(
         `上月（${formatMonthLabel(previous)}）支出 ${formatCents(
@@ -143,7 +147,7 @@ export function buildLedgerContext(
     const tagTotals = new Map<string, number>();
     const memberTotals = new Map<string, number>();
     for (const entry of data.entries) {
-        if (entry.kind !== "expense" || !isInMonth(entry.date, month)) {
+        if (!isRecognizedExpense(entry) || !isInMonth(entry.date, month)) {
             continue;
         }
         for (const tagId of new Set(entry.tagIds ?? [])) {
@@ -249,7 +253,9 @@ export function buildLedgerContext(
             .join("/");
         const kind =
             entry.kind === "expense"
-                ? "支出"
+                ? entry.billId
+                    ? "赊账"
+                    : "支出"
                 : entry.kind === "income"
                   ? "收入"
                   : entry.kind === "transfer"

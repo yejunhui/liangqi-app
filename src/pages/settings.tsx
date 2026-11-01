@@ -635,11 +635,11 @@ export function Settings() {
                     />
                     <ul className="mt-4 space-y-2 text-[11px]">
                         <RuleRow label="现金消费" detail="资产 ↓ 100 · 支出 ↑ 100" />
-                        <RuleRow label="赊账消费" detail="负债 ↑ 100 · 支出 ↑ 100" />
-                        <RuleRow label="还款" detail="资产 ↓ 100 · 负债 ↓ 100" />
+                        <RuleRow label="赊账消费" detail="负债 ↑ 100 · 暂不计支出" />
+                        <RuleRow label="还款" detail="资产 ↓ 100 · 负债 ↓ 100 · 支出 ↑ 100" />
                     </ul>
                     <p className="mt-3 text-[10px] leading-relaxed text-muted">
-                        还款是资产和负债之间的转移，不会再记一笔支出。
+                        赊账消费只记负债，还款时再按还款金额计入支出；转账不计收支。
                     </p>
                 </section>
 

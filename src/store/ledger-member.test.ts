@@ -93,6 +93,21 @@ describe("ledger member defaults", () => {
         const bill = state.bills.find((item) => item.id === result.billId);
         expect(entry?.memberId).toBe("member_bob");
         expect(bill?.memberId).toBe("member_bob");
+
+        const repay = state.addRepayment({
+            amount: 1_000,
+            date: NOW,
+            billId: result.billId!,
+            accountId: "acc_bank",
+        });
+        expect(repay.ok).toBe(true);
+        if (!repay.ok) {
+            return;
+        }
+        const repayment = useLedgerStore
+            .getState()
+            .entries.find((item) => item.id === repay.entryId);
+        expect(repayment?.categoryId).toBe("cat_food");
     });
 
     it("does not touch the book when no recurring rule is due", () => {

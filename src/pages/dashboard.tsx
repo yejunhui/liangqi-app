@@ -217,7 +217,7 @@ export function Dashboard() {
                     label="本月支出"
                     value={monthTotals.expense}
                     currency={currency}
-                    hint="含赊账，不含还款"
+                    hint="含还款，赊账不计"
                     tone="liability"
                     icon={ReceiptText}
                 />
@@ -320,7 +320,7 @@ export function Dashboard() {
                         <div>
                             <h2 className="text-sm font-bold text-text">本月支出</h2>
                             <p className="mt-0.5 text-[11px] text-muted">
-                                赊账在消费时计入，还款时不再重复计入
+                                赊账只记负债，还款时计入支出
                             </p>
                         </div>
                         <div className="flex items-center gap-1 rounded-lg border border-line bg-surface-2/70 p-0.5">
@@ -365,7 +365,7 @@ export function Dashboard() {
                             </p>
                         </div>
                         <div className="rounded-lg bg-surface-2 px-2.5 py-1.5 text-[10px] text-muted">
-                            还款 {formatCents(monthTotals.repayment, currency)}（不计支出）
+                            还款 {formatCents(monthTotals.repayment, currency)}（计入支出）
                         </div>
                     </div>
 
@@ -513,7 +513,7 @@ export function Dashboard() {
                 <Info className="mt-0.5 size-4 shrink-0 text-accent" />
                 <p className="text-[11px] leading-relaxed text-muted">
                     <strong className="font-semibold text-text">账务规则：</strong>
-                    赊账消费计入本月支出，同时增加负债，但不动存款；还款只减少存款和负债，不再计入支出。这样既能看到真实消费，也不会重复统计。
+                    赊账消费只增加负债，不动存款，也不计入支出；还款时减少存款和负债，并计入还款当月的支出。
                 </p>
             </div>
         </div>

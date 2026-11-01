@@ -518,6 +518,7 @@ const createActions = (
             accountId: input.accountId,
             liabilityAccountId: bill.liabilityAccountId,
             billId: bill.id,
+            categoryId: bill.categoryId,
             memberId,
             tagIds: tagResult.tagIds,
             note: cleanNote(input.note),
@@ -681,9 +682,35 @@ const createActions = (
         const fieldTimes = Object.fromEntries(
             changedFields.map((key) => [key, changedAt]),
         );
+        const affectedBillIds = new Set(
+            state.entries
+                .filter(
+                    (entry) =>
+                        ids.includes(entry.id) &&
+                        entry.kind === "expense" &&
+                        entry.billId,
+                )
+                .map((entry) => entry.billId!),
+        );
         set({
             entries: state.entries.map((entry) => {
                 if (!ids.includes(entry.id)) {
+                    if (
+                        category &&
+                        entry.kind === "repayment" &&
+                        entry.billId &&
+                        affectedBillIds.has(entry.billId)
+                    ) {
+                        return {
+                            ...entry,
+                            categoryId: category.id,
+                            updatedAt: changedAt,
+                            fieldUpdatedAt: {
+                                ...entry.fieldUpdatedAt,
+                                categoryId: changedAt,
+                            },
+                        };
+                    }
                     return entry;
                 }
                 return {
@@ -873,27 +900,45 @@ const createActions = (
                     : item,
             ),
             entries: updateEntries
-                ? state.entries.map((entry) =>
-                      entry.billId === billId && entry.kind === "expense"
-                          ? {
-                                ...entry,
-                                ...(patch.categoryId !== undefined
-                                    ? { categoryId: nextCategoryId }
-                                    : {}),
-                                ...(patch.memberId !== undefined
-                                    ? { memberId: nextMemberId }
-                                    : {}),
-                                ...(patch.tagIds !== undefined
-                                    ? { tagIds: nextTagIds }
-                                    : {}),
-                                updatedAt: changedAt,
-                                fieldUpdatedAt: {
-                                    ...entry.fieldUpdatedAt,
-                                    ...entryFieldTimes,
-                                },
-                            }
-                          : entry,
-                  )
+                ? state.entries.map((entry) => {
+                      if (entry.billId !== billId) {
+                          return entry;
+                      }
+                      if (entry.kind === "repayment") {
+                          if (patch.categoryId === undefined) {
+                              return entry;
+                          }
+                          return {
+                              ...entry,
+                              categoryId: nextCategoryId,
+                              updatedAt: changedAt,
+                              fieldUpdatedAt: {
+                                  ...entry.fieldUpdatedAt,
+                                  categoryId: changedAt,
+                              },
+                          };
+                      }
+                      if (entry.kind !== "expense") {
+                          return entry;
+                      }
+                      return {
+                          ...entry,
+                          ...(patch.categoryId !== undefined
+                              ? { categoryId: nextCategoryId }
+                              : {}),
+                          ...(patch.memberId !== undefined
+                              ? { memberId: nextMemberId }
+                              : {}),
+                          ...(patch.tagIds !== undefined
+                              ? { tagIds: nextTagIds }
+                              : {}),
+                          updatedAt: changedAt,
+                          fieldUpdatedAt: {
+                              ...entry.fieldUpdatedAt,
+                              ...entryFieldTimes,
+                          },
+                      };
+                  })
                 : state.entries,
         });
         return { ok: true };

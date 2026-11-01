@@ -134,7 +134,7 @@ describe("account balances", () => {
             getTotals({ accounts: data.accounts, entries: data.entries.slice(0, -1) }).netWorth,
         );
         const month = getMonthTotals(data.entries, NOW);
-        expect(month.expense).toBe(30_000);
+        expect(month.expense).toBe(10_000);
         expect(month.income).toBe(50_000);
         expect(month.repayment).toBe(0);
     });
@@ -182,7 +182,7 @@ describe("bill lifecycle", () => {
         expect(validateRepayment(bill, data.entries, 0, bank)).toContain("大于 0");
     });
 
-    it("does not include repayments in income or expense", () => {
+    it("recognizes a repayment as expense while the credit purchase stays liability-only", () => {
         const data = buildFixture();
         const before = getMonthTotals(data.entries, NOW);
 
@@ -198,9 +198,29 @@ describe("bill lifecycle", () => {
         });
 
         const after = getMonthTotals(data.entries, NOW);
-        expect(after.expense).toBe(before.expense);
+        expect(after.expense).toBe(before.expense + 20_000);
         expect(after.income).toBe(before.income);
         expect(after.repayment).toBe(20_000);
+    });
+
+    it("puts a repayment into the bill category for category analysis", () => {
+        const data = buildFixture();
+        data.entries.push({
+            id: "entry_repay_category",
+            kind: "repayment",
+            amount: 5_000,
+            date: NOW,
+            accountId: "acc_bank",
+            liabilityAccountId: "acc_credit",
+            billId: "bill_1",
+            categoryId: "cat_food",
+            createdAt: NOW,
+        });
+
+        const breakdown = getCategoryBreakdown(data.entries, data.categories, NOW);
+        expect(breakdown).toHaveLength(1);
+        expect(breakdown[0].name).toBe("餐饮");
+        expect(breakdown[0].amount).toBe(15_000);
     });
 });
 
@@ -379,7 +399,7 @@ describe("accounting invariants", () => {
         );
     });
 
-    it("changes net worth only by income minus expenses", () => {
+    it("reconciles net worth with income, cash expense and debt", () => {
         const data = buildFixture();
         const initial = getTotals({
             accounts: data.accounts,
@@ -387,15 +407,21 @@ describe("accounting invariants", () => {
         });
         const beforeRepayment = getTotals(data);
         const month = getMonthTotals(data.entries, NOW);
+        const creditPurchases = data.entries
+            .filter(
+                (entry) =>
+                    entry.kind === "expense" && Boolean(entry.liabilityAccountId),
+            )
+            .reduce((sum, entry) => sum + entry.amount, 0);
 
         expect(beforeRepayment.netWorth - initial.netWorth).toBe(
-            month.income - month.expense,
+            month.income - month.expense - creditPurchases,
         );
 
         data.entries.push({
             id: "entry_repay_neutral",
             kind: "repayment",
-            amount: 5_000,
+            amount: 20_000,
             date: NOW,
             accountId: "acc_bank",
             liabilityAccountId: "acc_credit",
@@ -412,7 +438,12 @@ describe("accounting invariants", () => {
             createdAt: NOW,
         });
 
-        expect(getTotals(data).netWorth).toBe(beforeRepayment.netWorth);
+        const afterRepayment = getTotals(data);
+        expect(afterRepayment.netWorth).toBe(beforeRepayment.netWorth);
+        const afterMonth = getMonthTotals(data.entries, NOW);
+        expect(afterRepayment.netWorth - initial.netWorth).toBe(
+            afterMonth.income - afterMonth.expense,
+        );
     });
 });
 
@@ -420,14 +451,14 @@ describe("summaries", () => {
     it("computes month totals and category shares", () => {
         const data = buildFixture();
         const totals = getMonthTotals(data.entries, NOW);
-        expect(totals.expense).toBe(30_000);
+        expect(totals.expense).toBe(10_000);
         expect(totals.income).toBe(50_000);
-        expect(totals.net).toBe(20_000);
+        expect(totals.net).toBe(40_000);
 
         const breakdown = getCategoryBreakdown(data.entries, data.categories, NOW);
         expect(breakdown).toHaveLength(1);
         expect(breakdown[0].name).toBe("餐饮");
-        expect(breakdown[0].amount).toBe(30_000);
+        expect(breakdown[0].amount).toBe(10_000);
         expect(breakdown[0].share).toBe(1);
     });
 

@@ -30,6 +30,7 @@ import { CategoryBars } from "@/components/category-bars";
 import {
     getCategoryBreakdown,
     getMonthTotals,
+    isRecognizedExpense,
 } from "@/domain/ledger";
 import { filterEntries, type EntryFilter } from "@/domain/filters";
 import { formatCents, formatPercent } from "@/domain/money";
@@ -177,7 +178,7 @@ export function Analytics() {
     const tagBreakdown = useMemo(() => {
         const map = new Map<string, number>();
         for (const entry of filteredMonthEntries) {
-            if (entry.kind !== "expense" || !isInMonth(entry.date, month)) {
+            if (!isRecognizedExpense(entry) || !isInMonth(entry.date, month)) {
                 continue;
             }
             for (const tagId of new Set(entry.tagIds ?? [])) {
@@ -203,7 +204,7 @@ export function Analytics() {
     const memberBreakdown = useMemo(() => {
         const map = new Map<string, number>();
         for (const entry of filteredMonthEntries) {
-            if (entry.kind !== "expense" || !isInMonth(entry.date, month)) {
+            if (!isRecognizedExpense(entry) || !isInMonth(entry.date, month)) {
                 continue;
             }
             const key = entry.memberId ?? "";
@@ -250,7 +251,7 @@ export function Analytics() {
     const topExpenses = useMemo(
         () =>
             filteredMonthEntries
-                .filter((entry) => entry.kind === "expense")
+                .filter(isRecognizedExpense)
                 .sort((a, b) => b.amount - a.amount)
                 .slice(0, 8),
         [filteredMonthEntries],
@@ -262,7 +263,7 @@ export function Analytics() {
             { key: string; lat: number; lng: number; label: string; amount: number; count: number }
         >();
         for (const entry of entries) {
-            if (entry.kind !== "expense" || !entry.location) {
+            if (!isRecognizedExpense(entry) || !entry.location) {
                 continue;
             }
             const lat = Number(entry.location.lat.toFixed(3));
@@ -650,7 +651,7 @@ export function Analytics() {
                     label="还款"
                     value={totals.repayment}
                     currency={currency}
-                    hint="不计入支出"
+                    hint="已计入支出"
                     tone="muted"
                 />
             </div>
@@ -898,7 +899,7 @@ export function Analytics() {
 
             <p className="mt-5 flex items-center justify-center gap-1 text-[10px] text-muted">
                 <ChartNoAxesColumn className="size-3" />
-                统计只包含支出和收入，转账和还款不会重复计入
+                统计口径：现金支出立即计入，赊账只记负债，还款时计入支出；转账不计收支
             </p>
 
             <Modal

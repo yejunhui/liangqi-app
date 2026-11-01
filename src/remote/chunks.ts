@@ -12,6 +12,7 @@ import type {
 } from "@/types";
 import { remoteChunkPath } from "@/remote/paths";
 import { RemoteError } from "@/remote/errors";
+import { ensureRepaymentCategories } from "@/domain/ledger";
 
 export const CHUNK_SIZE = 1000;
 
@@ -203,9 +204,9 @@ export function bookFromParts(
     entries: Entry[],
     bills: Bill[],
 ): Book {
-    return {
+    return ensureRepaymentCategories({
         ...meta.book,
         entries,
         bills,
-    };
+    });
 }

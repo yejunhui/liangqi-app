@@ -13,6 +13,7 @@ import type {
 import { createSeedBook } from "@/domain/seed";
 import { createDefaultMember } from "@/domain/members";
 import { seedDefaultTags } from "@/domain/tags";
+import { ensureRepaymentCategories } from "@/domain/ledger";
 import { newId } from "@/utils/id";
 
 export const LIBRARY_STORAGE_KEY = "liangqi-library-v2";
@@ -55,21 +56,23 @@ function normalizeLibrary(raw: unknown): LibraryData | null {
     const books = raw.books
         .filter(isBook)
         .map((book) =>
-            seedDefaultTags({
-                ...book,
-                members:
-                    Array.isArray(book.members) && book.members.length > 0
-                        ? book.members
-                        : [createDefaultMember()],
-                tagGroups: Array.isArray(book.tagGroups) ? book.tagGroups : [],
-                tags: Array.isArray(book.tags) ? book.tags : [],
-                budgets: Array.isArray(book.budgets) ? book.budgets : [],
-                recurringRules: Array.isArray(book.recurringRules) ? book.recurringRules : [],
-                attachments: Array.isArray(book.attachments) ? book.attachments : [],
-                deletedEntries: Array.isArray(book.deletedEntries) ? book.deletedEntries : [],
-                deletedBills: Array.isArray(book.deletedBills) ? book.deletedBills : [],
-                deletedConfig: Array.isArray(book.deletedConfig) ? book.deletedConfig : [],
-            }),
+            ensureRepaymentCategories(
+                seedDefaultTags({
+                    ...book,
+                    members:
+                        Array.isArray(book.members) && book.members.length > 0
+                            ? book.members
+                            : [createDefaultMember()],
+                    tagGroups: Array.isArray(book.tagGroups) ? book.tagGroups : [],
+                    tags: Array.isArray(book.tags) ? book.tags : [],
+                    budgets: Array.isArray(book.budgets) ? book.budgets : [],
+                    recurringRules: Array.isArray(book.recurringRules) ? book.recurringRules : [],
+                    attachments: Array.isArray(book.attachments) ? book.attachments : [],
+                    deletedEntries: Array.isArray(book.deletedEntries) ? book.deletedEntries : [],
+                    deletedBills: Array.isArray(book.deletedBills) ? book.deletedBills : [],
+                    deletedConfig: Array.isArray(book.deletedConfig) ? book.deletedConfig : [],
+                }),
+            ),
         );
     if (books.length === 0) {
         return null;

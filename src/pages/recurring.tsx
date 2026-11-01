@@ -227,7 +227,7 @@ export function Recurring() {
                                                     {rule.kind === "income"
                                                         ? "收入"
                                                         : rule.liabilityAccountId
-                                                          ? "赊账支出"
+                                                          ? "赊账（只记负债）"
                                                           : "支出"}
                                                 </span>
                                                 {due > 0 && (

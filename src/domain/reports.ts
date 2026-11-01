@@ -4,6 +4,7 @@
 
 import type { Account, Category, Entry, Member, Tag } from "@/types";
 import { formatCents, formatCentsPlain } from "@/domain/money";
+import { isRecognizedExpense } from "@/domain/ledger";
 import { toDateInputValue } from "@/utils/date";
 
 const KIND_LABELS = {
@@ -12,6 +13,13 @@ const KIND_LABELS = {
     repayment: "还款",
     transfer: "转账",
 } as const;
+
+function entryKindLabel(entry: Entry): string {
+    if (entry.kind === "expense" && entry.billId) {
+        return "赊账";
+    }
+    return KIND_LABELS[entry.kind];
+}
 
 function csvCell(value: string): string {
     return `"${value.replace(/"/g, '""')}"`;
@@ -74,7 +82,7 @@ export function createEntriesCsv(input: {
             const member = input.members.find((item) => item.id === entry.memberId);
             return [
                 toDateInputValue(entry.date),
-                KIND_LABELS[entry.kind],
+                entryKindLabel(entry),
                 formatCentsPlain(entry.amount),
                 entryCategoryName(entry, input.categories),
                 entryAccountName(entry, input.accounts),
@@ -104,7 +112,7 @@ function categoryTotals(entries: Entry[], categories: Category[]): Array<{
 }> {
     const totals = new Map<string, number>();
     for (const entry of entries) {
-        if (entry.kind !== "expense") {
+        if (!isRecognizedExpense(entry)) {
             continue;
         }
         const name = entryCategoryName(entry, categories) || "未分类";
@@ -126,7 +134,7 @@ export function buildReportHtml(input: {
     tags: Tag[];
 }): string {
     const expense = input.entries
-        .filter((entry) => entry.kind === "expense")
+        .filter(isRecognizedExpense)
         .reduce((sum, entry) => sum + entry.amount, 0);
     const income = input.entries
         .filter((entry) => entry.kind === "income")
@@ -143,7 +151,7 @@ export function buildReportHtml(input: {
             const member = input.members.find((item) => item.id === entry.memberId);
             return `<tr>
                 <td>${toDateInputValue(entry.date)}</td>
-                <td>${KIND_LABELS[entry.kind]}</td>
+                <td>${entryKindLabel(entry)}</td>
                 <td>${escapeHtml(entryCategoryName(entry, input.categories) || "-")}</td>
                 <td>${escapeHtml(entryAccountName(entry, input.accounts))}</td>
                 <td>${escapeHtml(member?.name ?? "")}</td>
@@ -195,7 +203,7 @@ export function buildReportHtml(input: {
         <div class="metric"><p>支出</p><strong>${formatCents(expense, input.currency)}</strong></div>
         <div class="metric"><p>收入</p><strong>${formatCents(income, input.currency)}</strong></div>
         <div class="metric"><p>结余</p><strong>${formatCents(net, input.currency)}</strong></div>
-        <div class="metric"><p>还款（不计支出）</p><strong>${formatCents(repayment, input.currency)}</strong></div>
+        <div class="metric"><p>还款（计入支出）</p><strong>${formatCents(repayment, input.currency)}</strong></div>
     </div>
     <div class="grid">
         <section>
@@ -204,7 +212,7 @@ export function buildReportHtml(input: {
         </section>
         <section>
             <h2>说明</h2>
-            <p class="muted">统计只包含支出和收入；还款和转账不计入支出。外币按记账时汇率换算成本位币。</p>
+            <p class="muted">赊账消费只记负债，还款时计入支出；转账不计入支出。外币按记账时汇率换算成本位币。</p>
             <p class="muted">共 ${input.entries.length} 笔流水。</p>
         </section>
     </div>
