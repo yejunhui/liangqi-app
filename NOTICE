@@ -33,7 +33,8 @@ Attribution / inspiration
 -------------------------
 
 Liangqi is an independent implementation. It does not contain source code,
-copy, or assets from the Cent project.
+copy, or assets from the Cent project. The technical independence audit is in
+docs/licensing.md.
 
 Feature ideas were inspired by Cent:
   Cent

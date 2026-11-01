@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Deploy the static Liangqi build to /workbook on a remote nginx host.
 #
 # Required:

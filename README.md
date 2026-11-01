@@ -4,7 +4,7 @@
 
 **在线使用：** https://arksc.cn:8002/workbook/  
 **源码仓库：** https://gitee.com/PharaohMan/liangqi-app  
-**开源协议：** GPL-3.0-or-later
+**开源协议：** GPL-3.0-or-later · [独立实现审计](docs/licensing.md)
 
 两讫是一个**本地优先、可连接远程仓库**的记账 Web App，专门把两类支出分开：
 
@@ -410,7 +410,7 @@ server/
 
 ## 许可证
 
-本项目以 **GNU General Public License v3.0 or later（GPL-3.0-or-later）** 发布，完整文本见 [LICENSE](LICENSE)。
+本项目以 **GNU General Public License v3.0 or later（GPL-3.0-or-later）** 发布，完整文本见 [LICENSE](LICENSE)。独立实现审计见 [docs/licensing.md](docs/licensing.md)。
 
 ### 与 Cent 的关系
 
@@ -425,6 +425,13 @@ Cent 的许可证**不适用于本项目**；本项目的原创代码按 GPL-3.0
 名称与 Logo 尚未做正式的商标注册检索；如果计划商业发行，请在目标国家 / 类目自行做商标查询。本项目不声称拥有任何注册商标。
 
 第三方依赖与图标的许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+## License
+
+Liangqi is released under the **GNU General Public License v3.0 or later
+(GPL-3.0-or-later)**. See [LICENSE](LICENSE) for the full text. The
+independence audit against Cent is documented in
+[docs/licensing.md](docs/licensing.md).
 
 ## 免责声明
 

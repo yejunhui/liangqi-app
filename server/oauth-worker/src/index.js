@@ -1,4 +1,8 @@
 /**
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/**
  * Liangqi OAuth broker for GitHub and Gitee.
  *
  * Deploy this as a separate service (Cloudflare Worker or any Fetch API host).

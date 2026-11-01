@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
