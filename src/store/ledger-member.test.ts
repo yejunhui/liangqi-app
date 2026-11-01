@@ -110,6 +110,18 @@ describe("ledger member defaults", () => {
         expect(repayment?.categoryId).toBe("cat_food");
     });
 
+    it("records member update timestamps for shared-ledger merge", () => {
+        const result = useLedgerStore
+            .getState()
+            .updateMember("member_alice", { name: "Alice Updated" });
+        expect(result.ok).toBe(true);
+        const member = useLedgerStore
+            .getState()
+            .members.find((item) => item.id === "member_alice");
+        expect(member?.updatedAt).toBeGreaterThanOrEqual(NOW);
+        expect(member?.fieldUpdatedAt?.name).toBe(member?.updatedAt);
+    });
+
     it("does not touch the book when no recurring rule is due", () => {
         useLedgerStore.setState({
             recurringRules: [

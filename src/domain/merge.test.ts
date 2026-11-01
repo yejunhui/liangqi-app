@@ -3,8 +3,9 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { Entry } from "@/types";
+import type { Entry, Member } from "@/types";
 import { createSeedBook } from "@/domain/seed";
+import { hashMemberPin, verifyMemberPin } from "@/domain/member-pin";
 import {
     bookContentSignature,
     claimUnownedRecords,
@@ -28,7 +29,102 @@ function entry(id: string, ownerId: string, updatedAt: number): Entry {
     };
 }
 
+function member(overrides: Partial<Member> = {}): Member {
+    return {
+        id: "member_shared",
+        name: "Alice",
+        color: "#0f766e",
+        createdAt: NOW,
+        ...overrides,
+    };
+}
+
 describe("multi-user merge", () => {
+    it("merges the newer member password hash", () => {
+        const local = createSeedBook("共享账", NOW);
+        local.members = [
+            member({
+                pinHash: "old-hash",
+                pinSalt: "old-salt",
+                pinIterations: 160_000,
+                updatedAt: 100,
+            }),
+        ];
+        const remote = createSeedBook("共享账", NOW);
+        remote.members = [
+            member({
+                pinHash: "new-hash",
+                pinSalt: "new-salt",
+                pinIterations: 160_000,
+                updatedAt: 200,
+            }),
+        ];
+
+        const merged = mergeBooks(local, remote);
+        expect(merged.members[0]).toMatchObject({
+            pinHash: "new-hash",
+            pinSalt: "new-salt",
+        });
+    });
+
+    it("does not let a passwordless member overwrite a local password", () => {
+        const local = createSeedBook("共享账", NOW);
+        local.members = [
+            member({
+                pinHash: "local-hash",
+                pinSalt: "local-salt",
+                pinIterations: 160_000,
+                updatedAt: 100,
+            }),
+        ];
+        const remote = createSeedBook("共享账", NOW);
+        remote.members = [member({ updatedAt: 200 })];
+
+        const merged = mergeBooks(local, remote);
+        expect(merged.members[0]).toMatchObject({
+            pinHash: "local-hash",
+            pinSalt: "local-salt",
+            pinIterations: 160_000,
+        });
+    });
+
+    it("keeps a password from either side over a passwordless copy", () => {
+        const local = createSeedBook("共享账", NOW);
+        local.members = [member({ updatedAt: 200 })];
+        const remote = createSeedBook("共享账", NOW);
+        remote.members = [
+            member({
+                pinHash: "remote-hash",
+                pinSalt: "remote-salt",
+                pinIterations: 160_000,
+                updatedAt: 100,
+            }),
+        ];
+
+        const merged = mergeBooks(local, remote);
+        expect(merged.members[0]).toMatchObject({
+            pinHash: "remote-hash",
+            pinSalt: "remote-salt",
+        });
+    });
+
+    it("verifies the newer password after merging two devices", async () => {
+        const localFields = await hashMemberPin("new-password");
+        const remoteFields = await hashMemberPin("old-password");
+        const local = createSeedBook("共享账", NOW);
+        local.members = [member({ ...localFields, updatedAt: 200 })];
+        const remote = createSeedBook("共享账", NOW);
+        remote.members = [member({ ...remoteFields, updatedAt: 100 })];
+
+        const merged = mergeBooks(local, remote);
+        await expect(
+            verifyMemberPin("new-password", merged.members[0]),
+        ).resolves.toBe(true);
+        await expect(
+            verifyMemberPin("old-password", merged.members[0]),
+        ).resolves.toBe(false);
+    });
+
     it("unions additions from two users and keeps the latest edit", () => {
         const local = createSeedBook("共享账", NOW);
         local.entries = [entry("shared", "alice", 100)];

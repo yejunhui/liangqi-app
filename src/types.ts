@@ -17,6 +17,10 @@ export interface Member {
     name: string;
     color: string;
     createdAt: number;
+    /** Last local update timestamp, used when merging shared ledgers. */
+    updatedAt?: number;
+    /** Per-field update timestamps for member identity/password conflicts. */
+    fieldUpdatedAt?: Record<string, number>;
     /** Optional PBKDF2 hash for the member's login password. */
     pinHash?: string;
     pinSalt?: string;

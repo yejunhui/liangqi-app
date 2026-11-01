@@ -97,6 +97,36 @@ function buildBook() {
 }
 
 describe("remote chunks", () => {
+    it("keeps member password hashes in remote meta.json", async () => {
+        const book = buildBook();
+        book.members = [
+            {
+                ...book.members[0],
+                pinHash: "pbkdf2-hash",
+                pinSalt: "pbkdf2-salt",
+                pinIterations: 160_000,
+                updatedAt: NOW + 1,
+                fieldUpdatedAt: { pinHash: NOW + 1 },
+            },
+        ];
+
+        const payload = await buildRemotePayload(book);
+        const meta = parseMetaFile(payload.metaText);
+        expect(meta.book.members[0]).toMatchObject({
+            pinHash: "pbkdf2-hash",
+            pinSalt: "pbkdf2-salt",
+            pinIterations: 160_000,
+            updatedAt: NOW + 1,
+        });
+
+        const restored = bookFromParts(meta, [], []);
+        expect(restored.members[0]).toMatchObject({
+            pinHash: "pbkdf2-hash",
+            pinSalt: "pbkdf2-salt",
+            pinIterations: 160_000,
+        });
+    });
+
     it("splits entries and bills into fixed-size chunks", async () => {
         const book = buildBook();
         const payload = await buildRemotePayload(book);

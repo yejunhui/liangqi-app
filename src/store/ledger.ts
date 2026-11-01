@@ -1141,6 +1141,7 @@ const createActions = (
             return fail(t("成员名称不能为空"));
         }
         const state = get();
+        const createdAt = Date.now();
         const member: Member = {
             id: newId("member"),
             name,
@@ -1148,7 +1149,8 @@ const createActions = (
             pinHash: input.pinHash,
             pinSalt: input.pinSalt,
             pinIterations: input.pinIterations,
-            createdAt: Date.now(),
+            createdAt,
+            updatedAt: createdAt,
         };
         set({ members: [...state.members, member] });
         return { ok: true, id: member.id };
@@ -1163,6 +1165,21 @@ const createActions = (
         if (patch.name !== undefined && patch.name.trim() === "") {
             return fail(t("成员名称不能为空"));
         }
+        const changedAt = Date.now();
+        const fields = [
+            "name",
+            "color",
+            "pinHash",
+            "pinSalt",
+            "pinIterations",
+        ] as const;
+        const fieldUpdatedAt = Object.fromEntries(
+            fields
+                .filter((key) =>
+                    Object.prototype.hasOwnProperty.call(patch, key),
+                )
+                .map((key) => [key, changedAt]),
+        );
         set({
             members: state.members.map((item) =>
                 item.id === memberId
@@ -1171,6 +1188,11 @@ const createActions = (
                           ...patch,
                           name: patch.name?.trim() ?? item.name,
                           color: patch.color || item.color,
+                          updatedAt: changedAt,
+                          fieldUpdatedAt: {
+                              ...item.fieldUpdatedAt,
+                              ...fieldUpdatedAt,
+                          },
                       }
                     : item,
             ),

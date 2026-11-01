@@ -27,6 +27,7 @@ export function createDefaultMember(now = Date.now()): Member {
         name: t("我"),
         color: MEMBER_COLORS[0],
         createdAt: now,
+        updatedAt: now,
     };
 }
 

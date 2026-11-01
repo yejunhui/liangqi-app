@@ -381,6 +381,8 @@ function parseMember(raw: unknown, index: number): Member {
         name: requiredString(raw.name, t("成员名称")),
         color: requiredString(raw.color, t("成员颜色")),
         createdAt: requiredTimestamp(raw.createdAt, t("成员创建时间")),
+        updatedAt: raw.updatedAt as number | undefined,
+        fieldUpdatedAt: parseFieldUpdatedAt(raw.fieldUpdatedAt, index),
         pinHash: raw.pinHash as string | undefined,
         pinSalt: raw.pinSalt as string | undefined,
         pinIterations: raw.pinIterations as number | undefined,

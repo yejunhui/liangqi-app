@@ -12,6 +12,7 @@ import type {
     Bill,
     Book,
     Entry,
+    Member,
     RecurringRule,
     Tombstone,
 } from "@/types";
@@ -117,6 +118,55 @@ const BILL_MERGE_FIELDS = [
     "attachmentIds",
 ];
 
+const MEMBER_MERGE_FIELDS = [
+    "name",
+    "color",
+    "pinHash",
+    "pinSalt",
+    "pinIterations",
+];
+
+function memberHasPin(member: Member): boolean {
+    return Boolean(
+        member.pinHash && member.pinSalt && member.pinIterations,
+    );
+}
+
+function mergeMember(local: Member, remote: Member): Member {
+    const merged = mergeRecord(local, remote, MEMBER_MERGE_FIELDS);
+    const localHasPin = memberHasPin(local);
+    const remoteHasPin = memberHasPin(remote);
+    if (localHasPin && !remoteHasPin) {
+        return {
+            ...merged,
+            pinHash: local.pinHash,
+            pinSalt: local.pinSalt,
+            pinIterations: local.pinIterations,
+        };
+    }
+    if (!localHasPin && remoteHasPin) {
+        return {
+            ...merged,
+            pinHash: remote.pinHash,
+            pinSalt: remote.pinSalt,
+            pinIterations: remote.pinIterations,
+        };
+    }
+    return merged;
+}
+
+function mergeMembers(local: Member[], remote: Member[]): Member[] {
+    const map = new Map<string, Member>();
+    for (const member of local) {
+        map.set(member.id, member);
+    }
+    for (const member of remote) {
+        const current = map.get(member.id);
+        map.set(member.id, current ? mergeMember(current, member) : member);
+    }
+    return [...map.values()];
+}
+
 function mergeConfig<T extends { id: string }>(local: T[], remote: T[]): T[] {
     const map = new Map<string, T>();
     for (const item of local) {
@@ -191,7 +241,11 @@ export function mergeBooks(local: Book, remote: Book): Book {
         updatedAt: Math.max(local.updatedAt, remote.updatedAt),
         accounts: config(local.accounts, remote.accounts),
         categories: config(local.categories, remote.categories),
-        members: config(local.members, remote.members),
+        members: applyTombstones(
+            mergeMembers(local.members, remote.members),
+            deletedConfig,
+            recordTime,
+        ),
         tagGroups: config(local.tagGroups, remote.tagGroups),
         tags: config(local.tags, remote.tags),
         budgets: config(local.budgets, remote.budgets),
