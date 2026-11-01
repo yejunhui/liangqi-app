@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 import { getLanguage, LANGUAGES, setLanguage, t, type Language } from "@/i18n";

@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  *
  * One repository = one shared ledger. Sync pulls the remote copy, merges it
  * per record with the local copy, then pushes only if the merged result really

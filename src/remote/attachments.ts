@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  *
  * Attachment binaries are stored as base64 JSON files next to the ledger so
  * every device sharing the repository can fetch them on demand.

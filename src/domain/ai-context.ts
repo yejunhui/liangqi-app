@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  *
  * Builds a compact, deterministic snapshot of the ledger for the AI assistant.
  * Only aggregates and a small recent sample are included; tokens, attachment

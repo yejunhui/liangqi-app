@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 import { useEffect } from "react";
@@ -299,6 +299,25 @@ export function Layout() {
                     <div key={location.pathname} className="animate-rise">
                         <Outlet />
                     </div>
+                    <footer className="pt-8 text-center text-[9px] leading-relaxed text-muted">
+                        <a
+                            href={`${import.meta.env.BASE_URL}LICENSE.txt`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-accent hover:underline"
+                        >
+                            AGPL-3.0-or-later
+                        </a>
+                        {" · "}
+                        <a
+                            href="https://github.com/yejunhui/liangqi-app"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-accent hover:underline"
+                        >
+                            {t("源代码")}
+                        </a>
+                    </footer>
                 </main>
             </div>
 

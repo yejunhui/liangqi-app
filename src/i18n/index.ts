@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  *
  * Lightweight UI translation. Chinese source strings are used as keys, so
  * untranslated strings fall back to English and then to Chinese instead of

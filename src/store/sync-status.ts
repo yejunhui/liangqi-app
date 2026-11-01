@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  *
  * Transient remote-sync state for the current tab. It is intentionally not
  * persisted: after a reload the book's remote binding and updatedAt are enough

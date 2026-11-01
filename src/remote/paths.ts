@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  *
  * One repository stores exactly one ledger. New layout lives at the repo root
  * under `liangqi/`; the old multi-book layout is kept for migration reads.

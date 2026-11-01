@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 import { useRef, useState, type ChangeEvent } from "react";
@@ -74,6 +74,8 @@ const THEMES: Array<{ value: ThemeMode; label: string; icon: typeof Sun }> = [
 ];
 
 const ONLINE_URL = "https://arksc.cn:8002/workbook/";
+const GITHUB_URL = "https://github.com/yejunhui/liangqi-app";
+const GITEE_URL = "https://gitee.com/PharaohMan/liangqi-app";
 
 export function Settings() {
     const accounts = useLedgerStore((state) => state.accounts);
@@ -786,23 +788,76 @@ export function Settings() {
                         title={t("关于两讫")}
                         description={t("本地优先的负债记账本。")}
                     />
-                    <div className="mt-4 grid gap-3 text-[11px] leading-relaxed text-muted sm:grid-cols-2">
+                    <div className="mt-4 grid gap-3 text-[11px] leading-relaxed text-muted sm:grid-cols-3">
                         <div className="rounded-xl border border-line bg-surface-2/55 p-3.5">
                             <p className="font-semibold text-text">{t("版本")}</p>
-                            <p className="mt-1">{t("0.4.0 · 书库格式 v2")}</p>
+                            <p className="mt-1">{t("0.10.1 · 书库格式 v2")}</p>
                         </div>
                         <div className="rounded-xl border border-line bg-surface-2/55 p-3.5">
                             <p className="font-semibold text-text">{t("许可证")}</p>
                             <p className="mt-1">{t("代码以")}{" "}
                                 <a
-                                    href="https://www.gnu.org/licenses/gpl-3.0.html"
+                                    href={`${import.meta.env.BASE_URL}LICENSE.txt`}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="font-semibold text-accent hover:underline"
                                 >
-                                    GNU GPL-3.0-or-later
+                                    GNU AGPL-3.0-or-later
                                 </a>{" "}{` ${t("发布。")}`}</p>
                         </div>
+                        <div className="rounded-xl border border-line bg-surface-2/55 p-3.5">
+                            <p className="font-semibold text-text">{t("版权")}</p>
+                            <p className="mt-1">© 2026 Liangqi contributors</p>
+                        </div>
+                    </div>
+                    <p className="mt-3 text-[10px] leading-relaxed text-muted">
+                        {t("本程序不提供任何担保。你可以依据 AGPL-3.0-or-later 重新分发本程序。")}
+                    </p>
+                    <p className="mt-1 text-[10px] leading-relaxed text-muted">
+                        {t("如果你修改本程序并通过网络提供服务，必须向用户提供对应源码。")}
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px]">
+                        <span className="font-semibold text-text">{`${t("源代码")}:`}</span>
+                        <a
+                            href={GITHUB_URL}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-accent hover:underline"
+                        >
+                            GitHub
+                        </a>
+                        <a
+                            href={GITEE_URL}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-accent hover:underline"
+                        >
+                            Gitee
+                        </a>
+                        <a
+                            href={`${import.meta.env.BASE_URL}LICENSE.txt`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-accent hover:underline"
+                        >
+                            {t("许可证全文")}
+                        </a>
+                        <a
+                            href={`${import.meta.env.BASE_URL}THIRD_PARTY_NOTICES.txt`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-accent hover:underline"
+                        >
+                            {t("第三方许可")}
+                        </a>
+                        <a
+                            href={`${import.meta.env.BASE_URL}NOTICE.txt`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-accent hover:underline"
+                        >
+                            {t("法律声明")}
+                        </a>
                     </div>
                     <div className="mt-4 rounded-xl border border-line bg-surface-2/55 p-4">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">

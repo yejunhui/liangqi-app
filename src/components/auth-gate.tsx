@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 import { useState, type FormEvent, type ReactNode } from "react";
@@ -7,6 +7,7 @@ import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/button";
 import { LanguageSelect } from "@/components/language-select";
+import { LegalFooter } from "@/components/legal-footer";
 import { useAuthStore } from "@/store/auth";
 
 import { t } from "@/i18n";
@@ -105,6 +106,7 @@ function LockScreen() {
                     <div className="mt-4 flex justify-center">
                         <LanguageSelect />
                     </div>
+                    <LegalFooter className="mt-4" />
                 </form>
             </div>
         </div>

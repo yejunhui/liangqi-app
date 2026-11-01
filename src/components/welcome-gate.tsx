@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  *
  * First-run gate. A fresh browser starts with an empty local book; the shared
  * ledger only becomes available after connecting the repository. The
@@ -24,6 +24,7 @@ import type {
 import { Button } from "@/components/button";
 import { Logo } from "@/components/logo";
 import { LanguageSelect } from "@/components/language-select";
+import { LegalFooter } from "@/components/legal-footer";
 import { Tabs, type TabItem } from "@/components/tabs";
 import { useLibraryStore, getActiveBook } from "@/store/library";
 import { openRemoteBook, uploadCurrentBook } from "@/remote/sync";
@@ -481,6 +482,7 @@ export function WelcomeGate() {
                     <div className="mt-3 flex justify-center">
                         <LanguageSelect />
                     </div>
+                    <LegalFooter className="mt-4" />
                 </div>
             </div>
         </div>

@@ -4,7 +4,7 @@
 
 **在线使用：** https://arksc.cn:8002/workbook/  
 **源码仓库：** [Gitee](https://gitee.com/PharaohMan/liangqi-app) · [GitHub](https://github.com/yejunhui/liangqi-app)  
-**开源协议：** GPL-3.0-or-later
+**开源协议：** AGPL-3.0-or-later
 
 两讫是一个**本地优先、可连接远程仓库**的记账 Web App，专门把两类支出分开：
 
@@ -434,11 +434,16 @@ server/
 
 ## 许可证
 
-本项目以 **GNU General Public License v3.0 or later（GPL-3.0-or-later）** 发布，完整文本见 [LICENSE](LICENSE)。
+本项目以 **GNU Affero General Public License v3.0 or later（AGPL-3.0-or-later）** 发布，完整文本见 [LICENSE](LICENSE)。
+
+- 你可以自由使用、修改和分发本程序。
+- 分发修改版时，必须向接收者提供对应源码和许可证文本。
+- 如果你修改本程序并通过网络向用户提供服务，必须按 AGPL 第 13 条向这些用户提供对应源码。
+- 更早的版本曾以 GPL-3.0-or-later 发布；已经发布的授权无法撤回，从当前版本起使用 AGPL-3.0-or-later。
 
 ### 品牌与素材
 
-「两讫 / LIANGQI」名称和双栏 Logo 为本项目原创。界面图标使用 Lucide（ISC 许可）和系统 Emoji，不包含第三方应用的图标、文案或截图素材。
+「两讫 / LIANGQI」名称和双栏 Logo 为本项目原创。原创代码、文档和图片按 AGPL-3.0-or-later 授权；名称和 Logo 是商标，AGPL 不授予商标权。界面图标使用 Lucide（ISC 许可）和系统 Emoji，不包含第三方应用的图标、文案或截图素材。
 
 名称与 Logo 尚未做正式的商标注册检索；如果计划商业发行，请在目标国家 / 类目自行做商标查询。本项目不声称拥有任何注册商标。
 
@@ -446,8 +451,15 @@ server/
 
 ## License
 
-Liangqi is released under the **GNU General Public License v3.0 or later
-(GPL-3.0-or-later)**. See [LICENSE](LICENSE) for the full text.
+Liangqi is released under the **GNU Affero General Public License v3.0 or later
+(AGPL-3.0-or-later)**. See [LICENSE](LICENSE) for the full text.
+
+If you modify Liangqi and make it available to users over a network, section 13
+of the AGPL requires you to offer those users the Corresponding Source of your
+modified version.
+
+Earlier releases were published under GPL-3.0-or-later. Those grants remain
+valid; this version and later releases use AGPL-3.0-or-later.
 
 ## 免责声明
 

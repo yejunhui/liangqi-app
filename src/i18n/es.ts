@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  *
  * Spanish UI translations keyed by the Chinese source string.
  */
@@ -69,7 +69,7 @@ export const ES: Record<string, string> = {
     "## 预算": "## Presupuesto",
     "## 资产": "## Activos",
     "## 最近流水（最多 25 条）": "## Movimientos recientes (máx. 25)",
-    "0.4.0 · 书库格式 v2": "0.4.0 · Formato de biblioteca v2",
+    "0.10.1 · 书库格式 v2": "0.10.1 · Formato de biblioteca v2",
     "7 天走势": "Tendencia de 7 días",
     "阿联酋迪拉姆 AED": "Dírham de los EAU AED",
     "安装": "Instalar",
@@ -1423,5 +1423,12 @@ export const ES: Record<string, string> = {
     "微信": "WeChat",
     "微信赞赏码": "Código QR de apoyo de WeChat",
     "扫码打开在线版": "Escanear para abrir la versión en línea",
-    "如果这个项目对你有帮助，欢迎扫码支持。": "Si este proyecto te resulta útil, puedes apoyarlo escaneando cualquiera de los códigos QR."
+    "如果这个项目对你有帮助，欢迎扫码支持。": "Si este proyecto te resulta útil, puedes apoyarlo escaneando cualquiera de los códigos QR.",
+    "版权": "Derechos de autor",
+    "本程序不提供任何担保。你可以依据 AGPL-3.0-or-later 重新分发本程序。": "Este programa no ofrece ninguna garantía. Puedes redistribuirlo bajo AGPL-3.0-or-later.",
+    "如果你修改本程序并通过网络提供服务，必须向用户提供对应源码。": "Si modificas este programa y lo ofreces a través de una red, debes proporcionar a los usuarios el código fuente correspondiente.",
+    "源代码": "Código fuente",
+    "许可证全文": "Licencia completa",
+    "第三方许可": "Licencias de terceros",
+    "法律声明": "Avisos legales"
 };

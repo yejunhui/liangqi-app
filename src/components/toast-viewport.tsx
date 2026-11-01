@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";

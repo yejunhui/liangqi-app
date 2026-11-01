@@ -1,8 +1,12 @@
 # Third-Party Notices
 
-两讫 (Liangqi) is licensed under GPL-3.0-or-later. It also uses the following
+两讫 (Liangqi) is licensed under AGPL-3.0-or-later. It also uses the following
 third-party packages. Their licenses apply to those packages, not to the
 original Liangqi code.
+
+This notice is included with the built app as `THIRD_PARTY_NOTICES.txt`. The
+MIT and ISC notices below must be retained when redistributing the app or its
+JavaScript bundles.
 
 ## Icons
 
@@ -70,6 +74,11 @@ Standard MIT License text:
 **TypeScript** — https://www.typescriptlang.org — Apache License 2.0,
 Copyright Microsoft Corporation. See the license included with the
 `typescript` package.
+
+## Build-only tools
+
+`lightningcss` (MPL-2.0) is used at build time and is not included in the
+built app. Its license is available in the package's repository.
 
 ## Full license texts
 

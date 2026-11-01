@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  *
  * Local "who am I" selection per book. The repo is shared with one private
  * key; each device/user picks the member they are. For shared books the member

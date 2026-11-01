@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 import { HashRouter, Navigate, Route, Routes, useNavigate, useSearchParams } from "react-router-dom";

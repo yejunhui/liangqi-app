@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  *
  * Real-time exchange rates with a local cache and manual fallback.
  * The public feeds are keyless and CORS-friendly.
