@@ -31,9 +31,16 @@ interface AccountModalProps {
     account: Account | null;
     defaultKind: AccountKind;
     onClose: () => void;
+    onCreated?: (id: string) => void;
 }
 
-export function AccountModal({ open, account, defaultKind, onClose }: AccountModalProps) {
+export function AccountModal({
+    open,
+    account,
+    defaultKind,
+    onClose,
+    onCreated,
+}: AccountModalProps) {
     const addAccount = useLedgerStore((state) => state.addAccount);
     const updateAccount = useLedgerStore((state) => state.updateAccount);
     const currency = useCurrency();
@@ -107,6 +114,9 @@ export function AccountModal({ open, account, defaultKind, onClose }: AccountMod
         if (!result.ok) {
             setError(result.error);
             return;
+        }
+        if (result.id) {
+            onCreated?.(result.id);
         }
         toast(kind === "liability" ? "负债账户已创建" : "资产账户已创建", "success");
         onClose();

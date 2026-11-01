@@ -20,6 +20,7 @@ import {
 import type { EntryKind, EntryLocation } from "@/types";
 import { Modal } from "@/components/modal";
 import { Button } from "@/components/button";
+import { AccountModal } from "@/components/account-modal";
 import { TagSelector } from "@/components/tag-selector";
 import {
     MAX_ATTACHMENT_SIZE,
@@ -100,6 +101,7 @@ export function EntryModal() {
     const [location, setLocation] = useState<EntryLocation | undefined>(undefined);
     const [files, setFiles] = useState<File[]>([]);
     const [error, setError] = useState("");
+    const [accountModalOpen, setAccountModalOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const manualRateRef = useRef(false);
 
@@ -775,8 +777,13 @@ export function EntryModal() {
                                     accounts={liabilityAccounts}
                                     value={liabilityAccountId}
                                     onChange={setLiabilityAccountId}
-                                    emptyHint="还没有负债账户，请先到账户页添加"
+                                    emptyHint="还没有负债账户，可以先添加一个"
+                                    onAdd={() => setAccountModalOpen(true)}
+                                    addLabel="添加负债账户"
                                 />
+                                <p className="-mt-2 text-[10px] leading-relaxed text-muted">
+                                    这里只显示负债账户。信用卡、花呗、借呗、借款都可以作为赊账账户。
+                                </p>
                                 <div className="grid grid-cols-2 gap-3">
                                     <label className="block">
                                         <span className="mb-1.5 block text-xs font-semibold text-muted">
@@ -1148,6 +1155,17 @@ export function EntryModal() {
                     </p>
                 )}
             </form>
+
+            <AccountModal
+                open={accountModalOpen}
+                account={null}
+                defaultKind="liability"
+                onClose={() => setAccountModalOpen(false)}
+                onCreated={(id) => {
+                    setLiabilityAccountId(id);
+                    setPaymentMode("liability");
+                }}
+            />
         </Modal>
     );
 }
@@ -1158,12 +1176,16 @@ function AccountPicker({
     value,
     onChange,
     emptyHint,
+    onAdd,
+    addLabel = "添加账户",
 }: {
     label: string;
     accounts: Array<{ id: string; name: string; emoji: string }>;
     value: string;
     onChange: (value: string) => void;
     emptyHint: string;
+    onAdd?: () => void;
+    addLabel?: string;
 }) {
     return (
         <div>
@@ -1190,7 +1212,27 @@ function AccountPicker({
                             {account.name}
                         </button>
                     ))}
+                    {onAdd && (
+                        <button
+                            type="button"
+                            onClick={onAdd}
+                            className="inline-flex items-center gap-1 rounded-xl border border-dashed border-line px-3 py-2 text-xs font-medium text-muted transition hover:border-line-strong hover:text-text"
+                        >
+                            <Plus className="size-3" />
+                            {addLabel}
+                        </button>
+                    )}
                 </div>
+            )}
+            {onAdd && accounts.length === 0 && (
+                <button
+                    type="button"
+                    onClick={onAdd}
+                    className="mt-2 inline-flex items-center gap-1 rounded-xl border border-dashed border-line px-3 py-2 text-xs font-medium text-muted transition hover:border-line-strong hover:text-text"
+                >
+                    <Plus className="size-3" />
+                    {addLabel}
+                </button>
             )}
         </div>
     );
