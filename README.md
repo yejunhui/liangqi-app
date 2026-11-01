@@ -3,7 +3,7 @@
 > 银货两讫，账目两清。
 
 **在线使用：** https://arksc.cn:8002/workbook/  
-**源码仓库：** https://gitee.com/PharaohMan/liangqi-app  
+**源码仓库：** [Gitee](https://gitee.com/PharaohMan/liangqi-app) · [GitHub](https://github.com/yejunhui/liangqi-app)  
 **开源协议：** GPL-3.0-or-later
 
 两讫是一个**本地优先、可连接远程仓库**的记账 Web App，专门把两类支出分开：
