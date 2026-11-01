@@ -28,6 +28,8 @@ import { toast } from "@/store/toast";
 import { formatRelativeDay } from "@/utils/date";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 export function BookSwitcher() {
     const open = useUIStore((state) => state.bookSwitcherOpen);
     const close = useUIStore((state) => state.closeBookSwitcher);
@@ -51,13 +53,13 @@ export function BookSwitcher() {
     function handleCreate() {
         const name = newName.trim();
         if (!name) {
-            toast("请输入账本名称", "error");
+            toast(t("请输入账本名称"), "error");
             return;
         }
         createAndActivateBook(name);
         setNewName("");
         close();
-        toast("账本已创建", "success");
+        toast(t("账本已创建"), "success");
     }
 
     function startRename(bookId: string, name: string) {
@@ -70,11 +72,11 @@ export function BookSwitcher() {
             return;
         }
         if (!renameBook(editingId, draftName)) {
-            toast("账本名称不能为空", "error");
+            toast(t("账本名称不能为空"), "error");
             return;
         }
         setEditingId(null);
-        toast("账本已重命名", "success");
+        toast(t("账本已重命名"), "success");
     }
 
     function handleDelete() {
@@ -82,11 +84,11 @@ export function BookSwitcher() {
             return;
         }
         if (!deleteBook(deletingId)) {
-            toast("至少保留一个账本", "error");
+            toast(t("至少保留一个账本"), "error");
             return;
         }
         setDeletingId(null);
-        toast("账本已删除", "success");
+        toast(t("账本已删除"), "success");
     }
 
     return (
@@ -94,8 +96,8 @@ export function BookSwitcher() {
             <Modal
                 open={open}
                 onClose={close}
-                title="切换账本"
-                description="本地书库可以放多个账本；连接远程后，一个仓库也可以放多个账本。"
+                title={t("切换账本")}
+                description={t("本地书库可以放多个账本；连接远程后，一个仓库也可以放多个账本。")}
                 size="sm"
                 footer={
                     <div className="flex gap-2">
@@ -107,12 +109,8 @@ export function BookSwitcher() {
                                 navigate("/data");
                             }}
                         >
-                            <Database className="size-3.5" />
-                            数据源
-                        </Button>
-                        <Button variant="secondary" className="flex-1" onClick={close}>
-                            关闭
-                        </Button>
+                            <Database className="size-3.5" />{` ${t("数据源")}`}</Button>
+                        <Button variant="secondary" className="flex-1" onClick={close}>{t("关闭")}</Button>
                     </div>
                 }
             >
@@ -151,7 +149,7 @@ export function BookSwitcher() {
                                             type="button"
                                             onClick={saveRename}
                                             className="grid size-8 shrink-0 place-items-center rounded-lg bg-accent text-surface"
-                                            aria-label="保存名称"
+                                            aria-label={t("保存名称")}
                                         >
                                             <Check className="size-3.5" />
                                         </button>
@@ -159,7 +157,7 @@ export function BookSwitcher() {
                                             type="button"
                                             onClick={() => setEditingId(null)}
                                             className="grid size-8 shrink-0 place-items-center rounded-lg border border-line text-muted"
-                                            aria-label="取消重命名"
+                                            aria-label={t("取消重命名")}
                                         >
                                             <X className="size-3.5" />
                                         </button>
@@ -192,13 +190,11 @@ export function BookSwitcher() {
                                                     </span>
                                                     {book.remote && (
                                                         <span className="chip bg-accent-soft text-accent">
-                                                            <Cloud className="size-2.5" />
-                                                            远程
-                                                        </span>
+                                                            <Cloud className="size-2.5" />{` ${t("远程")}`}</span>
                                                     )}
                                                 </span>
                                                 <span className="mt-0.5 block text-[10px] text-muted">
-                                                    {book.entries.length} 笔流水 · 更新于{" "}
+                                                    {book.entries.length}{` ${t("笔流水 · 更新于")}`}{" "}
                                                     {formatRelativeDay(book.updatedAt)}
                                                 </span>
                                             </span>
@@ -208,7 +204,7 @@ export function BookSwitcher() {
                                                 type="button"
                                                 onClick={() => startRename(book.id, book.name)}
                                                 className="grid size-7 place-items-center rounded-lg text-muted transition hover:bg-surface-2 hover:text-text"
-                                                aria-label="重命名账本"
+                                                aria-label={t("重命名账本")}
                                             >
                                                 <Pencil className="size-3.5" />
                                             </button>
@@ -217,7 +213,7 @@ export function BookSwitcher() {
                                                 onClick={() => setDeletingId(book.id)}
                                                 disabled={library.books.length <= 1}
                                                 className="grid size-7 place-items-center rounded-lg text-muted transition hover:bg-danger-soft hover:text-danger disabled:cursor-not-allowed disabled:opacity-30"
-                                                aria-label="删除账本"
+                                                aria-label={t("删除账本")}
                                             >
                                                 <Trash2 className="size-3.5" />
                                             </button>
@@ -230,13 +226,13 @@ export function BookSwitcher() {
                 </div>
 
                 <div className="mt-5 rounded-xl border border-dashed border-line bg-surface-2/30 p-3">
-                    <p className="text-[11px] font-semibold text-text">新建账本</p>
+                    <p className="text-[11px] font-semibold text-text">{t("新建账本")}</p>
                     <div className="mt-2 flex gap-2">
                         <input
                             className="field py-2 text-xs"
                             value={newName}
                             onChange={(event) => setNewName(event.target.value)}
-                            placeholder="例如：家庭账、旅行账"
+                            placeholder={t("例如：家庭账、旅行账")}
                             onKeyDown={(event) => {
                                 if (event.key === "Enter") {
                                     event.preventDefault();
@@ -245,9 +241,7 @@ export function BookSwitcher() {
                             }}
                         />
                         <Button size="sm" onClick={handleCreate}>
-                            <Plus className="size-3.5" />
-                            创建
-                        </Button>
+                            <Plus className="size-3.5" />{` ${t("创建")}`}</Button>
                     </div>
                 </div>
             </Modal>
@@ -255,13 +249,13 @@ export function BookSwitcher() {
             <ConfirmDialog
                 open={deletingBook !== undefined}
                 onClose={() => setDeletingId(null)}
-                title="删除这个账本？"
+                title={t("删除这个账本？")}
                 description={
                     deletingBook
-                        ? `“${deletingBook.name}”的本地数据会被删除；如果已连接远程，远程副本不会自动删除。`
+                        ? t("“{0}”的本地数据会被删除；如果已连接远程，远程副本不会自动删除。", [deletingBook.name])
                         : ""
                 }
-                confirmLabel="删除账本"
+                confirmLabel={t("删除账本")}
                 onConfirm={handleDelete}
             />
         </>

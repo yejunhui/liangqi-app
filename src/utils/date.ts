@@ -2,6 +2,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { getLocale, t } from "@/i18n";
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function startOfDay(timestamp: number): number {
@@ -78,14 +80,14 @@ export function fromDateInputValue(value: string): number | null {
 }
 
 export function formatDate(timestamp: number): string {
-    return new Intl.DateTimeFormat("zh-CN", {
+    return new Intl.DateTimeFormat(getLocale(), {
         month: "long",
         day: "numeric",
     }).format(timestamp);
 }
 
 export function formatDateFull(timestamp: number): string {
-    return new Intl.DateTimeFormat("zh-CN", {
+    return new Intl.DateTimeFormat(getLocale(), {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -93,14 +95,14 @@ export function formatDateFull(timestamp: number): string {
 }
 
 export function formatMonthLabel(timestamp: number): string {
-    return new Intl.DateTimeFormat("zh-CN", {
+    return new Intl.DateTimeFormat(getLocale(), {
         year: "numeric",
         month: "long",
     }).format(timestamp);
 }
 
 export function formatWeekday(timestamp: number): string {
-    return new Intl.DateTimeFormat("zh-CN", { weekday: "short" }).format(timestamp);
+    return new Intl.DateTimeFormat(getLocale(), { weekday: "short" }).format(timestamp);
 }
 
 export function formatRelativeDay(timestamp: number, now = Date.now()): string {
@@ -108,13 +110,13 @@ export function formatRelativeDay(timestamp: number, now = Date.now()): string {
     const target = startOfDay(timestamp);
     const diff = Math.round((target - today) / DAY_MS);
     if (diff === 0) {
-        return "今天";
+        return t("今天");
     }
     if (diff === -1) {
-        return "昨天";
+        return t("昨天");
     }
     if (diff === 1) {
-        return "明天";
+        return t("明天");
     }
     return formatDate(timestamp);
 }

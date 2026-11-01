@@ -7,6 +7,8 @@ import { newId } from "@/utils/id";
 import { createDefaultMember } from "@/domain/members";
 import { createDefaultTagGroups, createDefaultTags } from "@/domain/tags";
 
+import { t } from "@/i18n";
+
 const CATEGORY_COLORS = {
     food: "#e07a5f",
     transport: "#3d8bfd",
@@ -26,29 +28,29 @@ export function createSeedData(now = Date.now()): LedgerData {
     const accounts: Account[] = [
         {
             id: "acc_cash",
-            name: "现金",
+            name: t("现金"),
             kind: "asset",
             emoji: "💵",
             openingBalance: 0,
-            note: "口袋里的现金",
+            note: t("口袋里的现金"),
             createdAt: now,
         },
         {
             id: "acc_bank",
-            name: "银行卡",
+            name: t("银行卡"),
             kind: "asset",
             emoji: "🏦",
             openingBalance: 0,
-            note: "储蓄卡 / 活期",
+            note: t("储蓄卡 / 活期"),
             createdAt: now,
         },
         {
             id: "acc_credit",
-            name: "信用卡",
+            name: t("信用卡"),
             kind: "liability",
             emoji: "💳",
             openingBalance: 0,
-            note: "先消费，后还款",
+            note: t("先消费，后还款"),
             createdAt: now,
         },
     ];
@@ -56,7 +58,7 @@ export function createSeedData(now = Date.now()): LedgerData {
     const categories: Category[] = [
         {
             id: "cat_food",
-            name: "餐饮",
+            name: t("餐饮"),
             kind: "expense",
             emoji: "🍜",
             color: CATEGORY_COLORS.food,
@@ -64,7 +66,7 @@ export function createSeedData(now = Date.now()): LedgerData {
         },
         {
             id: "cat_transport",
-            name: "交通",
+            name: t("交通"),
             kind: "expense",
             emoji: "🚇",
             color: CATEGORY_COLORS.transport,
@@ -72,7 +74,7 @@ export function createSeedData(now = Date.now()): LedgerData {
         },
         {
             id: "cat_shopping",
-            name: "购物",
+            name: t("购物"),
             kind: "expense",
             emoji: "🛍️",
             color: CATEGORY_COLORS.shopping,
@@ -80,7 +82,7 @@ export function createSeedData(now = Date.now()): LedgerData {
         },
         {
             id: "cat_home",
-            name: "居住",
+            name: t("居住"),
             kind: "expense",
             emoji: "🏠",
             color: CATEGORY_COLORS.home,
@@ -88,7 +90,7 @@ export function createSeedData(now = Date.now()): LedgerData {
         },
         {
             id: "cat_fun",
-            name: "娱乐",
+            name: t("娱乐"),
             kind: "expense",
             emoji: "🎮",
             color: CATEGORY_COLORS.fun,
@@ -96,7 +98,7 @@ export function createSeedData(now = Date.now()): LedgerData {
         },
         {
             id: "cat_health",
-            name: "医疗",
+            name: t("医疗"),
             kind: "expense",
             emoji: "💊",
             color: CATEGORY_COLORS.health,
@@ -104,7 +106,7 @@ export function createSeedData(now = Date.now()): LedgerData {
         },
         {
             id: "cat_study",
-            name: "学习",
+            name: t("学习"),
             kind: "expense",
             emoji: "📚",
             color: CATEGORY_COLORS.study,
@@ -112,7 +114,7 @@ export function createSeedData(now = Date.now()): LedgerData {
         },
         {
             id: "cat_other",
-            name: "其他",
+            name: t("其他"),
             kind: "expense",
             emoji: "📦",
             color: CATEGORY_COLORS.other,
@@ -120,7 +122,7 @@ export function createSeedData(now = Date.now()): LedgerData {
         },
         {
             id: "cat_salary",
-            name: "工资",
+            name: t("工资"),
             kind: "income",
             emoji: "💰",
             color: CATEGORY_COLORS.salary,
@@ -128,7 +130,7 @@ export function createSeedData(now = Date.now()): LedgerData {
         },
         {
             id: "cat_bonus",
-            name: "奖金",
+            name: t("奖金"),
             kind: "income",
             emoji: "🎁",
             color: CATEGORY_COLORS.bonus,
@@ -136,7 +138,7 @@ export function createSeedData(now = Date.now()): LedgerData {
         },
         {
             id: "cat_invest",
-            name: "理财",
+            name: t("理财"),
             kind: "income",
             emoji: "📈",
             color: CATEGORY_COLORS.invest,
@@ -144,7 +146,7 @@ export function createSeedData(now = Date.now()): LedgerData {
         },
         {
             id: "cat_other_income",
-            name: "其他收入",
+            name: t("其他收入"),
             kind: "income",
             emoji: "✨",
             color: CATEGORY_COLORS.otherIncome,
@@ -174,7 +176,7 @@ export function createSeedData(now = Date.now()): LedgerData {
     };
 }
 
-export function createSeedBook(name = "我的账本", now = Date.now()): Book {
+export function createSeedBook(name = t("我的账本"), now = Date.now()): Book {
     return {
         id: newId("book"),
         name,

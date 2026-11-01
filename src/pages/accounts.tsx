@@ -21,6 +21,8 @@ import { useCurrency, useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 export function Accounts() {
     const accounts = useLedgerStore((state) => state.accounts);
     const entries = useLedgerStore((state) => state.entries);
@@ -68,27 +70,25 @@ export function Accounts() {
             toast(result.error, "error");
             return;
         }
-        toast("账户已删除", "success");
+        toast(t("账户已删除"), "success");
         setDeletingAccount(null);
     }
 
     return (
         <div>
             <PageHeader
-                title="账户"
-                description="资产是现在能用的钱，负债是以后要还的钱。净资产 = 资产 − 负债。"
+                title={t("账户")}
+                description={t("资产是现在能用的钱，负债是以后要还的钱。净资产 = 资产 − 负债。")}
                 action={
                     <Button onClick={() => openCreate("asset")}>
-                        <Plus className="size-4" />
-                        添加账户
-                    </Button>
+                        <Plus className="size-4" />{` ${t("添加账户")}`}</Button>
                 }
             />
 
             <section className="card p-5 sm:p-6">
                 <div className="flex flex-wrap items-end justify-between gap-4">
                     <div>
-                        <p className="text-[11px] font-medium text-muted">净资产</p>
+                        <p className="text-[11px] font-medium text-muted">{t("净资产")}</p>
                         <p className="mt-1 text-3xl font-bold tracking-tight tabular-nums text-text">
                             {formatCents(totals.netWorth, currency)}
                         </p>
@@ -96,18 +96,14 @@ export function Accounts() {
                     <div className="flex gap-6">
                         <div>
                             <p className="flex items-center gap-1.5 text-[10px] text-muted">
-                                <span className="size-2 rounded-full bg-accent" />
-                                资产
-                            </p>
+                                <span className="size-2 rounded-full bg-accent" />{` ${t("资产")}`}</p>
                             <p className="mt-1 text-base font-bold tabular-nums text-text">
                                 {formatCents(totals.assets, currency)}
                             </p>
                         </div>
                         <div>
                             <p className="flex items-center gap-1.5 text-[10px] text-muted">
-                                <span className="size-2 rounded-full bg-liability" />
-                                负债
-                            </p>
+                                <span className="size-2 rounded-full bg-liability" />{` ${t("负债")}`}</p>
                             <p className="mt-1 text-base font-bold tabular-nums text-liability">
                                 {formatCents(totals.liabilities, currency)}
                             </p>
@@ -126,38 +122,36 @@ export function Accounts() {
                         <div className="h-full flex-1 bg-liability transition-all" />
                     )}
                 </div>
-                <p className="mt-2 text-[10px] text-muted">
-                    这条比例只展示资产与负债的相对大小，不代表还款进度。
-                </p>
+                <p className="mt-2 text-[10px] text-muted">{t("这条比例只展示资产与负债的相对大小，不代表还款进度。")}</p>
             </section>
 
             <AccountSection
-                title="资产账户"
-                description="现金、银行卡、支付宝、微信余额"
+                title={t("资产账户")}
+                description={t("现金、银行卡、支付宝、微信余额")}
                 total={totals.assets}
                 currency={currency}
                 accounts={assetAccounts}
                 onAdd={() => openCreate("asset")}
                 onEdit={openEdit}
                 onDelete={setDeletingAccount}
-                emptyTitle="还没有资产账户"
-                emptyDescription="先添加一个现金或银行卡账户，支出才能从里面扣。"
-                emptyActionLabel="添加资产账户"
+                emptyTitle={t("还没有资产账户")}
+                emptyDescription={t("先添加一个现金或银行卡账户，支出才能从里面扣。")}
+                emptyActionLabel={t("添加资产账户")}
                 entries={entries}
             />
 
             <AccountSection
-                title="负债账户"
-                description="信用卡、借款、花呗等以后要还的钱"
+                title={t("负债账户")}
+                description={t("信用卡、借款、花呗等以后要还的钱")}
                 total={totals.liabilities}
                 currency={currency}
                 accounts={liabilityAccounts}
                 onAdd={() => openCreate("liability")}
                 onEdit={openEdit}
                 onDelete={setDeletingAccount}
-                emptyTitle="还没有负债账户"
-                emptyDescription="添加信用卡或借款账户，赊账消费会记到这里。"
-                emptyActionLabel="添加负债账户"
+                emptyTitle={t("还没有负债账户")}
+                emptyDescription={t("添加信用卡或借款账户，赊账消费会记到这里。")}
+                emptyActionLabel={t("添加负债账户")}
                 entries={entries}
                 billCounts={openBills}
             />
@@ -175,13 +169,13 @@ export function Accounts() {
             <ConfirmDialog
                 open={deletingAccount !== null}
                 onClose={() => setDeletingAccount(null)}
-                title="删除这个账户？"
+                title={t("删除这个账户？")}
                 description={
                     deletingAccount
-                        ? `“${deletingAccount.name}”只有在没有任何流水和账单时才能删除。`
+                        ? t("“{0}”只有在没有任何流水和账单时才能删除。", [deletingAccount.name])
                         : ""
                 }
-                confirmLabel="删除"
+                confirmLabel={t("删除")}
                 onConfirm={handleDelete}
             />
         </div>
@@ -217,7 +211,7 @@ function AccountSection({
     entries: Entry[];
     billCounts?: ReturnType<typeof getOpenBills>;
 }) {
-    const isLiability = title.includes("负债");
+    const isLiability = title.includes(t("负债"));
 
     return (
         <section className="mt-6">
@@ -246,9 +240,7 @@ function AccountSection({
                     <p className="mt-1 text-[11px] text-muted">{description}</p>
                 </div>
                 <Button size="sm" variant="secondary" onClick={onAdd}>
-                    <Plus className="size-3.5" />
-                    添加
-                </Button>
+                    <Plus className="size-3.5" />{` ${t("添加")}`}</Button>
             </div>
 
             {accounts.length === 0 ? (

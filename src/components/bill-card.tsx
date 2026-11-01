@@ -9,6 +9,8 @@ import { formatCents } from "@/domain/money";
 import { Button } from "@/components/button";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 interface BillCardProps {
     bill: Bill;
     entries: Entry[];
@@ -30,9 +32,9 @@ const statusStyles = {
 };
 
 const statusLabels = {
-    open: "待还",
-    partial: "部分还款",
-    paid: "已还清",
+    open: t("待还"),
+    partial: t("部分还款"),
+    paid: t("已还清"),
 };
 
 const dueStyles = {
@@ -89,7 +91,7 @@ export function BillCard({
                             {statusLabels[status]}
                         </span>
                         {bill.opening && (
-                            <span className="chip bg-surface-3 text-muted">期初</span>
+                            <span className="chip bg-surface-3 text-muted">{t("期初")}</span>
                         )}
                         {member && (
                             <span
@@ -115,16 +117,15 @@ export function BillCard({
                             </span>
                         ))}
                         {bill.ownerName && (
-                            <span className="chip bg-surface-3 text-muted">
-                                记 · {bill.ownerName}
+                            <span className="chip bg-surface-3 text-muted">{`${t("记 ·")} `}{bill.ownerName}
                             </span>
                         )}
                         {!canEdit && (
-                            <span className="chip bg-surface-3 text-muted">只读</span>
+                            <span className="chip bg-surface-3 text-muted">{t("只读")}</span>
                         )}
                     </div>
                     <p className="mt-0.5 truncate text-[11px] text-muted">
-                        {liability?.name ?? "负债账户"}
+                        {liability?.name ?? t("负债账户")}
                         {category ? ` · ${category.name}` : ""}
                         {bill.originalAmount &&
                         bill.originalAmount.currency !== currency
@@ -139,7 +140,7 @@ export function BillCard({
                     <p className="text-sm font-bold tabular-nums text-text">
                         {formatCents(remaining, currency)}
                     </p>
-                    <p className="text-[10px] text-muted">待还</p>
+                    <p className="text-[10px] text-muted">{t("待还")}</p>
                 </div>
             </div>
 
@@ -156,8 +157,7 @@ export function BillCard({
                     />
                 </div>
                 <div className="mt-1.5 flex items-center justify-between gap-2 text-[10px]">
-                    <span className="text-muted">
-                        已还 {formatCents(repaid, currency)} / {formatCents(bill.principal, currency)}
+                    <span className="text-muted">{`${t("已还")} `}{formatCents(repaid, currency)} / {formatCents(bill.principal, currency)}
                     </span>
                     <span className={dueStyles[due.tone]}>{due.label}</span>
                 </div>
@@ -165,20 +165,16 @@ export function BillCard({
 
             <div className="mt-3 flex items-center gap-1.5">
                 {remaining > 0 ? (
-                    <Button size="sm" onClick={onRepay} className="flex-1">
-                        还款
-                    </Button>
+                    <Button size="sm" onClick={onRepay} className="flex-1">{t("还款")}</Button>
                 ) : (
-                    <span className="flex-1 text-[11px] font-medium text-success">
-                        这笔账单已经结清
-                    </span>
+                    <span className="flex-1 text-[11px] font-medium text-success">{t("这笔账单已经结清")}</span>
                 )}
                 {canEdit && (
                     <button
                         type="button"
                         onClick={onEdit}
                         className="grid size-8 place-items-center rounded-lg border border-line text-muted transition hover:bg-surface-2 hover:text-text"
-                        aria-label="编辑账单"
+                        aria-label={t("编辑账单")}
                     >
                         <Pencil className="size-3.5" />
                     </button>
@@ -188,7 +184,7 @@ export function BillCard({
                         type="button"
                         onClick={onDelete}
                         className="grid size-8 place-items-center rounded-lg border border-line text-muted transition hover:border-danger/30 hover:bg-danger-soft hover:text-danger"
-                        aria-label="删除账单"
+                        aria-label={t("删除账单")}
                     >
                         <Trash2 className="size-3.5" />
                     </button>

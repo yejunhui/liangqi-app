@@ -40,24 +40,26 @@ import { getTotals } from "@/domain/ledger";
 import { formatCents } from "@/domain/money";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 const primaryNav = [
-    { to: "/", label: "首页", icon: Home, end: true },
-    { to: "/entries", label: "流水", icon: ReceiptText },
-    { to: "/bills", label: "账单", icon: CreditCard },
-    { to: "/accounts", label: "账户", icon: WalletCards },
+    { to: "/", label: t("首页"), icon: Home, end: true },
+    { to: "/entries", label: t("流水"), icon: ReceiptText },
+    { to: "/bills", label: t("账单"), icon: CreditCard },
+    { to: "/accounts", label: t("账户"), icon: WalletCards },
 ];
 
 const secondaryNav = [
-    { to: "/categories", label: "分类", icon: Tags },
-    { to: "/tags", label: "标签", icon: Tag },
-    { to: "/budgets", label: "预算", icon: Target },
-    { to: "/analytics", label: "分析", icon: ChartNoAxesColumn },
-    { to: "/ai", label: "AI 助手", icon: Bot },
-    { to: "/recurring", label: "周期", icon: Repeat },
-    { to: "/import", label: "导入", icon: Upload },
-    { to: "/members", label: "成员", icon: Users },
-    { to: "/data", label: "数据源", icon: Cloud },
-    { to: "/settings", label: "设置", icon: Settings },
+    { to: "/categories", label: t("分类"), icon: Tags },
+    { to: "/tags", label: t("标签"), icon: Tag },
+    { to: "/budgets", label: t("预算"), icon: Target },
+    { to: "/analytics", label: t("分析"), icon: ChartNoAxesColumn },
+    { to: "/ai", label: t("AI 助手"), icon: Bot },
+    { to: "/recurring", label: t("周期"), icon: Repeat },
+    { to: "/import", label: t("导入"), icon: Upload },
+    { to: "/members", label: t("成员"), icon: Users },
+    { to: "/data", label: t("数据源"), icon: Cloud },
+    { to: "/settings", label: t("设置"), icon: Settings },
 ];
 
 function navClass(active: boolean): string {
@@ -142,9 +144,7 @@ export function Layout() {
                     >
                         <Database className="size-4 shrink-0 text-accent" />
                         <span className="min-w-0 flex-1">
-                            <span className="block text-[9px] font-medium uppercase tracking-[0.12em] text-muted">
-                                当前账本
-                            </span>
+                            <span className="block text-[9px] font-medium uppercase tracking-[0.12em] text-muted">{t("当前账本")}</span>
                             <span className="mt-0.5 block truncate text-xs font-semibold text-text">
                                 {activeBook.name}
                             </span>
@@ -164,11 +164,9 @@ export function Layout() {
                             {activeMember?.name.slice(0, 1) ?? "?"}
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="block text-[9px] font-medium uppercase tracking-[0.12em] text-muted">
-                                当前记账成员
-                            </span>
+                            <span className="block text-[9px] font-medium uppercase tracking-[0.12em] text-muted">{t("当前记账成员")}</span>
                             <span className="mt-0.5 block truncate text-xs font-semibold text-text">
-                                {activeMember?.name ?? "选择成员"}
+                                {activeMember?.name ?? t("选择成员")}
                             </span>
                         </span>
                         <ChevronDown className="size-3.5 shrink-0 text-muted" />
@@ -180,17 +178,13 @@ export function Layout() {
                         className="w-full shadow-sm"
                         onClick={() => openEntryModal()}
                     >
-                        <Plus className="size-4" />
-                        记一笔
-                    </Button>
+                        <Plus className="size-4" />{` ${t("记一笔")}`}</Button>
                     <Button
                         variant="secondary"
                         className="mt-2 w-full"
                         onClick={() => openQuickEntry()}
                     >
-                        <Mic className="size-4" />
-                        一句话记账
-                    </Button>
+                        <Mic className="size-4" />{` ${t("一句话记账")}`}</Button>
                 </div>
 
                 <nav className="mt-6 flex-1 space-y-1 overflow-y-auto px-3">
@@ -222,23 +216,18 @@ export function Layout() {
                             onClick={lock}
                             className={cn(navClass(false), "w-full text-left")}
                         >
-                            <LockKeyhole className="size-[18px]" />
-                            锁定
-                        </button>
+                            <LockKeyhole className="size-[18px]" />{` ${t("锁定")}`}</button>
                     )}
                 </nav>
 
                 <div className="m-3 rounded-2xl border border-line bg-surface-2/70 p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
-                        净资产
-                    </p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">{t("净资产")}</p>
                     <p className="mt-1.5 text-xl font-bold tracking-tight text-text">
                         {formatCents(totals.netWorth, currency)}
                     </p>
                     <div className="mt-3 flex items-center justify-between text-[11px] text-muted">
-                        <span>资产 {formatCents(totals.assets, currency)}</span>
-                        <span className="text-liability">
-                            负债 {formatCents(totals.liabilities, currency)}
+                        <span>{`${t("资产")} `}{formatCents(totals.assets, currency)}</span>
+                        <span className="text-liability">{`${t("负债")} `}{formatCents(totals.liabilities, currency)}
                         </span>
                     </div>
                 </div>
@@ -267,7 +256,7 @@ export function Layout() {
                                 style={{
                                     backgroundColor: activeMember?.color ?? "#a8a29e",
                                 }}
-                                aria-label={`当前成员 ${activeMember?.name ?? "未选择"}`}
+                                aria-label={t("当前成员 {0}", [activeMember?.name ?? t("未选择")])}
                             >
                                 {activeMember?.name.slice(0, 1) ?? "?"}
                             </button>
@@ -276,7 +265,7 @@ export function Layout() {
                                     type="button"
                                     onClick={lock}
                                     className="grid size-9 place-items-center rounded-xl border border-line bg-surface text-muted transition hover:text-text"
-                                    aria-label="锁定"
+                                    aria-label={t("锁定")}
                                 >
                                     <LockKeyhole className="size-4" />
                                 </button>
@@ -285,14 +274,14 @@ export function Layout() {
                                 type="button"
                                 onClick={() => openQuickEntry()}
                                 className="grid size-9 place-items-center rounded-xl border border-line bg-surface text-muted transition hover:text-text"
-                                aria-label="一句话记账"
+                                aria-label={t("一句话记账")}
                             >
                                 <Mic className="size-4" />
                             </button>
                             <NavLink
                                 to="/settings"
                                 className="grid size-9 place-items-center rounded-xl border border-line bg-surface text-muted transition hover:text-text"
-                                aria-label="设置"
+                                aria-label={t("设置")}
                             >
                                 <Settings className="size-4" />
                             </NavLink>
@@ -303,12 +292,8 @@ export function Layout() {
                 <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 sm:px-6 md:px-8 md:pb-12 md:pt-10">
                     {!activeMember && activeBook.remote && (
                         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-liability/25 bg-liability-soft/45 px-4 py-3">
-                            <p className="text-xs font-medium text-liability">
-                                这本共享账还没有选择当前记账成员。请选择你登录的成员后再记账。
-                            </p>
-                            <Button size="sm" onClick={openMemberModal}>
-                                选择成员
-                            </Button>
+                            <p className="text-xs font-medium text-liability">{t("这本共享账还没有选择当前记账成员。请选择你登录的成员后再记账。")}</p>
+                            <Button size="sm" onClick={openMemberModal}>{t("选择成员")}</Button>
                         </div>
                     )}
                     <div key={location.pathname} className="animate-rise">
@@ -341,7 +326,7 @@ export function Layout() {
                             type="button"
                             onClick={() => openEntryModal()}
                             className="-mt-5 grid size-14 place-items-center rounded-2xl border-4 border-bg bg-accent text-surface shadow-lg transition active:scale-95"
-                            aria-label="记一笔"
+                            aria-label={t("记一笔")}
                         >
                             <Plus className="size-6" />
                         </button>

@@ -4,6 +4,8 @@
 
 import type { RemoteProvider } from "@/types";
 
+import { t } from "@/i18n";
+
 export type OAuthProvider = Extract<RemoteProvider, "github" | "gitee">;
 
 interface OAuthMessage {
@@ -18,7 +20,7 @@ export function startOAuth(
 ): Promise<string> {
     const base = authBase.trim().replace(/\/+$/, "");
     if (!base) {
-        throw new Error("请先填写 OAuth 服务地址");
+        throw new Error(t("请先填写 OAuth 服务地址"));
     }
 
     const url = `${base}/auth/${provider}?origin=${encodeURIComponent(
@@ -30,7 +32,7 @@ export function startOAuth(
         "popup=yes,width=640,height=780",
     );
     if (!popup) {
-        throw new Error("浏览器拦截了登录窗口，请允许弹出窗口后重试");
+        throw new Error(t("浏览器拦截了登录窗口，请允许弹出窗口后重试"));
     }
 
     return new Promise<string>((resolve, reject) => {
@@ -82,11 +84,11 @@ export function startOAuth(
         window.addEventListener("message", onMessage);
         const closeTimer = window.setInterval(() => {
             if (popup.closed) {
-                fail("登录窗口已关闭");
+                fail(t("登录窗口已关闭"));
             }
         }, 500);
         const timeoutTimer = window.setTimeout(() => {
-            fail("登录超时，请重试");
+            fail(t("登录超时，请重试"));
         }, 5 * 60 * 1000);
     });
 }

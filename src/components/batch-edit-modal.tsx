@@ -11,6 +11,8 @@ import { useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 interface BatchEditModalProps {
     open: boolean;
     entries: Entry[];
@@ -55,7 +57,7 @@ export function BatchEditModal({ open, entries, onClose }: BatchEditModalProps) 
         event.preventDefault();
         setError("");
         if (!categoryId && !memberId && !changeTags) {
-            setError("请选择要修改的分类、成员或标签");
+            setError(t("请选择要修改的分类、成员或标签"));
             return;
         }
         const result = bulkUpdateEntries(
@@ -70,7 +72,7 @@ export function BatchEditModal({ open, entries, onClose }: BatchEditModalProps) 
             setError(result.error);
             return;
         }
-        toast(`已更新 ${entries.length} 笔流水`, "success");
+        toast(t("已更新 {0} 笔流水", [entries.length]), "success");
         onClose();
     }
 
@@ -78,30 +80,26 @@ export function BatchEditModal({ open, entries, onClose }: BatchEditModalProps) 
         <Modal
             open={open}
             onClose={onClose}
-            title="批量修改"
-            description={`将修改选中的 ${entries.length} 笔流水；未选择的内容保持不变。`}
+            title={t("批量修改")}
+            description={t("将修改选中的 {0} 笔流水；未选择的内容保持不变。", [entries.length])}
             size="sm"
             footer={
                 <div className="flex gap-2">
-                    <Button variant="secondary" className="flex-1" onClick={onClose}>
-                        取消
-                    </Button>
-                    <Button type="submit" form="batch-edit-form" className="flex-1">
-                        保存修改
-                    </Button>
+                    <Button variant="secondary" className="flex-1" onClick={onClose}>{t("取消")}</Button>
+                    <Button type="submit" form="batch-edit-form" className="flex-1">{t("保存修改")}</Button>
                 </div>
             }
         >
             <form id="batch-edit-form" className="space-y-4" onSubmit={handleSubmit}>
                 <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-muted">分类</span>
+                    <span className="mb-1.5 block text-xs font-semibold text-muted">{t("分类")}</span>
                     <select
                         className="field"
                         value={categoryId}
                         onChange={(event) => setCategoryId(event.target.value)}
                         disabled={!canChangeCategory}
                     >
-                        <option value="">不修改分类</option>
+                        <option value="">{t("不修改分类")}</option>
                         {categoryOptions.map((category) => {
                             const parent = category.parent
                                 ? categories.find((item) => item.id === category.parent)
@@ -115,20 +113,18 @@ export function BatchEditModal({ open, entries, onClose }: BatchEditModalProps) 
                         })}
                     </select>
                     {!canChangeCategory && (
-                        <span className="mt-1.5 block text-[10px] text-muted">
-                            转账、还款或收支混合选择时不能批量修改分类。
-                        </span>
+                        <span className="mt-1.5 block text-[10px] text-muted">{t("转账、还款或收支混合选择时不能批量修改分类。")}</span>
                     )}
                 </label>
 
                 <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-muted">成员</span>
+                    <span className="mb-1.5 block text-xs font-semibold text-muted">{t("成员")}</span>
                     <select
                         className="field"
                         value={memberId}
                         onChange={(event) => setMemberId(event.target.value)}
                     >
-                        <option value="">不修改成员</option>
+                        <option value="">{t("不修改成员")}</option>
                         {members.map((member) => (
                             <option key={member.id} value={member.id}>
                                 {member.name}
@@ -149,12 +145,8 @@ export function BatchEditModal({ open, entries, onClose }: BatchEditModalProps) 
                         )}
                     >
                         <span>
-                            <span className="block text-xs font-semibold text-text">
-                                修改标签
-                            </span>
-                            <span className="mt-0.5 block text-[10px] text-muted">
-                                替换为下面选中的标签
-                            </span>
+                            <span className="block text-xs font-semibold text-text">{t("修改标签")}</span>
+                            <span className="mt-0.5 block text-[10px] text-muted">{t("替换为下面选中的标签")}</span>
                         </span>
                         <span
                             className={cn(
@@ -172,7 +164,7 @@ export function BatchEditModal({ open, entries, onClose }: BatchEditModalProps) 
                                 groups={tagGroups}
                                 value={tagIds}
                                 onChange={setTagIds}
-                                label="新标签"
+                                label={t("新标签")}
                             />
                         </div>
                     )}

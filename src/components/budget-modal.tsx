@@ -11,6 +11,8 @@ import { useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 interface BudgetModalProps {
     open: boolean;
     budget: Budget | null;
@@ -64,12 +66,12 @@ export function BudgetModal({ open, budget, onClose }: BudgetModalProps) {
         event.preventDefault();
         setError("");
         if (!name.trim()) {
-            setError("预算名称不能为空");
+            setError(t("预算名称不能为空"));
             return;
         }
         const cents = parseAmountToCents(amount);
         if (cents === null || cents <= 0) {
-            setError("请输入大于 0 的预算金额");
+            setError(t("请输入大于 0 的预算金额"));
             return;
         }
         const input = {
@@ -85,7 +87,7 @@ export function BudgetModal({ open, budget, onClose }: BudgetModalProps) {
             setError(result.error);
             return;
         }
-        toast(editing ? "预算已更新" : "预算已创建", "success");
+        toast(editing ? t("预算已更新") : t("预算已创建"), "success");
         onClose();
     }
 
@@ -93,16 +95,14 @@ export function BudgetModal({ open, budget, onClose }: BudgetModalProps) {
         <Modal
             open={open}
             onClose={onClose}
-            title={editing ? "编辑预算" : "添加预算"}
-            description="按分类、标签或成员圈定范围，超支时会在首页提醒。"
+            title={editing ? t("编辑预算") : t("添加预算")}
+            description={t("按分类、标签或成员圈定范围，超支时会在首页提醒。")}
             size="md"
             footer={
                 <div className="flex gap-2">
-                    <Button variant="secondary" className="flex-1" onClick={onClose}>
-                        取消
-                    </Button>
+                    <Button variant="secondary" className="flex-1" onClick={onClose}>{t("取消")}</Button>
                     <Button type="submit" form="budget-form" className="flex-1">
-                        {editing ? "保存" : "创建预算"}
+                        {editing ? t("保存") : t("创建预算")}
                     </Button>
                 </div>
             }
@@ -110,17 +110,17 @@ export function BudgetModal({ open, budget, onClose }: BudgetModalProps) {
             <form id="budget-form" className="space-y-5" onSubmit={handleSubmit}>
                 <div className="grid gap-3 sm:grid-cols-2">
                     <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-muted">名称</span>
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("名称")}</span>
                         <input
                             className="field"
                             value={name}
                             onChange={(event) => setName(event.target.value)}
-                            placeholder="例如：餐饮月度预算"
+                            placeholder={t("例如：餐饮月度预算")}
                             autoFocus
                         />
                     </label>
                     <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-muted">金额</span>
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("金额")}</span>
                         <input
                             className="field"
                             value={amount}
@@ -132,12 +132,12 @@ export function BudgetModal({ open, budget, onClose }: BudgetModalProps) {
                 </div>
 
                 <div>
-                    <p className="mb-2 text-xs font-semibold text-muted">周期</p>
+                    <p className="mb-2 text-xs font-semibold text-muted">{t("周期")}</p>
                     <div className="grid grid-cols-2 gap-2">
                         {(
                             [
-                                { value: "month", label: "每月", hint: "按自然月重置" },
-                                { value: "year", label: "每年", hint: "按自然年重置" },
+                                { value: "month", label: t("每月"), hint: t("按自然月重置") },
+                                { value: "year", label: t("每年"), hint: t("按自然年重置") },
                             ] as const
                         ).map((option) => (
                             <button
@@ -163,9 +163,7 @@ export function BudgetModal({ open, budget, onClose }: BudgetModalProps) {
                 </div>
 
                 <div>
-                    <p className="mb-2 text-xs font-semibold text-muted">
-                        支出分类
-                        <span className="ml-1 font-normal text-muted/70">不选则统计全部支出</span>
+                    <p className="mb-2 text-xs font-semibold text-muted">{`${t("支出分类")} `}<span className="ml-1 font-normal text-muted/70">{t("不选则统计全部支出")}</span>
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                         {expenseCategories.map((category) => {
@@ -196,20 +194,14 @@ export function BudgetModal({ open, budget, onClose }: BudgetModalProps) {
                             );
                         })}
                     </div>
-                    <p className="mt-1.5 text-[10px] text-muted">
-                        选择父分类时，会自动包含它的二级分类。
-                    </p>
+                    <p className="mt-1.5 text-[10px] text-muted">{t("选择父分类时，会自动包含它的二级分类。")}</p>
                 </div>
 
                 <div>
-                    <p className="mb-2 text-xs font-semibold text-muted">
-                        标签
-                        <span className="ml-1 font-normal text-muted/70">不选则不按标签筛选</span>
+                    <p className="mb-2 text-xs font-semibold text-muted">{`${t("标签")} `}<span className="ml-1 font-normal text-muted/70">{t("不选则不按标签筛选")}</span>
                     </p>
                     {tags.length === 0 ? (
-                        <p className="rounded-xl border border-dashed border-line bg-surface-2/50 px-3 py-2.5 text-[11px] text-muted">
-                            还没有标签，可以在标签页添加。
-                        </p>
+                        <p className="rounded-xl border border-dashed border-line bg-surface-2/50 px-3 py-2.5 text-[11px] text-muted">{t("还没有标签，可以在标签页添加。")}</p>
                     ) : (
                         <div className="flex flex-wrap gap-1.5">
                             {tags.map((tag) => {
@@ -241,9 +233,7 @@ export function BudgetModal({ open, budget, onClose }: BudgetModalProps) {
                 </div>
 
                 <div>
-                    <p className="mb-2 text-xs font-semibold text-muted">
-                        成员
-                        <span className="ml-1 font-normal text-muted/70">不选则统计所有成员</span>
+                    <p className="mb-2 text-xs font-semibold text-muted">{`${t("成员")} `}<span className="ml-1 font-normal text-muted/70">{t("不选则统计所有成员")}</span>
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                         {members.map((member) => {

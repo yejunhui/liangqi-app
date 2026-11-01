@@ -14,6 +14,8 @@ import { useCurrency, useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 export function CsvImport() {
     const accounts = useLedgerStore((state) => state.accounts);
     const categories = useLedgerStore((state) => state.categories);
@@ -55,14 +57,14 @@ export function CsvImport() {
             return;
         }
         if (file.size > 20 * 1024 * 1024) {
-            setError("CSV 文件不能超过 20 MB");
+            setError(t("CSV 文件不能超过 20 MB"));
             return;
         }
         try {
             const text = await file.text();
             const nextTable = parseCsvText(text);
             if (nextTable.headers.length === 0 || nextTable.rows.length === 0) {
-                setError("无法识别这个 CSV 文件，请确认包含表头和交易记录");
+                setError(t("无法识别这个 CSV 文件，请确认包含表头和交易记录"));
                 return;
             }
             setFileName(file.name);
@@ -73,7 +75,7 @@ export function CsvImport() {
             setIncomeCategoryId(incomeCategories[0]?.id ?? "");
             setError("");
         } catch {
-            setError("无法读取这个 CSV 文件");
+            setError(t("无法读取这个 CSV 文件"));
         }
     }
 
@@ -99,11 +101,11 @@ export function CsvImport() {
     function handleImport() {
         setError("");
         if (!accountId) {
-            setError("请选择要导入到的账户");
+            setError(t("请选择要导入到的账户"));
             return;
         }
         if (parsed.transactions.length === 0) {
-            setError("没有可导入的交易，请检查列映射");
+            setError(t("没有可导入的交易，请检查列映射"));
             return;
         }
         let imported = 0;
@@ -138,8 +140,8 @@ export function CsvImport() {
         }
         toast(
             failed > 0
-                ? `已导入 ${imported} 笔，${failed} 笔失败`
-                : `已导入 ${imported} 笔交易`,
+                ? t("已导入 {0} 笔，{1} 笔失败", [imported, failed])
+                : t("已导入 {0} 笔交易", [imported]),
             failed > 0 ? "info" : "success",
         );
         setTable(null);
@@ -156,26 +158,22 @@ export function CsvImport() {
 
     const columns = table?.headers.map((header, index) => ({
         index,
-        label: header || `第 ${index + 1} 列`,
+        label: header || t("第 {0} 列", [index + 1]),
     })) ?? [];
 
     return (
         <div>
             <PageHeader
-                eyebrow="通用记账"
-                title="导入账单"
-                description="支持微信、支付宝和银行导出的 CSV；导入前可以核对列映射和预览。"
+                eyebrow={t("通用记账")}
+                title={t("导入账单")}
+                description={t("支持微信、支付宝和银行导出的 CSV；导入前可以核对列映射和预览。")}
                 action={
                     table ? (
                         <Button variant="secondary" onClick={resetFile}>
-                            <X className="size-4" />
-                            重新选择
-                        </Button>
+                            <X className="size-4" />{` ${t("重新选择")}`}</Button>
                     ) : (
                         <Button onClick={() => inputRef.current?.click()}>
-                            <Upload className="size-4" />
-                            选择 CSV
-                        </Button>
+                            <Upload className="size-4" />{` ${t("选择 CSV")}`}</Button>
                     )
                 }
             />
@@ -197,12 +195,8 @@ export function CsvImport() {
                     <span className="grid size-14 place-items-center rounded-2xl bg-accent-soft text-accent">
                         <FileSpreadsheet className="size-6" />
                     </span>
-                    <span className="text-sm font-semibold text-text">
-                        选择微信 / 支付宝 / 银行 CSV
-                    </span>
-                    <span className="max-w-md text-[11px] leading-relaxed text-muted">
-                        文件只在本机解析和保存，不会上传。建议先在导出工具里选择包含「交易时间、金额、收/支」的明细。
-                    </span>
+                    <span className="text-sm font-semibold text-text">{t("选择微信 / 支付宝 / 银行 CSV")}</span>
+                    <span className="max-w-md text-[11px] leading-relaxed text-muted">{t("文件只在本机解析和保存，不会上传。建议先在导出工具里选择包含「交易时间、金额、收/支」的明细。")}</span>
                 </button>
             ) : (
                 <div className="space-y-4">
@@ -215,19 +209,18 @@ export function CsvImport() {
                                 <div>
                                     <p className="text-sm font-semibold text-text">{fileName}</p>
                                     <p className="mt-0.5 text-[10px] text-muted">
-                                        {table.rows.length} 行 · 识别到 {table.headers.length} 列
-                                    </p>
+                                        {table.rows.length}{` ${t("行 · 识别到")} `}{table.headers.length}{` ${t("列")}`}</p>
                                 </div>
                             </div>
                             <div className="flex gap-3 text-right text-[10px] text-muted">
                                 <div>
-                                    <p>支出合计</p>
+                                    <p>{t("支出合计")}</p>
                                     <p className="mt-0.5 text-xs font-bold text-text">
                                         {formatCents(expenseTotal, currency)}
                                     </p>
                                 </div>
                                 <div>
-                                    <p>收入合计</p>
+                                    <p>{t("收入合计")}</p>
                                     <p className="mt-0.5 text-xs font-bold text-success">
                                         {formatCents(incomeTotal, currency)}
                                     </p>
@@ -238,42 +231,40 @@ export function CsvImport() {
                         {mapping && (
                             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                 <MappingSelect
-                                    label="交易时间"
+                                    label={t("交易时间")}
                                     value={mapping.date}
                                     columns={columns}
                                     onChange={(value) => updateMapping("date", value)}
                                 />
                                 <MappingSelect
-                                    label="金额"
+                                    label={t("金额")}
                                     value={mapping.amount}
                                     columns={columns}
                                     onChange={(value) => updateMapping("amount", value)}
                                 />
                                 <MappingSelect
-                                    label="收 / 支"
+                                    label={t("收 / 支")}
                                     value={mapping.type}
                                     columns={columns}
                                     optional
                                     onChange={(value) => updateMapping("type", value)}
                                 />
                                 <MappingSelect
-                                    label="分类"
+                                    label={t("分类")}
                                     value={mapping.category}
                                     columns={columns}
                                     optional
                                     onChange={(value) => updateMapping("category", value)}
                                 />
                                 <MappingSelect
-                                    label="备注"
+                                    label={t("备注")}
                                     value={mapping.note}
                                     columns={columns}
                                     optional
                                     onChange={(value) => updateMapping("note", value)}
                                 />
                                 <label className="block">
-                                    <span className="mb-1.5 block text-xs font-semibold text-muted">
-                                        导入到账户
-                                    </span>
+                                    <span className="mb-1.5 block text-xs font-semibold text-muted">{t("导入到账户")}</span>
                                     <select
                                         className="field"
                                         value={accountId}
@@ -287,9 +278,7 @@ export function CsvImport() {
                                     </select>
                                 </label>
                                 <label className="block">
-                                    <span className="mb-1.5 block text-xs font-semibold text-muted">
-                                        默认支出分类
-                                    </span>
+                                    <span className="mb-1.5 block text-xs font-semibold text-muted">{t("默认支出分类")}</span>
                                     <select
                                         className="field"
                                         value={expenseCategoryId}
@@ -305,9 +294,7 @@ export function CsvImport() {
                                     </select>
                                 </label>
                                 <label className="block">
-                                    <span className="mb-1.5 block text-xs font-semibold text-muted">
-                                        默认收入分类
-                                    </span>
+                                    <span className="mb-1.5 block text-xs font-semibold text-muted">{t("默认收入分类")}</span>
                                     <select
                                         className="field"
                                         value={incomeCategoryId}
@@ -325,34 +312,27 @@ export function CsvImport() {
                             </div>
                         )}
 
-                        <p className="mt-3 text-[10px] leading-relaxed text-muted">
-                            分类按名称自动匹配已有分类；没有匹配时使用默认分类。CSV
-                            里的「不计收支 / 转账 / 还款」记录会被跳过。
-                        </p>
+                        <p className="mt-3 text-[10px] leading-relaxed text-muted">{t(
+                            "分类按名称自动匹配已有分类；没有匹配时使用默认分类。CSV\n                            里的「不计收支 / 转账 / 还款」记录会被跳过。"
+                        )}</p>
                     </section>
 
                     <section className="card overflow-hidden">
                         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface-2/45 px-4 py-3">
                             <div>
-                                <h2 className="text-sm font-bold text-text">导入预览</h2>
-                                <p className="mt-0.5 text-[10px] text-muted">
-                                    将导入 {parsed.transactions.length} 笔，跳过{" "}
-                                    {parsed.skipped} 笔
-                                </p>
+                                <h2 className="text-sm font-bold text-text">{t("导入预览")}</h2>
+                                <p className="mt-0.5 text-[10px] text-muted">{`${t("将导入")} `}{parsed.transactions.length}{` ${t("笔，跳过")}`}{" "}
+                                    {parsed.skipped}{` ${t("笔")}`}</p>
                             </div>
                             <Button
                                 onClick={handleImport}
                                 disabled={parsed.transactions.length === 0}
                             >
-                                <Upload className="size-4" />
-                                导入 {parsed.transactions.length} 笔
-                            </Button>
+                                <Upload className="size-4" />{` ${t("导入")} `}{parsed.transactions.length}{` ${t("笔")}`}</Button>
                         </div>
 
                         {parsed.transactions.length === 0 ? (
-                            <p className="px-4 py-10 text-center text-xs text-muted">
-                                没有可导入的交易，请检查「交易时间」和「金额」列映射。
-                            </p>
+                            <p className="px-4 py-10 text-center text-xs text-muted">{t("没有可导入的交易，请检查「交易时间」和「金额」列映射。")}</p>
                         ) : (
                             <div className="divide-y divide-line/60">
                                 {parsed.transactions.slice(0, 12).map((transaction, index) => {
@@ -376,10 +356,10 @@ export function CsvImport() {
                                                         : "bg-liability-soft text-liability",
                                                 )}
                                             >
-                                                {transaction.kind === "income" ? "收入" : "支出"}
+                                                {transaction.kind === "income" ? t("收入") : t("支出")}
                                             </span>
                                             <span className="min-w-0 flex-1 truncate text-xs text-text">
-                                                {transaction.note ?? "无备注"}
+                                                {transaction.note ?? t("无备注")}
                                                 {category ? (
                                                     <span className="ml-1.5 text-[10px] text-muted">
                                                         · {category.emoji} {category.name}
@@ -400,9 +380,7 @@ export function CsvImport() {
                                     );
                                 })}
                                 {parsed.transactions.length > 12 && (
-                                    <p className="px-4 py-2.5 text-center text-[10px] text-muted">
-                                        还有 {parsed.transactions.length - 12} 笔未显示
-                                    </p>
+                                    <p className="px-4 py-2.5 text-center text-[10px] text-muted">{`${t("还有")} `}{parsed.transactions.length - 12}{` ${t("笔未显示")}`}</p>
                                 )}
                             </div>
                         )}
@@ -440,8 +418,8 @@ function MappingSelect({
                 value={value}
                 onChange={(event) => onChange(Number(event.target.value))}
             >
-                {optional && <option value={-1}>不导入</option>}
-                {!optional && value === -1 && <option value={-1}>请选择列</option>}
+                {optional && <option value={-1}>{t("不导入")}</option>}
+                {!optional && value === -1 && <option value={-1}>{t("请选择列")}</option>}
                 {columns.map((column) => (
                     <option key={column.index} value={column.index}>
                         {column.label}

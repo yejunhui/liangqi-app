@@ -52,6 +52,8 @@ import {
 import { createExportPayload } from "@/domain/backup";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 interface FormState {
     repo: string;
     token: string;
@@ -157,14 +159,14 @@ export function DataSource() {
 
         const repository = parseRepositoryInput(form.repo);
         if (!repository.repo) {
-            throw new Error("请填写仓库名，例如 family-ledger 或 your-name/family-ledger");
+            throw new Error(t("请填写仓库名，例如 family-ledger 或 your-name/family-ledger"));
         }
         let owner = repository.owner;
         if (!owner) {
             owner = await resolveProviderLogin(provider, form.token.trim());
             if (!owner) {
                 throw new Error(
-                    "无法从私钥识别账号，请把仓库名写成 owner/仓库名",
+                    t("无法从私钥识别账号，请把仓库名写成 owner/仓库名"),
                 );
             }
         }
@@ -216,12 +218,12 @@ export function DataSource() {
             setRemoteBooks(books);
             toast(
                 books.length > 0
-                    ? "连接成功，这个仓库已经有一本共享账"
-                    : "连接成功，仓库是空的，可以上传当前账本",
+                    ? t("连接成功，这个仓库已经有一本共享账")
+                    : t("连接成功，仓库是空的，可以上传当前账本"),
                 "success",
             );
         } catch (cause) {
-            setError(cause instanceof Error ? cause.message : "连接失败");
+            setError(cause instanceof Error ? cause.message : t("连接失败"));
         } finally {
             setBusy(null);
         }
@@ -229,7 +231,7 @@ export function DataSource() {
 
     async function handleUploadCurrent() {
         if (!connection) {
-            setError("请先连接远程仓库");
+            setError(t("请先连接远程仓库"));
             return;
         }
         setError("");
@@ -240,7 +242,7 @@ export function DataSource() {
             setRemoteBooks(await listRemoteBooks(connection));
             setConflicts(getConflictBackups());
         } catch (cause) {
-            setError(cause instanceof Error ? cause.message : "上传失败");
+            setError(cause instanceof Error ? cause.message : t("上传失败"));
         } finally {
             setBusy(null);
         }
@@ -254,10 +256,10 @@ export function DataSource() {
         setBusy(`open:${remoteBookId}`);
         try {
             const book = await openRemoteBook(connection, remoteBookId);
-            toast(`已打开“${book.name}”`, "success");
+            toast(t("已打开“{0}”", [book.name]), "success");
             setConflicts(getConflictBackups());
         } catch (cause) {
-            setError(cause instanceof Error ? cause.message : "打开远程账本失败");
+            setError(cause instanceof Error ? cause.message : t("打开远程账本失败"));
         } finally {
             setBusy(null);
         }
@@ -274,7 +276,7 @@ export function DataSource() {
                 setRemoteBooks(await listRemoteBooks(connection));
             }
         } catch (cause) {
-            setError(cause instanceof Error ? cause.message : "同步失败");
+            setError(cause instanceof Error ? cause.message : t("同步失败"));
         } finally {
             setBusy(null);
         }
@@ -287,7 +289,7 @@ export function DataSource() {
         const next = !binding.autoSync;
         setActiveBookRemote(activeBook.id, { ...binding, autoSync: next });
         setAutoSync(next);
-        toast(next ? "已开启自动同步" : "已关闭自动同步", "success");
+        toast(next ? t("已开启自动同步") : t("已关闭自动同步"), "success");
     }
 
     function handleDisconnect() {
@@ -295,7 +297,7 @@ export function DataSource() {
         setConnection(null);
         setRemoteBooks([]);
         setDisconnectOpen(false);
-        toast("已断开当前账本的远程连接，本地数据保留", "success");
+        toast(t("已断开当前账本的远程连接，本地数据保留"), "success");
     }
 
     function downloadConflict(backup: ConflictBackup) {
@@ -308,7 +310,7 @@ export function DataSource() {
     function handleClearConflicts() {
         clearConflictBackups();
         setConflicts([]);
-        toast("冲突备份已清空", "success");
+        toast(t("冲突备份已清空"), "success");
     }
 
     const isWebDav = provider === "webdav";
@@ -319,9 +321,9 @@ export function DataSource() {
     return (
         <div>
             <PageHeader
-                eyebrow="本地优先"
-                title="数据源"
-                description="一个仓库对应一本共享账。不同用户连接同一个仓库，就会进入同一套账；每条记账会记录作者，其他人只能查看，不能修改。"
+                eyebrow={t("本地优先")}
+                title={t("数据源")}
+                description={t("一个仓库对应一本共享账。不同用户连接同一个仓库，就会进入同一套账；每条记账会记录作者，其他人只能查看，不能修改。")}
             />
 
             <section className="card p-5 sm:p-6">
@@ -332,8 +334,7 @@ export function DataSource() {
                         </span>
                         <div>
                             <div className="flex flex-wrap items-center gap-2">
-                                <h2 className="text-sm font-bold text-text">
-                                    当前账本：{activeBook.name}
+                                <h2 className="text-sm font-bold text-text">{t("当前账本：")}{activeBook.name}
                                 </h2>
                                 <span
                                     className={cn(
@@ -343,17 +344,18 @@ export function DataSource() {
                                             : "bg-surface-3 text-muted",
                                     )}
                                 >
-                                    {binding ? "已连接远程" : "仅本地"}
+                                    {binding ? t("已连接远程") : t("仅本地")}
                                 </span>
                             </div>
                             <p className="mt-1 text-[11px] leading-relaxed text-muted">
                                 {binding && boundConnection
-                                    ? `${providerLabel(boundConnection)} · ${
-                                          boundConnection.owner
-                                              ? `${boundConnection.owner}/${boundConnection.repo}`
-                                              : boundConnection.url
-                                      } · 当前成员 ${activeMember?.name ?? "未选择"}`
-                                    : "数据只保存在这个浏览器里。连接远程后，同一仓库的所有用户共享这一本账。"}
+                                    ? t(
+                                    "{0} · {1} · 当前成员 {2}",
+                                    [providerLabel(boundConnection), boundConnection.owner
+                                        ? `${boundConnection.owner}/${boundConnection.repo}`
+                                        : boundConnection.url, activeMember?.name ?? t("未选择")]
+                                )
+                                    : t("数据只保存在这个浏览器里。连接远程后，同一仓库的所有用户共享这一本账。")}
                             </p>
                         </div>
                     </div>
@@ -382,9 +384,7 @@ export function DataSource() {
                                             autoSync ? "left-3.5" : "left-0.5",
                                         )}
                                     />
-                                </span>
-                                自动同步
-                            </button>
+                                </span>{` ${t("自动同步")}`}</button>
                             <Button
                                 size="sm"
                                 variant="secondary"
@@ -396,17 +396,13 @@ export function DataSource() {
                                         "size-3.5",
                                         busy === "sync" && "animate-spin",
                                     )}
-                                />
-                                立即同步
-                            </Button>
+                                />{` ${t("立即同步")}`}</Button>
                             <Button
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => setDisconnectOpen(true)}
                             >
-                                <Unplug className="size-3.5" />
-                                断开
-                            </Button>
+                                <Unplug className="size-3.5" />{` ${t("断开")}`}</Button>
                         </div>
                     )}
                 </div>
@@ -414,27 +410,27 @@ export function DataSource() {
                 {binding && (
                     <div className="mt-4 grid gap-2 sm:grid-cols-4">
                         <InfoCell
-                            label="共享账本"
+                            label={t("共享账本")}
                             value={currentRemoteBook?.name ?? binding.remoteBookId}
                         />
                         <InfoCell
-                            label="记账成员"
-                            value={activeMember?.name ?? "未选择"}
+                            label={t("记账成员")}
+                            value={activeMember?.name ?? t("未选择")}
                         />
                         <InfoCell
-                            label="上次同步"
+                            label={t("上次同步")}
                             value={
                                 binding.lastSyncedAt
                                     ? formatRelativeDay(binding.lastSyncedAt)
-                                    : "尚未同步"
+                                    : t("尚未同步")
                             }
                         />
                         <InfoCell
-                            label="远程流水"
+                            label={t("远程流水")}
                             value={
                                 currentRemoteBook
-                                    ? `${currentRemoteBook.entryCount} 笔`
-                                    : "读取中"
+                                    ? t("{0} 笔", [currentRemoteBook.entryCount])
+                                    : t("读取中")
                             }
                         />
                     </div>
@@ -442,18 +438,12 @@ export function DataSource() {
 
                 {binding && (
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-surface-2/35 px-3 py-2.5">
-                        <p className="text-[11px] text-muted">
-                            当前登录成员：
-                            <span className="font-semibold text-text">
-                                {activeMember?.name ?? "未选择"}
+                        <p className="text-[11px] text-muted">{`${t("当前登录成员：")} `}<span className="font-semibold text-text">
+                                {activeMember?.name ?? t("未选择")}
                             </span>
-                            <span className="ml-1 text-[10px]">
-                                · 新流水会记在这个成员名下
-                            </span>
+                            <span className="ml-1 text-[10px]">{t("· 新流水会记在这个成员名下")}</span>
                         </p>
-                        <Button size="sm" variant="secondary" onClick={openMemberModal}>
-                            切换成员
-                        </Button>
+                        <Button size="sm" variant="secondary" onClick={openMemberModal}>{t("切换成员")}</Button>
                     </div>
                 )}
             </section>
@@ -461,11 +451,10 @@ export function DataSource() {
             <section className="card mt-4 p-5 sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <h2 className="text-sm font-bold text-text">连接共享仓库</h2>
-                        <p className="mt-1 text-[11px] leading-relaxed text-muted">
-                            使用 GitHub / Gitee 私钥（Access Token）或 WebDAV
-                            连接到仓库。一个仓库只保存一本账；多个人可以共用同一个私钥连接同一个仓库，然后各自选择自己的成员登录，就会进入同一套账。
-                        </p>
+                        <h2 className="text-sm font-bold text-text">{t("连接共享仓库")}</h2>
+                        <p className="mt-1 text-[11px] leading-relaxed text-muted">{t(
+                            "使用 GitHub / Gitee 私钥（Access Token）或 WebDAV\n                            连接到仓库。一个仓库只保存一本账；多个人可以共用同一个私钥连接同一个仓库，然后各自选择自己的成员登录，就会进入同一套账。"
+                        )}</p>
                     </div>
                 </div>
 
@@ -478,9 +467,7 @@ export function DataSource() {
 
                 {library.connections.length > 0 && (
                     <div className="mt-4 rounded-xl border border-line bg-surface-2/35 p-3">
-                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
-                            已保存连接
-                        </p>
+                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">{t("已保存连接")}</p>
                         <div className="flex flex-wrap gap-2">
                             {library.connections.map((saved) => {
                                 const active = connection?.id === saved.id;
@@ -509,16 +496,16 @@ export function DataSource() {
                     {!isWebDav ? (
                         <>
                             <Field
-                                label="仓库名"
+                                label={t("仓库名")}
                                 value={form.repo}
                                 onChange={(value) => update("repo", value)}
-                                placeholder="family-ledger 或 your-name/family-ledger"
+                                placeholder={t("family-ledger 或 your-name/family-ledger")}
                             />
                             <Field
-                                label="私钥 / Access Token"
+                                label={t("私钥 / Access Token")}
                                 value={form.token}
                                 onChange={(value) => update("token", value)}
-                                placeholder="repo / projects 读写权限"
+                                placeholder={t("repo / projects 读写权限")}
                                 type="password"
                             />
                         </>
@@ -526,23 +513,23 @@ export function DataSource() {
                         <>
                             <div className="sm:col-span-2">
                                 <Field
-                                    label="WebDAV 地址"
+                                    label={t("WebDAV 地址")}
                                     value={form.url}
                                     onChange={(value) => update("url", value)}
                                     placeholder="https://dav.example.com/remote.php/dav/files/me/"
                                 />
                             </div>
                             <Field
-                                label="用户名"
+                                label={t("用户名")}
                                 value={form.username}
                                 onChange={(value) => update("username", value)}
-                                placeholder="WebDAV 用户名"
+                                placeholder={t("WebDAV 用户名")}
                             />
                             <Field
-                                label="密码"
+                                label={t("密码")}
                                 value={form.password}
                                 onChange={(value) => update("password", value)}
-                                placeholder="WebDAV 密码"
+                                placeholder={t("WebDAV 密码")}
                                 type="password"
                             />
                         </>
@@ -550,9 +537,9 @@ export function DataSource() {
                 </div>
 
                 {!isWebDav && (
-                    <p className="mt-3 text-[10px] leading-relaxed text-muted">
-                        只需要填写仓库名和私钥。仓库名可以只写 repo（自动用私钥所属账号补全），也可以写 owner/repo。分支自动使用默认分支。多个人可以共用同一个私钥，连接后各自选择成员并输入密码。
-                    </p>
+                    <p className="mt-3 text-[10px] leading-relaxed text-muted">{t(
+                        "只需要填写仓库名和私钥。仓库名可以只写 repo（自动用私钥所属账号补全），也可以写 owner/repo。分支自动使用默认分支。多个人可以共用同一个私钥，连接后各自选择成员并输入密码。"
+                    )}</p>
                 )}
 
                 {error && (
@@ -565,36 +552,29 @@ export function DataSource() {
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                     <Button onClick={handleConnect} disabled={busy !== null}>
                         <Server className="size-3.5" />
-                        {busy === "connect" ? "连接中…" : "连接并检查共享账"}
+                        {busy === "connect" ? t("连接中…") : t("连接并检查共享账")}
                     </Button>
                     {connection && (
                         <span className="flex items-center gap-1 text-[10px] text-success">
-                            <CheckCircle2 className="size-3" />
-                            已连接 · 成员 {activeMember?.name ?? "未选择"}
+                            <CheckCircle2 className="size-3" />{` ${t("已连接 · 成员")} `}{activeMember?.name ?? t("未选择")}
                         </span>
                     )}
                 </div>
 
                 <p className="mt-3 flex items-start gap-2 text-[10px] leading-relaxed text-muted">
-                    <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-accent" />
-                    Token / 密码只保存在本机 localStorage，不会经过两讫的服务器。建议使用只授权单个仓库的细粒度 token。
-                </p>
+                    <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-accent" />{` ${t("Token / 密码只保存在本机 localStorage，不会经过两讫的服务器。建议使用只授权单个仓库的细粒度 token。")}`}</p>
 
                 {isWebDav && (
                     <p className="mt-2 flex items-start gap-2 text-[10px] leading-relaxed text-muted">
-                        <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-liability" />
-                        WebDAV 服务器需要允许浏览器跨域访问（CORS）。如果连接失败，先在服务器配置 CORS，或换用 GitHub / Gitee。
-                    </p>
+                        <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-liability" />{` ${t("WebDAV 服务器需要允许浏览器跨域访问（CORS）。如果连接失败，先在服务器配置 CORS，或换用 GitHub / Gitee。")}`}</p>
                 )}
             </section>
 
             <section className="card mt-4 p-5 sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <h2 className="text-sm font-bold text-text">共享账本</h2>
-                        <p className="mt-1 text-[11px] text-muted">
-                            一个仓库只保存一本账。打开共享账本会把远程数据合并到本地，并切换到这本账。
-                        </p>
+                        <h2 className="text-sm font-bold text-text">{t("共享账本")}</h2>
+                        <p className="mt-1 text-[11px] text-muted">{t("一个仓库只保存一本账。打开共享账本会把远程数据合并到本地，并切换到这本账。")}</p>
                     </div>
                     {remoteBooks.length === 0 && (
                         <Button
@@ -603,20 +583,18 @@ export function DataSource() {
                             onClick={handleUploadCurrent}
                             disabled={busy !== null || !connection}
                         >
-                            <Upload className="size-3.5" />
-                            上传当前账本
-                        </Button>
+                            <Upload className="size-3.5" />{` ${t("上传当前账本")}`}</Button>
                     )}
                 </div>
 
                 {remoteBooks.length === 0 ? (
                     <EmptyState
                         icon={FolderOpen}
-                        title={connection ? "这个仓库还是空的" : "先连接一个远程仓库"}
+                        title={connection ? t("这个仓库还是空的") : t("先连接一个远程仓库")}
                         description={
                             connection
-                                ? "把当前账本上传上去，它就会成为这个仓库唯一的共享账。"
-                                : "连接 GitHub、Gitee 或 WebDAV 后，这里会显示这个仓库的共享账。"
+                                ? t("把当前账本上传上去，它就会成为这个仓库唯一的共享账。")
+                                : t("连接 GitHub、Gitee 或 WebDAV 后，这里会显示这个仓库的共享账。")
                         }
                         className="mt-4 border-0 bg-transparent"
                     />
@@ -643,13 +621,11 @@ export function DataSource() {
                                                 {book.name}
                                             </p>
                                             {isCurrent && (
-                                                <span className="chip bg-accent text-surface">
-                                                    当前
-                                                </span>
+                                                <span className="chip bg-accent text-surface">{t("当前")}</span>
                                             )}
                                         </div>
                                         <p className="mt-0.5 text-[10px] text-muted">
-                                            {book.entryCount} 笔流水 · {book.currency} · 更新于{" "}
+                                            {book.entryCount}{` ${t("笔流水 ·")} `}{book.currency}{` ${t("· 更新于")}`}{" "}
                                             {formatRelativeDay(book.updatedAt)}
                                         </p>
                                     </div>
@@ -660,10 +636,10 @@ export function DataSource() {
                                         disabled={busy !== null}
                                     >
                                         {busy === `open:${book.id}`
-                                            ? "合并中…"
+                                            ? t("合并中…")
                                             : isCurrent
-                                              ? "合并远程"
-                                              : "打开共享账"}
+                                              ? t("合并远程")
+                                              : t("打开共享账")}
                                     </Button>
                                 </div>
                             );
@@ -672,31 +648,23 @@ export function DataSource() {
                 )}
 
                 <div className="mt-4 flex items-start gap-2 rounded-xl border border-accent/20 bg-accent-soft/35 px-3 py-2.5 text-[10px] leading-relaxed text-muted">
-                    <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-accent" />
-                    每条流水和账单会记录作者身份。其他用户连接同一个仓库后可以查看和新增，但不能修改或删除你记的账。
-                </div>
+                    <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-accent" />{` ${t("每条流水和账单会记录作者身份。其他用户连接同一个仓库后可以查看和新增，但不能修改或删除你记的账。")}`}</div>
             </section>
 
             <section className="card mt-4 p-5 sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <h2 className="text-sm font-bold text-text">冲突备份</h2>
-                        <p className="mt-1 text-[11px] text-muted">
-                            远程优先覆盖本地时，被覆盖的版本会保存在这里。最多保留 10 份。
-                        </p>
+                        <h2 className="text-sm font-bold text-text">{t("冲突备份")}</h2>
+                        <p className="mt-1 text-[11px] text-muted">{t("远程优先覆盖本地时，被覆盖的版本会保存在这里。最多保留 10 份。")}</p>
                     </div>
                     {conflicts.length > 0 && (
                         <Button size="sm" variant="ghost" onClick={handleClearConflicts}>
-                            <Trash2 className="size-3.5" />
-                            清空
-                        </Button>
+                            <Trash2 className="size-3.5" />{` ${t("清空")}`}</Button>
                     )}
                 </div>
 
                 {conflicts.length === 0 ? (
-                    <p className="mt-4 rounded-xl border border-dashed border-line bg-surface-2/30 px-4 py-5 text-center text-[11px] text-muted">
-                        还没有冲突备份。
-                    </p>
+                    <p className="mt-4 rounded-xl border border-dashed border-line bg-surface-2/30 px-4 py-5 text-center text-[11px] text-muted">{t("还没有冲突备份。")}</p>
                 ) : (
                     <div className="mt-4 space-y-2">
                         {conflicts.map((backup) => (
@@ -713,17 +681,14 @@ export function DataSource() {
                                     </p>
                                     <p className="text-[10px] text-muted">
                                         {formatRelativeDay(backup.savedAt)} ·{" "}
-                                        {backup.book.entries.length} 笔流水
-                                    </p>
+                                        {backup.book.entries.length}{` ${t("笔流水")}`}</p>
                                 </div>
                                 <Button
                                     size="sm"
                                     variant="secondary"
                                     onClick={() => downloadConflict(backup)}
                                 >
-                                    <Download className="size-3.5" />
-                                    下载
-                                </Button>
+                                    <Download className="size-3.5" />{` ${t("下载")}`}</Button>
                             </div>
                         ))}
                     </div>
@@ -733,9 +698,9 @@ export function DataSource() {
             <ConfirmDialog
                 open={disconnectOpen}
                 onClose={() => setDisconnectOpen(false)}
-                title="断开远程连接？"
-                description="本地数据会保留，但这个账本将不再自动同步。远程仓库里的数据不会被删除。"
-                confirmLabel="断开连接"
+                title={t("断开远程连接？")}
+                description={t("本地数据会保留，但这个账本将不再自动同步。远程仓库里的数据不会被删除。")}
+                confirmLabel={t("断开连接")}
                 onConfirm={handleDisconnect}
             />
         </div>

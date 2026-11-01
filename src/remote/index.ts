@@ -8,6 +8,8 @@ import type { RemoteAdapter } from "@/remote/adapter";
 import { createGitContentsAdapter } from "@/remote/git-contents";
 import { createWebDavAdapter } from "@/remote/webdav";
 
+import { t } from "@/i18n";
+
 export function providerLabel(connection: Pick<Connection, "provider">): string {
     switch (connection.provider) {
         case "github":
@@ -22,10 +24,10 @@ export function providerLabel(connection: Pick<Connection, "provider">): string 
 export function createRemoteAdapter(connection: Connection): RemoteAdapter {
     if (connection.provider === "github" || connection.provider === "gitee") {
         if (!connection.owner?.trim() || !connection.repo?.trim()) {
-            throw new RemoteError("请填写仓库 owner 和 repo");
+            throw new RemoteError(t("请填写仓库 owner 和 repo"));
         }
         if (!connection.token?.trim()) {
-            throw new RemoteError("请填写访问 token，或先完成 OAuth 登录");
+            throw new RemoteError(t("请填写访问 token，或先完成 OAuth 登录"));
         }
         return createGitContentsAdapter({
             provider: connection.provider,
@@ -37,7 +39,7 @@ export function createRemoteAdapter(connection: Connection): RemoteAdapter {
     }
 
     if (!connection.url?.trim()) {
-        throw new RemoteError("请填写 WebDAV 地址");
+        throw new RemoteError(t("请填写 WebDAV 地址"));
     }
     return createWebDavAdapter({
         url: connection.url.trim(),

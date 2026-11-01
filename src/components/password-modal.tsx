@@ -9,6 +9,8 @@ import { Button } from "@/components/button";
 import { useAuthStore } from "@/store/auth";
 import { toast } from "@/store/toast";
 
+import { t } from "@/i18n";
+
 export type PasswordMode = "set" | "change" | "disable";
 
 interface PasswordModalProps {
@@ -22,21 +24,21 @@ const copy: Record<
     { title: string; description: string; confirm: string; icon: typeof KeyRound }
 > = {
     set: {
-        title: "设置本地密码",
-        description: "至少 6 位。密码只保存在本机，不会上传。",
-        confirm: "启用密码",
+        title: t("设置本地密码"),
+        description: t("至少 6 位。密码只保存在本机，不会上传。"),
+        confirm: t("启用密码"),
         icon: KeyRound,
     },
     change: {
-        title: "修改本地密码",
-        description: "先输入当前密码，再设置新密码。",
-        confirm: "保存新密码",
+        title: t("修改本地密码"),
+        description: t("先输入当前密码，再设置新密码。"),
+        confirm: t("保存新密码"),
         icon: KeyRound,
     },
     disable: {
-        title: "关闭本地密码",
-        description: "关闭后打开两讫不再需要密码。请输入当前密码确认。",
-        confirm: "关闭密码",
+        title: t("关闭本地密码"),
+        description: t("关闭后打开两讫不再需要密码。请输入当前密码确认。"),
+        confirm: t("关闭密码"),
         icon: ShieldOff,
     },
 };
@@ -69,18 +71,18 @@ export function PasswordModal({ open, mode, onClose }: PasswordModalProps) {
 
         if (mode === "disable") {
             if (!current) {
-                setError("请输入当前密码");
+                setError(t("请输入当前密码"));
                 return;
             }
             setBusy(true);
             try {
                 const ok = await verifyPassword(current);
                 if (!ok) {
-                    setError("当前密码不正确");
+                    setError(t("当前密码不正确"));
                     return;
                 }
                 disable();
-                toast("本地密码已关闭", "success");
+                toast(t("本地密码已关闭"), "success");
                 onClose();
             } finally {
                 setBusy(false);
@@ -89,11 +91,11 @@ export function PasswordModal({ open, mode, onClose }: PasswordModalProps) {
         }
 
         if (next.length < 6) {
-            setError("新密码至少需要 6 位");
+            setError(t("新密码至少需要 6 位"));
             return;
         }
         if (next !== confirm) {
-            setError("两次输入的新密码不一致");
+            setError(t("两次输入的新密码不一致"));
             return;
         }
 
@@ -101,14 +103,14 @@ export function PasswordModal({ open, mode, onClose }: PasswordModalProps) {
         try {
             if (mode === "set") {
                 await setPassword(next);
-                toast("本地密码已启用", "success");
+                toast(t("本地密码已启用"), "success");
             } else {
                 await changePassword(current, next);
-                toast("本地密码已更新", "success");
+                toast(t("本地密码已更新"), "success");
             }
             onClose();
         } catch (cause) {
-            setError(cause instanceof Error ? cause.message : "操作失败");
+            setError(cause instanceof Error ? cause.message : t("操作失败"));
         } finally {
             setBusy(false);
         }
@@ -126,16 +128,14 @@ export function PasswordModal({ open, mode, onClose }: PasswordModalProps) {
             size="sm"
             footer={
                 <div className="flex gap-2">
-                    <Button variant="secondary" className="flex-1" onClick={onClose}>
-                        取消
-                    </Button>
+                    <Button variant="secondary" className="flex-1" onClick={onClose}>{t("取消")}</Button>
                     <Button
                         type="submit"
                         form="password-form"
                         className="flex-1"
                         disabled={busy}
                     >
-                        {busy ? "处理中…" : info.confirm}
+                        {busy ? t("处理中…") : info.confirm}
                     </Button>
                 </div>
             }
@@ -145,14 +145,12 @@ export function PasswordModal({ open, mode, onClose }: PasswordModalProps) {
                     <span className="grid size-9 place-items-center rounded-lg bg-accent-soft text-accent">
                         <Icon className="size-4" />
                     </span>
-                    <p className="text-[11px] leading-relaxed text-muted">
-                        密码使用 PBKDF2-SHA256 哈希后保存在本机；两讫不会上传密码。
-                    </p>
+                    <p className="text-[11px] leading-relaxed text-muted">{t("密码使用 PBKDF2-SHA256 哈希后保存在本机；两讫不会上传密码。")}</p>
                 </div>
 
                 {mode !== "set" && (
                     <PasswordField
-                        label="当前密码"
+                        label={t("当前密码")}
                         value={current}
                         onChange={setCurrent}
                         autoComplete="current-password"
@@ -163,14 +161,14 @@ export function PasswordModal({ open, mode, onClose }: PasswordModalProps) {
                 {mode !== "disable" && (
                     <>
                         <PasswordField
-                            label="新密码"
+                            label={t("新密码")}
                             value={next}
                             onChange={setNext}
                             autoComplete="new-password"
                             autoFocus={mode === "set"}
                         />
                         <PasswordField
-                            label="确认新密码"
+                            label={t("确认新密码")}
                             value={confirm}
                             onChange={setConfirm}
                             autoComplete="new-password"
@@ -185,9 +183,7 @@ export function PasswordModal({ open, mode, onClose }: PasswordModalProps) {
                 )}
 
                 <p className="flex items-start gap-2 text-[10px] leading-relaxed text-muted">
-                    <LockKeyhole className="mt-0.5 size-3.5 shrink-0 text-accent" />
-                    密码只锁界面，不加密 localStorage 里的账本数据。忘记密码只能清除浏览器数据。
-                </p>
+                    <LockKeyhole className="mt-0.5 size-3.5 shrink-0 text-accent" />{` ${t("密码只锁界面，不加密 localStorage 里的账本数据。忘记密码只能清除浏览器数据。")}`}</p>
             </form>
         </Modal>
     );
@@ -216,7 +212,7 @@ function PasswordField({
                 onChange={(event) => onChange(event.target.value)}
                 autoComplete={autoComplete}
                 autoFocus={autoFocus}
-                placeholder="至少 6 位"
+                placeholder={t("至少 6 位")}
             />
         </label>
     );

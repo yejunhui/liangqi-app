@@ -19,6 +19,8 @@ import { getConnectionById, useLibraryStore } from "@/store/library";
 import { downloadRemoteAttachment, deleteRemoteAttachment } from "@/remote/attachments";
 import { toast } from "@/store/toast";
 
+import { t } from "@/i18n";
+
 interface AttachmentListProps {
     target: { kind: "entry" | "bill"; id: string };
     attachmentIds: string[] | undefined;
@@ -39,7 +41,7 @@ function formatFileSize(size: number): string {
 export function AttachmentList({
     target,
     attachmentIds,
-    label = "附件",
+    label = t("附件"),
     readOnly = false,
 }: AttachmentListProps) {
     const attachments = useLedgerStore((state) => state.attachments);
@@ -61,7 +63,7 @@ export function AttachmentList({
         }
         const tooLarge = files.find((file) => file.size > MAX_ATTACHMENT_SIZE);
         if (tooLarge) {
-            toast(`单个附件不能超过 10 MB：${tooLarge.name}`, "error");
+            toast(t("单个附件不能超过 10 MB：{0}", [tooLarge.name]), "error");
             return;
         }
         setUploading(true);
@@ -76,10 +78,10 @@ export function AttachmentList({
                 toast(result.error, "error");
                 return;
             }
-            toast(`已添加 ${metas.length} 个附件`, "success");
+            toast(t("已添加 {0} 个附件", [metas.length]), "success");
         } catch {
             await Promise.all(metas.map((meta) => deleteAttachmentFile(meta.id)));
-            toast("附件保存失败，浏览器可能不允许本地存储", "error");
+            toast(t("附件保存失败，浏览器可能不允许本地存储"), "error");
         } finally {
             setUploading(false);
         }
@@ -103,7 +105,7 @@ export function AttachmentList({
             await deleteRemoteAttachment(connection, deleting.id);
         }
         await deleteAttachmentFile(deleting.id);
-        toast("附件已删除", "success");
+        toast(t("附件已删除"), "success");
         setDeleting(null);
     }
 
@@ -120,7 +122,7 @@ export function AttachmentList({
                 : undefined,
         );
         if (!opened) {
-            toast("附件文件不在本机，远程也没有找到", "info");
+            toast(t("附件文件不在本机，远程也没有找到"), "info");
         }
     }
 
@@ -139,7 +141,7 @@ export function AttachmentList({
                         className="inline-flex items-center gap-1 rounded-lg border border-line px-2 py-1 text-[10px] font-medium text-muted transition hover:text-text disabled:opacity-50"
                     >
                         <Plus className="size-3" />
-                        {uploading ? "保存中…" : "添加"}
+                        {uploading ? t("保存中…") : t("添加")}
                     </button>
                 )}
             </div>
@@ -154,9 +156,7 @@ export function AttachmentList({
             />
 
             {items.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-line bg-surface-2/40 px-3 py-2.5 text-[10px] text-muted">
-                    可以添加小票、发票或截图，文件只保存在本机。
-                </p>
+                <p className="rounded-xl border border-dashed border-line bg-surface-2/40 px-3 py-2.5 text-[10px] text-muted">{t("可以添加小票、发票或截图，文件只保存在本机。")}</p>
             ) : (
                 <div className="space-y-1.5">
                     {items.map((attachment) => (
@@ -181,7 +181,7 @@ export function AttachmentList({
                                 </span>
                                 <span className="block text-[9px] text-muted">
                                     {formatFileSize(attachment.size)} ·{" "}
-                                    {attachment.remoteUploadedAt ? "已同步" : "仅本机"}
+                                    {attachment.remoteUploadedAt ? t("已同步") : t("仅本机")}
                                 </span>
                             </button>
                             {!readOnly && (
@@ -189,7 +189,7 @@ export function AttachmentList({
                                     type="button"
                                     onClick={() => setDeleting(attachment)}
                                     className="grid size-6 place-items-center rounded-md text-muted transition hover:bg-danger-soft hover:text-danger"
-                                    aria-label="删除附件"
+                                    aria-label={t("删除附件")}
                                 >
                                     <Trash2 className="size-3" />
                                 </button>
@@ -202,9 +202,9 @@ export function AttachmentList({
             <ConfirmDialog
                 open={deleting !== null}
                 onClose={() => setDeleting(null)}
-                title="删除这个附件？"
-                description={deleting ? `“${deleting.name}”会从本机删除，无法恢复。` : ""}
-                confirmLabel="删除"
+                title={t("删除这个附件？")}
+                description={deleting ? t("“{0}”会从本机删除，无法恢复。", [deleting.name]) : ""}
+                confirmLabel={t("删除")}
                 onConfirm={handleDelete}
             />
         </div>

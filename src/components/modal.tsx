@@ -7,6 +7,8 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 interface ModalProps {
     open: boolean;
     onClose: () => void;
@@ -96,7 +98,7 @@ export function Modal({
                             type="button"
                             onClick={onClose}
                             className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-surface-2 hover:text-text"
-                            aria-label="关闭"
+                            aria-label={t("关闭")}
                         >
                             <X className="size-4" />
                         </button>

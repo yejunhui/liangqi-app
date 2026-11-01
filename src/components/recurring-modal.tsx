@@ -14,6 +14,8 @@ import { getActiveMember } from "@/store/member-session";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 interface RecurringModalProps {
     open: boolean;
     rule: RecurringRule | null;
@@ -21,10 +23,10 @@ interface RecurringModalProps {
 }
 
 const FREQUENCIES: Array<{ value: RecurringFrequency; label: string }> = [
-    { value: "daily", label: "天" },
-    { value: "weekly", label: "周" },
-    { value: "monthly", label: "月" },
-    { value: "yearly", label: "年" },
+    { value: "daily", label: t("天") },
+    { value: "weekly", label: t("周") },
+    { value: "monthly", label: t("月") },
+    { value: "yearly", label: t("年") },
 ];
 
 export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
@@ -106,35 +108,35 @@ export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
         event.preventDefault();
         setError("");
         if (!name.trim()) {
-            setError("名称不能为空");
+            setError(t("名称不能为空"));
             return;
         }
         const cents = parseAmountToCents(amount);
         if (cents === null || cents <= 0) {
-            setError("请输入大于 0 的金额");
+            setError(t("请输入大于 0 的金额"));
             return;
         }
         const intervalValue = Number.parseInt(interval, 10);
         if (!Number.isInteger(intervalValue) || intervalValue <= 0) {
-            setError("间隔必须是大于 0 的整数");
+            setError(t("间隔必须是大于 0 的整数"));
             return;
         }
         const start = fromDateInputValue(startDate);
         if (start === null) {
-            setError("请选择开始日期");
+            setError(t("请选择开始日期"));
             return;
         }
         let end: number | undefined;
         if (endDate) {
             const parsed = fromDateInputValue(endDate);
             if (parsed === null) {
-                setError("请选择有效的结束日期");
+                setError(t("请选择有效的结束日期"));
                 return;
             }
             end = parsed;
         }
         if (!categoryId) {
-            setError("请选择分类");
+            setError(t("请选择分类"));
             return;
         }
         const input = {
@@ -161,7 +163,7 @@ export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
             setError(result.error);
             return;
         }
-        toast(editing ? "周期记账已更新" : "周期记账已创建", "success");
+        toast(editing ? t("周期记账已更新") : t("周期记账已创建"), "success");
         onClose();
     }
 
@@ -169,16 +171,14 @@ export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
         <Modal
             open={open}
             onClose={onClose}
-            title={editing ? "编辑周期记账" : "添加周期记账"}
-            description="到点自动生成流水；记账日期按开始日期和频率推进。"
+            title={editing ? t("编辑周期记账") : t("添加周期记账")}
+            description={t("到点自动生成流水；记账日期按开始日期和频率推进。")}
             size="md"
             footer={
                 <div className="flex gap-2">
-                    <Button variant="secondary" className="flex-1" onClick={onClose}>
-                        取消
-                    </Button>
+                    <Button variant="secondary" className="flex-1" onClick={onClose}>{t("取消")}</Button>
                     <Button type="submit" form="recurring-form" className="flex-1">
-                        {editing ? "保存" : "创建"}
+                        {editing ? t("保存") : t("创建")}
                     </Button>
                 </div>
             }
@@ -187,8 +187,8 @@ export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
                 <div className="grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1">
                     {(
                         [
-                            { value: "expense", label: "支出" },
-                            { value: "income", label: "收入" },
+                            { value: "expense", label: t("支出") },
+                            { value: "income", label: t("收入") },
                         ] as const
                     ).map((option) => (
                         <button
@@ -209,17 +209,17 @@ export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
 
                 <div className="grid gap-3 sm:grid-cols-2">
                     <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-muted">名称</span>
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("名称")}</span>
                         <input
                             className="field"
                             value={name}
                             onChange={(event) => setName(event.target.value)}
-                            placeholder="例如：房租"
+                            placeholder={t("例如：房租")}
                             autoFocus
                         />
                     </label>
                     <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-muted">金额</span>
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("金额")}</span>
                         <input
                             className="field"
                             value={amount}
@@ -231,13 +231,13 @@ export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
                 </div>
 
                 <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-muted">分类</span>
+                    <span className="mb-1.5 block text-xs font-semibold text-muted">{t("分类")}</span>
                     <select
                         className="field"
                         value={categoryId}
                         onChange={(event) => setCategoryId(event.target.value)}
                     >
-                        <option value="">请选择分类</option>
+                        <option value="">{t("请选择分类")}</option>
                         {visibleCategories.map((category) => {
                             const parent = category.parent
                                 ? categories.find((item) => item.id === category.parent)
@@ -255,9 +255,7 @@ export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
                 {kind === "expense" && (
                     <div className="grid gap-3 sm:grid-cols-2">
                         <label className="block">
-                            <span className="mb-1.5 block text-xs font-semibold text-muted">
-                                付款方式
-                            </span>
+                            <span className="mb-1.5 block text-xs font-semibold text-muted">{t("付款方式")}</span>
                             <select
                                 className="field"
                                 value={paymentMode}
@@ -267,13 +265,13 @@ export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
                                     setLiabilityAccountId(liabilityAccounts[0]?.id ?? "");
                                 }}
                             >
-                                <option value="asset">从存款支出</option>
-                                <option value="liability">记负债（生成账单）</option>
+                                <option value="asset">{t("从存款支出")}</option>
+                                <option value="liability">{t("记负债（生成账单）")}</option>
                             </select>
                         </label>
                         <label className="block">
                             <span className="mb-1.5 block text-xs font-semibold text-muted">
-                                {paymentMode === "asset" ? "储蓄账户" : "负债账户"}
+                                {paymentMode === "asset" ? t("储蓄账户") : t("负债账户")}
                             </span>
                             <select
                                 className="field"
@@ -298,9 +296,7 @@ export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
 
                 {kind === "income" && (
                     <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-muted">
-                            收款账户
-                        </span>
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("收款账户")}</span>
                         <select
                             className="field"
                             value={accountId}
@@ -317,7 +313,7 @@ export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
 
                 <div className="grid gap-3 sm:grid-cols-3">
                     <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-muted">频率</span>
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("频率")}</span>
                         <select
                             className="field"
                             value={frequency}
@@ -326,14 +322,13 @@ export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
                             }
                         >
                             {FREQUENCIES.map((item) => (
-                                <option key={item.value} value={item.value}>
-                                    每{item.label}
+                                <option key={item.value} value={item.value}>{t("每")}{item.label}
                                 </option>
                             ))}
                         </select>
                     </label>
                     <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-muted">间隔</span>
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("间隔")}</span>
                         <input
                             className="field"
                             value={interval}
@@ -343,9 +338,7 @@ export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
                         />
                     </label>
                     <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-muted">
-                            开始日期
-                        </span>
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("开始日期")}</span>
                         <input
                             type="date"
                             className="field"
@@ -357,9 +350,7 @@ export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
 
                 <div className="grid gap-3 sm:grid-cols-2">
                     <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-muted">
-                            结束日期（可选）
-                        </span>
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("结束日期（可选）")}</span>
                         <input
                             type="date"
                             className="field"
@@ -368,13 +359,13 @@ export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
                         />
                     </label>
                     <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-muted">成员</span>
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("成员")}</span>
                         <select
                             className="field"
                             value={memberId}
                             onChange={(event) => setMemberId(event.target.value)}
                         >
-                            <option value="">默认成员</option>
+                            <option value="">{t("默认成员")}</option>
                             {members.map((member) => (
                                 <option key={member.id} value={member.id}>
                                     {member.name}
@@ -385,12 +376,12 @@ export function RecurringModal({ open, rule, onClose }: RecurringModalProps) {
                 </div>
 
                 <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-muted">备注</span>
+                    <span className="mb-1.5 block text-xs font-semibold text-muted">{t("备注")}</span>
                     <input
                         className="field"
                         value={note}
                         onChange={(event) => setNote(event.target.value)}
-                        placeholder="可选"
+                        placeholder={t("可选")}
                     />
                 </label>
 

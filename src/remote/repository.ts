@@ -35,6 +35,8 @@ import {
 } from "@/remote/chunks";
 import { cacheChunk, readCachedChunk } from "@/remote/chunk-cache";
 
+import { t } from "@/i18n";
+
 function isObject(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -65,13 +67,13 @@ export function parseRemoteIndex(text: string): RemoteIndex {
     try {
         raw = JSON.parse(text);
     } catch {
-        throw new RemoteError("远程 index.json 不是合法 JSON");
+        throw new RemoteError(t("远程 index.json 不是合法 JSON"));
     }
     if (!isObject(raw) || raw.app !== "liangqi" || raw.version !== 1) {
-        throw new RemoteError("远程 index.json 格式不正确");
+        throw new RemoteError(t("远程 index.json 格式不正确"));
     }
     if (!Array.isArray(raw.books)) {
-        throw new RemoteError("远程 index.json 缺少账本列表");
+        throw new RemoteError(t("远程 index.json 缺少账本列表"));
     }
     const books: RemoteBookSummary[] = raw.books
         .filter(
@@ -93,13 +95,13 @@ export function parseRemoteBookFile(text: string): RemoteBookFile {
     try {
         raw = JSON.parse(text);
     } catch {
-        throw new RemoteError("远程账本文件不是合法 JSON");
+        throw new RemoteError(t("远程账本文件不是合法 JSON"));
     }
     if (!isObject(raw) || raw.app !== "liangqi" || raw.version !== 1) {
-        throw new RemoteError("远程账本文件格式不正确");
+        throw new RemoteError(t("远程账本文件格式不正确"));
     }
     if (!isBook(raw.book)) {
-        throw new RemoteError("远程账本缺少有效数据");
+        throw new RemoteError(t("远程账本缺少有效数据"));
     }
     return {
         app: "liangqi",
@@ -138,7 +140,7 @@ export class RemoteNewerError extends RemoteError {
     readonly revision?: string;
 
     constructor(remoteBook: Book, revision?: string) {
-        super("远程账本比本地新，请先拉取远程数据", 409);
+        super(t("远程账本比本地新，请先拉取远程数据"), 409);
         this.name = "RemoteNewerError";
         this.remoteBook = remoteBook;
         this.revision = revision;
@@ -223,7 +225,7 @@ async function readChunks<T>(
             }
             const file = await adapter.readFile(ref.path);
             if (!file) {
-                throw new RemoteError(`缺少远程分片 ${ref.path}`);
+                throw new RemoteError(t("缺少远程分片 {0}", [ref.path]));
             }
             await cacheChunk(ref.hash, file.text);
             return file.text;
@@ -275,7 +277,7 @@ async function readManifestBook(
         : remoteBookMetaPath(manifest.bookId);
     const metaFile = await adapter.readFile(metaPath);
     if (!metaFile) {
-        throw new RemoteError("远程账本缺少 meta.json");
+        throw new RemoteError(t("远程账本缺少 meta.json"));
     }
     const meta = parseMetaFile(metaFile.text);
     const [entries, bills] = await Promise.all([
@@ -283,7 +285,7 @@ async function readManifestBook(
         readChunks<Bill>(adapter, manifest.chunks.bills),
     ]);
     if (entries.length !== manifest.entryCount || bills.length !== manifest.billCount) {
-        throw new RemoteError("远程分片数量与 manifest 不一致");
+        throw new RemoteError(t("远程分片数量与 manifest 不一致"));
     }
     const book = ensureMembers(bookFromParts(meta, entries, bills));
     return {

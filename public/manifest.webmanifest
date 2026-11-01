@@ -1,7 +1,7 @@
 {
-    "name": "两讫 · 银货两讫，账目两清",
-    "short_name": "两讫",
-    "description": "本地优先的记账应用，把现金支出、收入和待还负债分开记清楚。",
+    "name": "Liangqi · 两讫",
+    "short_name": "Liangqi",
+    "description": "Local-first bookkeeping for cash, income and liabilities. 本地优先的记账应用。",
     "lang": "zh-CN",
     "start_url": "./",
     "scope": "./",

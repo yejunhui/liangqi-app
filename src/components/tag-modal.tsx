@@ -11,6 +11,8 @@ import { useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 interface TagModalProps {
     open: boolean;
     tag: Tag | null;
@@ -49,7 +51,7 @@ export function TagModal({
         event.preventDefault();
         setError("");
         if (!name.trim()) {
-            setError("标签名称不能为空");
+            setError(t("标签名称不能为空"));
             return;
         }
         const result = editing
@@ -59,7 +61,7 @@ export function TagModal({
             setError(result.error);
             return;
         }
-        toast(editing ? "标签已更新" : "标签已添加", "success");
+        toast(editing ? t("标签已更新") : t("标签已添加"), "success");
         onClose();
     }
 
@@ -67,40 +69,38 @@ export function TagModal({
         <Modal
             open={open}
             onClose={onClose}
-            title={editing ? "编辑标签" : "添加标签"}
-            description="标签用于跨分类标记账单，比如「旅行」「出差」「装修」。"
+            title={editing ? t("编辑标签") : t("添加标签")}
+            description={t("标签用于跨分类标记账单，比如「旅行」「出差」「装修」。")}
             size="sm"
             footer={
                 <div className="flex gap-2">
-                    <Button variant="secondary" className="flex-1" onClick={onClose}>
-                        取消
-                    </Button>
+                    <Button variant="secondary" className="flex-1" onClick={onClose}>{t("取消")}</Button>
                     <Button type="submit" form="tag-form" className="flex-1">
-                        {editing ? "保存" : "添加标签"}
+                        {editing ? t("保存") : t("添加标签")}
                     </Button>
                 </div>
             }
         >
             <form id="tag-form" className="space-y-4" onSubmit={handleSubmit}>
                 <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-muted">名称</span>
+                    <span className="mb-1.5 block text-xs font-semibold text-muted">{t("名称")}</span>
                     <input
                         className="field"
                         value={name}
                         onChange={(event) => setName(event.target.value)}
-                        placeholder="例如：旅行"
+                        placeholder={t("例如：旅行")}
                         autoFocus
                     />
                 </label>
 
                 <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-muted">标签组</span>
+                    <span className="mb-1.5 block text-xs font-semibold text-muted">{t("标签组")}</span>
                     <select
                         className="field"
                         value={groupId}
                         onChange={(event) => setGroupId(event.target.value)}
                     >
-                        <option value="">未分组</option>
+                        <option value="">{t("未分组")}</option>
                         {groups.map((group) => (
                             <option key={group.id} value={group.id}>
                                 {group.name}
@@ -110,7 +110,7 @@ export function TagModal({
                 </label>
 
                 <div>
-                    <p className="mb-1.5 text-xs font-semibold text-muted">颜色</p>
+                    <p className="mb-1.5 text-xs font-semibold text-muted">{t("颜色")}</p>
                     <div className="flex flex-wrap gap-2">
                         {MEMBER_COLORS.map((item) => (
                             <button
@@ -124,7 +124,7 @@ export function TagModal({
                                         : "border-transparent hover:scale-105",
                                 )}
                                 style={{ backgroundColor: item }}
-                                aria-label={`选择颜色 ${item}`}
+                                aria-label={t("选择颜色 {0}", [item])}
                             />
                         ))}
                     </div>
@@ -136,7 +136,7 @@ export function TagModal({
                         style={{ backgroundColor: color }}
                     />
                     <p className="text-xs font-semibold text-text">
-                        {name.trim() || "标签预览"}
+                        {name.trim() || t("标签预览")}
                     </p>
                 </div>
 

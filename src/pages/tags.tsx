@@ -15,6 +15,8 @@ import { useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 export function TagsPage() {
     const tags = useLedgerStore((state) => state.tags);
     const tagGroups = useLedgerStore((state) => state.tagGroups);
@@ -78,8 +80,8 @@ export function TagsPage() {
         }
         toast(
             result.count
-                ? `已添加 ${result.count} 个日常标签/标签组`
-                : "日常标签已经存在",
+                ? t("已添加 {0} 个日常标签/标签组", [result.count])
+                : t("日常标签已经存在"),
             result.count ? "success" : "info",
         );
     }
@@ -93,7 +95,7 @@ export function TagsPage() {
             toast(result.error, "error");
             return;
         }
-        toast("标签已删除", "success");
+        toast(t("标签已删除"), "success");
         setDeletingTag(null);
     }
 
@@ -106,7 +108,7 @@ export function TagsPage() {
             toast(result.error, "error");
             return;
         }
-        toast("标签组已删除", "success");
+        toast(t("标签组已删除"), "success");
         setDeletingGroup(null);
     }
 
@@ -115,23 +117,17 @@ export function TagsPage() {
     return (
         <div>
             <PageHeader
-                eyebrow="通用记账"
-                title="标签"
-                description="标签可以跨分类标记账单：旅行、出差、装修、孩子。"
+                eyebrow={t("通用记账")}
+                title={t("标签")}
+                description={t("标签可以跨分类标记账单：旅行、出差、装修、孩子。")}
                 action={
                     <div className="flex flex-wrap gap-2">
                         <Button variant="secondary" onClick={handleDefaultTags}>
-                            <Sparkles className="size-4" />
-                            日常标签
-                        </Button>
+                            <Sparkles className="size-4" />{` ${t("日常标签")}`}</Button>
                         <Button variant="secondary" onClick={() => { setEditingGroup(null); setGroupModalOpen(true); }}>
-                            <Tags className="size-4" />
-                            标签组
-                        </Button>
+                            <Tags className="size-4" />{` ${t("标签组")}`}</Button>
                         <Button onClick={() => openCreateTag()}>
-                            <Plus className="size-4" />
-                            添加标签
-                        </Button>
+                            <Plus className="size-4" />{` ${t("添加标签")}`}</Button>
                     </div>
                 }
             />
@@ -139,18 +135,14 @@ export function TagsPage() {
             {tags.length === 0 && tagGroups.length === 0 ? (
                 <EmptyState
                     icon={TagIcon}
-                    title="还没有标签"
-                    description="标签适合标记跨分类的事情，比如一次旅行、一个装修项目。"
+                    title={t("还没有标签")}
+                    description={t("标签适合标记跨分类的事情，比如一次旅行、一个装修项目。")}
                     action={
                         <div className="flex flex-wrap justify-center gap-2">
                             <Button size="sm" variant="secondary" onClick={handleDefaultTags}>
-                                <Sparkles className="size-3.5" />
-                                添加日常标签
-                            </Button>
+                                <Sparkles className="size-3.5" />{` ${t("添加日常标签")}`}</Button>
                             <Button size="sm" onClick={() => openCreateTag()}>
-                                <Plus className="size-3.5" />
-                                添加第一个标签
-                            </Button>
+                                <Plus className="size-3.5" />{` ${t("添加第一个标签")}`}</Button>
                         </div>
                     }
                 />
@@ -170,9 +162,8 @@ export function TagsPage() {
                                                 {group.name}
                                             </h2>
                                             <p className="text-[10px] text-muted">
-                                                {group.selection === "single" ? "单选" : "多选"} ·{" "}
-                                                {list.length} 个标签
-                                            </p>
+                                                {group.selection === "single" ? t("单选") : t("多选")} ·{" "}
+                                                {list.length}{` ${t("个标签")}`}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1">
@@ -180,7 +171,7 @@ export function TagsPage() {
                                             type="button"
                                             onClick={() => openCreateTag(group.id)}
                                             className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-surface-2 hover:text-text"
-                                            aria-label="添加标签"
+                                            aria-label={t("添加标签")}
                                         >
                                             <Plus className="size-3.5" />
                                         </button>
@@ -191,7 +182,7 @@ export function TagsPage() {
                                                 setGroupModalOpen(true);
                                             }}
                                             className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-surface-2 hover:text-text"
-                                            aria-label="编辑标签组"
+                                            aria-label={t("编辑标签组")}
                                         >
                                             <Pencil className="size-3.5" />
                                         </button>
@@ -199,16 +190,14 @@ export function TagsPage() {
                                             type="button"
                                             onClick={() => setDeletingGroup(group)}
                                             className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-danger-soft hover:text-danger"
-                                            aria-label="删除标签组"
+                                            aria-label={t("删除标签组")}
                                         >
                                             <Trash2 className="size-3.5" />
                                         </button>
                                     </div>
                                 </div>
                                 {list.length === 0 ? (
-                                    <p className="mt-4 rounded-xl border border-dashed border-line bg-surface-2/30 px-4 py-4 text-center text-[11px] text-muted">
-                                        这个标签组还没有标签
-                                    </p>
+                                    <p className="mt-4 rounded-xl border border-dashed border-line bg-surface-2/30 px-4 py-4 text-center text-[11px] text-muted">{t("这个标签组还没有标签")}</p>
                                 ) : (
                                     <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                                         {list.map((tag) => (
@@ -232,24 +221,21 @@ export function TagsPage() {
                     <section className="card p-5">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h2 className="text-sm font-bold text-text">未分组</h2>
+                                <h2 className="text-sm font-bold text-text">{t("未分组")}</h2>
                                 <p className="mt-0.5 text-[10px] text-muted">
-                                    {ungrouped.length} 个标签
-                                </p>
+                                    {ungrouped.length}{` ${t("个标签")}`}</p>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => openCreateTag()}
                                 className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-surface-2 hover:text-text"
-                                aria-label="添加标签"
+                                aria-label={t("添加标签")}
                             >
                                 <Plus className="size-3.5" />
                             </button>
                         </div>
                         {ungrouped.length === 0 ? (
-                            <p className="mt-4 rounded-xl border border-dashed border-line bg-surface-2/30 px-4 py-4 text-center text-[11px] text-muted">
-                                没有未分组标签
-                            </p>
+                            <p className="mt-4 rounded-xl border border-dashed border-line bg-surface-2/30 px-4 py-4 text-center text-[11px] text-muted">{t("没有未分组标签")}</p>
                         ) : (
                             <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                                 {ungrouped.map((tag) => (
@@ -292,25 +278,25 @@ export function TagsPage() {
             <ConfirmDialog
                 open={deletingTag !== null}
                 onClose={() => setDeletingTag(null)}
-                title="删除这个标签？"
+                title={t("删除这个标签？")}
                 description={
                     deletingTag
-                        ? `“${deletingTag.name}”只有在没有关联流水、账单或预算时才能删除。`
+                        ? t("“{0}”只有在没有关联流水、账单或预算时才能删除。", [deletingTag.name])
                         : ""
                 }
-                confirmLabel="删除标签"
+                confirmLabel={t("删除标签")}
                 onConfirm={handleDeleteTag}
             />
             <ConfirmDialog
                 open={deletingGroup !== null}
                 onClose={() => setDeletingGroup(null)}
-                title="删除这个标签组？"
+                title={t("删除这个标签组？")}
                 description={
                     deletingGroup
-                        ? `“${deletingGroup.name}”只有在没有标签时才能删除。`
+                        ? t("“{0}”只有在没有标签时才能删除。", [deletingGroup.name])
                         : ""
                 }
-                confirmLabel="删除标签组"
+                confirmLabel={t("删除标签组")}
                 onConfirm={handleDeleteGroup}
             />
         </div>
@@ -334,7 +320,7 @@ function TagCard({
             <div className="min-w-0 flex-1">
                 <h3 className="truncate text-xs font-semibold text-text">{tag.name}</h3>
                 <p className="mt-0.5 text-[10px] text-muted">
-                    {usage > 0 ? `${usage} 处关联` : "还没有使用"}
+                    {usage > 0 ? t("{0} 处关联", [usage]) : t("还没有使用")}
                 </p>
             </div>
             <div className={cn("flex shrink-0 items-center gap-0.5 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100")}>
@@ -342,7 +328,7 @@ function TagCard({
                     type="button"
                     onClick={onEdit}
                     className="grid size-7 place-items-center rounded-lg text-muted transition hover:bg-surface-2 hover:text-text"
-                    aria-label="编辑标签"
+                    aria-label={t("编辑标签")}
                 >
                     <Pencil className="size-3.5" />
                 </button>
@@ -350,7 +336,7 @@ function TagCard({
                     type="button"
                     onClick={onDelete}
                     className="grid size-7 place-items-center rounded-lg text-muted transition hover:bg-danger-soft hover:text-danger"
-                    aria-label="删除标签"
+                    aria-label={t("删除标签")}
                 >
                     <Trash2 className="size-3.5" />
                 </button>

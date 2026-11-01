@@ -40,6 +40,8 @@ import { getActiveMember, canModifyOwner } from "@/store/member-session";
 import { advanceRecurringDate } from "@/domain/recurring";
 import { newId } from "@/utils/id";
 
+import { t } from "@/i18n";
+
 export type Result = { ok: true } | { ok: false; error: string };
 export type AddEntryResult =
     | { ok: true; entryId: string; billId?: string }
@@ -312,7 +314,7 @@ function cleanTagIds(
     }
     const ids = [...new Set(tagIds)];
     if (ids.some((id) => !tags.some((tag) => tag.id === id))) {
-        return { ok: false, error: "标签不存在" };
+        return { ok: false, error: t("标签不存在") };
     }
     return { ok: true, tagIds: ids };
 }
@@ -323,20 +325,20 @@ const createActions = (
 ): LedgerActions => ({
     addExpense(input) {
         if (!isPositiveInteger(input.amount)) {
-            return fail("金额必须大于 0");
+            return fail(t("金额必须大于 0"));
         }
         if (!isValidDate(input.date)) {
-            return fail("请选择有效日期");
+            return fail(t("请选择有效日期"));
         }
 
         const state = get();
         const category = state.categories.find((item) => item.id === input.categoryId);
         if (!category || category.kind !== "expense") {
-            return fail("请选择支出分类");
+            return fail(t("请选择支出分类"));
         }
         const memberId = input.memberId ?? getActiveMember()?.id ?? state.members[0]?.id;
         if (!memberId || !state.members.some((member) => member.id === memberId)) {
-            return fail("请选择成员");
+            return fail(t("请选择成员"));
         }
         const tagResult = cleanTagIds(input.tagIds, state.tags);
         if (!tagResult.ok) {
@@ -347,14 +349,14 @@ const createActions = (
         const createdAt = Date.now();
         const actor = input.actor ?? getActiveMember();
         if (!actor) {
-            return fail("请先选择当前记账成员");
+            return fail(t("请先选择当前记账成员"));
         }
         const note = cleanNote(input.note);
 
         if (input.source.type === "asset") {
             const account = state.accounts.find((item) => item.id === input.source.accountId);
             if (!account || account.kind !== "asset") {
-                return fail("请选择储蓄账户");
+                return fail(t("请选择储蓄账户"));
             }
 
             const entry: Entry = {
@@ -379,10 +381,10 @@ const createActions = (
 
         const liability = state.accounts.find((item) => item.id === input.source.accountId);
         if (!liability || liability.kind !== "liability") {
-            return fail("请选择负债账户");
+            return fail(t("请选择负债账户"));
         }
         if (input.source.dueDate !== undefined && !isValidDate(input.source.dueDate)) {
-            return fail("请选择有效到期日");
+            return fail(t("请选择有效到期日"));
         }
 
         const billId = newId("bill");
@@ -428,24 +430,24 @@ const createActions = (
 
     addIncome(input) {
         if (!isPositiveInteger(input.amount)) {
-            return fail("金额必须大于 0");
+            return fail(t("金额必须大于 0"));
         }
         if (!isValidDate(input.date)) {
-            return fail("请选择有效日期");
+            return fail(t("请选择有效日期"));
         }
 
         const state = get();
         const category = state.categories.find((item) => item.id === input.categoryId);
         if (!category || category.kind !== "income") {
-            return fail("请选择收入分类");
+            return fail(t("请选择收入分类"));
         }
         const account = state.accounts.find((item) => item.id === input.accountId);
         if (!account || account.kind !== "asset") {
-            return fail("请选择收款账户");
+            return fail(t("请选择收款账户"));
         }
         const memberId = input.memberId ?? getActiveMember()?.id ?? state.members[0]?.id;
         if (!memberId || !state.members.some((member) => member.id === memberId)) {
-            return fail("请选择成员");
+            return fail(t("请选择成员"));
         }
         const tagResult = cleanTagIds(input.tagIds, state.tags);
         if (!tagResult.ok) {
@@ -454,7 +456,7 @@ const createActions = (
 
         const actor = input.actor ?? getActiveMember();
         if (!actor) {
-            return fail("请先选择当前记账成员");
+            return fail(t("请先选择当前记账成员"));
         }
         const createdAt = Date.now();
 
@@ -480,13 +482,13 @@ const createActions = (
 
     addRepayment(input) {
         if (!isValidDate(input.date)) {
-            return fail("请选择有效日期");
+            return fail(t("请选择有效日期"));
         }
 
         const state = get();
         const bill = state.bills.find((item) => item.id === input.billId);
         if (!bill) {
-            return fail("账单不存在");
+            return fail(t("账单不存在"));
         }
         const account = state.accounts.find((item) => item.id === input.accountId);
         const error = validateRepayment(bill, state.entries, input.amount, account);
@@ -499,7 +501,7 @@ const createActions = (
             getActiveMember()?.id ??
             state.members[0]?.id;
         if (!memberId || !state.members.some((member) => member.id === memberId)) {
-            return fail("请选择成员");
+            return fail(t("请选择成员"));
         }
         const tagResult = cleanTagIds(input.tagIds, state.tags);
         if (!tagResult.ok) {
@@ -507,7 +509,7 @@ const createActions = (
         }
         const actor = getActiveMember();
         if (!actor) {
-            return fail("请先选择当前记账成员");
+            return fail(t("请先选择当前记账成员"));
         }
 
         const entry: Entry = {
@@ -533,23 +535,23 @@ const createActions = (
 
     addTransfer(input) {
         if (!isPositiveInteger(input.amount)) {
-            return fail("金额必须大于 0");
+            return fail(t("金额必须大于 0"));
         }
         if (!isValidDate(input.date)) {
-            return fail("请选择有效日期");
+            return fail(t("请选择有效日期"));
         }
         const state = get();
         const from = state.accounts.find((item) => item.id === input.fromAccountId);
         const to = state.accounts.find((item) => item.id === input.toAccountId);
         if (!from || from.kind !== "asset" || !to || to.kind !== "asset") {
-            return fail("请选择两个储蓄账户");
+            return fail(t("请选择两个储蓄账户"));
         }
         if (from.id === to.id) {
-            return fail("转出账户和转入账户不能相同");
+            return fail(t("转出账户和转入账户不能相同"));
         }
         const memberId = input.memberId ?? getActiveMember()?.id ?? state.members[0]?.id;
         if (!memberId || !state.members.some((member) => member.id === memberId)) {
-            return fail("请选择成员");
+            return fail(t("请选择成员"));
         }
         const tagResult = cleanTagIds(input.tagIds, state.tags);
         if (!tagResult.ok) {
@@ -557,7 +559,7 @@ const createActions = (
         }
         const actor = getActiveMember();
         if (!actor) {
-            return fail("请先选择当前记账成员");
+            return fail(t("请先选择当前记账成员"));
         }
         const entry: Entry = {
             id: newId("entry"),
@@ -582,15 +584,15 @@ const createActions = (
         const state = get();
         const entry = state.entries.find((item) => item.id === entryId);
         if (!entry) {
-            return fail("流水不存在");
+            return fail(t("流水不存在"));
         }
         if (!canModify(entry)) {
-            return fail("不能修改其他成员的记账");
+            return fail(t("不能修改其他成员的记账"));
         }
         const deletedAt = Date.now();
         const actor = getActiveMember();
         if (!actor) {
-            return fail("请先选择当前记账成员");
+            return fail(t("请先选择当前记账成员"));
         }
         const entryTombstones = [
             ...state.deletedEntries.filter((item) => item.id !== entryId),
@@ -607,13 +609,13 @@ const createActions = (
                 return { ok: true };
             }
             if (!canModify(bill)) {
-                return fail("不能修改其他成员的账单");
+                return fail(t("不能修改其他成员的账单"));
             }
             if (bill.opening) {
-                return fail("期初负债不能直接删除");
+                return fail(t("期初负债不能直接删除"));
             }
             if (getBillRepaid(bill.id, state.entries) > 0) {
-                return fail("这笔赊账已有还款记录，请先删除对应的还款");
+                return fail(t("这笔赊账已有还款记录，请先删除对应的还款"));
             }
             set({
                 entries: state.entries.filter((item) => item.id !== entryId),
@@ -637,19 +639,19 @@ const createActions = (
     bulkUpdateEntries(entryIds, patch) {
         const ids = [...new Set(entryIds)];
         if (ids.length === 0) {
-            return fail("请选择流水");
+            return fail(t("请选择流水"));
         }
         const state = get();
         const items = state.entries.filter((entry) => ids.includes(entry.id));
         if (items.length !== ids.length) {
-            return fail("部分流水不存在");
+            return fail(t("部分流水不存在"));
         }
         if (items.some((entry) => !canModify(entry))) {
-            return fail("包含其他成员的记账，不能批量修改");
+            return fail(t("包含其他成员的记账，不能批量修改"));
         }
         if (patch.memberId !== undefined) {
             if (!state.members.some((member) => member.id === patch.memberId)) {
-                return fail("请选择成员");
+                return fail(t("请选择成员"));
             }
         }
         const tagResult =
@@ -663,14 +665,14 @@ const createActions = (
         if (patch.categoryId !== undefined) {
             category = state.categories.find((item) => item.id === patch.categoryId);
             if (!category) {
-                return fail("分类不存在");
+                return fail(t("分类不存在"));
             }
             for (const entry of items) {
                 if (entry.kind !== "expense" && entry.kind !== "income") {
-                    return fail("转账和还款流水不能修改分类");
+                    return fail(t("转账和还款流水不能修改分类"));
                 }
                 if (entry.kind !== category.kind) {
-                    return fail("所选流水的类型和分类不一致");
+                    return fail(t("所选流水的类型和分类不一致"));
                 }
             }
         }
@@ -762,26 +764,26 @@ const createActions = (
         const state = get();
         const bill = state.bills.find((item) => item.id === billId);
         if (!bill) {
-            return fail("账单不存在");
+            return fail(t("账单不存在"));
         }
         if (!canModify(bill)) {
-            return fail("不能修改其他成员的账单");
+            return fail(t("不能修改其他成员的账单"));
         }
         if (bill.opening) {
-            return fail("期初负债不能删除，请通过还款结清");
+            return fail(t("期初负债不能删除，请通过还款结清"));
         }
         if (getBillRepaid(bill.id, state.entries) > 0) {
-            return fail("这笔账单已有还款记录，请先删除对应的还款");
+            return fail(t("这笔账单已有还款记录，请先删除对应的还款"));
         }
 
         const linkedExpense = getLinkedExpense(bill.id, state.entries);
         if (linkedExpense && !canModify(linkedExpense)) {
-            return fail("不能修改其他成员的记账");
+            return fail(t("不能修改其他成员的记账"));
         }
         const deletedAt = Date.now();
         const actor = getActiveMember();
         if (!actor) {
-            return fail("请先选择当前记账成员");
+            return fail(t("请先选择当前记账成员"));
         }
         set({
             bills: state.bills.filter((item) => item.id !== bill.id),
@@ -808,20 +810,20 @@ const createActions = (
         const state = get();
         const bill = state.bills.find((item) => item.id === billId);
         if (!bill) {
-            return fail("账单不存在");
+            return fail(t("账单不存在"));
         }
         if (!canModify(bill)) {
-            return fail("不能修改其他成员的账单");
+            return fail(t("不能修改其他成员的账单"));
         }
         const linkedExpense = getLinkedExpense(bill.id, state.entries);
         if (linkedExpense && !canModify(linkedExpense)) {
-            return fail("不能修改其他成员的记账");
+            return fail(t("不能修改其他成员的记账"));
         }
         if (patch.title !== undefined && patch.title.trim() === "") {
-            return fail("账单名称不能为空");
+            return fail(t("账单名称不能为空"));
         }
         if (patch.dueDate !== undefined && !isValidDate(patch.dueDate)) {
-            return fail("请选择有效到期日");
+            return fail(t("请选择有效到期日"));
         }
         const nextCategoryId =
             patch.categoryId === undefined || patch.categoryId === ""
@@ -830,7 +832,7 @@ const createActions = (
         if (nextCategoryId !== undefined) {
             const category = state.categories.find((item) => item.id === nextCategoryId);
             if (!category || category.kind !== "expense") {
-                return fail("请选择支出分类");
+                return fail(t("请选择支出分类"));
             }
         }
         const nextMemberId =
@@ -841,7 +843,7 @@ const createActions = (
             nextMemberId !== undefined &&
             !state.members.some((member) => member.id === nextMemberId)
         ) {
-            return fail("请选择成员");
+            return fail(t("请选择成员"));
         }
         const tagResult =
             patch.tagIds === undefined
@@ -947,10 +949,10 @@ const createActions = (
     addAccount(input) {
         const name = input.name.trim();
         if (!name) {
-            return fail("账户名称不能为空");
+            return fail(t("账户名称不能为空"));
         }
         if (!isNonNegativeInteger(input.openingBalance)) {
-            return fail("期初余额必须是非负整数");
+            return fail(t("期初余额必须是非负整数"));
         }
 
         const state = get();
@@ -972,10 +974,10 @@ const createActions = (
                 id: newId("bill"),
                 liabilityAccountId: account.id,
                 memberId: state.members[0]?.id,
-                title: "期初负债",
+                title: t("期初负债"),
                 principal: input.openingBalance,
                 purchasedAt: createdAt,
-                note: "创建账户时带入的期初余额",
+                note: t("创建账户时带入的期初余额"),
                 opening: true,
                 createdAt,
             };
@@ -992,10 +994,10 @@ const createActions = (
         const state = get();
         const account = state.accounts.find((item) => item.id === accountId);
         if (!account) {
-            return fail("账户不存在");
+            return fail(t("账户不存在"));
         }
         if (patch.name !== undefined && patch.name.trim() === "") {
-            return fail("账户名称不能为空");
+            return fail(t("账户名称不能为空"));
         }
         set({
             accounts: state.accounts.map((item) =>
@@ -1021,14 +1023,14 @@ const createActions = (
         const state = get();
         const account = state.accounts.find((item) => item.id === accountId);
         if (!account) {
-            return fail("账户不存在");
+            return fail(t("账户不存在"));
         }
         const usedByEntry = state.entries.some(
             (entry) => entry.accountId === accountId || entry.liabilityAccountId === accountId,
         );
         const usedByBill = state.bills.some((bill) => bill.liabilityAccountId === accountId);
         if (usedByEntry || usedByBill) {
-            return fail("该账户已有流水或账单，不能删除");
+            return fail(t("该账户已有流水或账单，不能删除"));
         }
         set({
             accounts: state.accounts.filter((item) => item.id !== accountId),
@@ -1044,13 +1046,13 @@ const createActions = (
     addCategory(input) {
         const name = input.name.trim();
         if (!name) {
-            return fail("分类名称不能为空");
+            return fail(t("分类名称不能为空"));
         }
         const state = get();
         if (input.parent) {
             const parent = state.categories.find((item) => item.id === input.parent);
             if (!parent || parent.kind !== input.kind || parent.parent) {
-                return fail("父分类不正确");
+                return fail(t("父分类不正确"));
             }
         }
         const category: Category = {
@@ -1070,23 +1072,23 @@ const createActions = (
         const state = get();
         const category = state.categories.find((item) => item.id === categoryId);
         if (!category) {
-            return fail("分类不存在");
+            return fail(t("分类不存在"));
         }
         if (patch.name !== undefined && patch.name.trim() === "") {
-            return fail("分类名称不能为空");
+            return fail(t("分类名称不能为空"));
         }
         const nextParent =
             patch.parent === undefined ? category.parent : patch.parent || undefined;
         if (nextParent) {
             if (nextParent === categoryId) {
-                return fail("分类不能作为自己的父分类");
+                return fail(t("分类不能作为自己的父分类"));
             }
             if (state.categories.some((item) => item.parent === categoryId)) {
-                return fail("这个分类下已有子分类，不能再设为子分类");
+                return fail(t("这个分类下已有子分类，不能再设为子分类"));
             }
             const parent = state.categories.find((item) => item.id === nextParent);
             if (!parent || parent.kind !== category.kind || parent.parent) {
-                return fail("父分类不正确");
+                return fail(t("父分类不正确"));
             }
         }
         set({
@@ -1109,10 +1111,10 @@ const createActions = (
         const state = get();
         const category = state.categories.find((item) => item.id === categoryId);
         if (!category) {
-            return fail("分类不存在");
+            return fail(t("分类不存在"));
         }
         if (state.categories.some((item) => item.parent === categoryId)) {
-            return fail("请先删除这个分类下的子分类");
+            return fail(t("请先删除这个分类下的子分类"));
         }
         const used = state.entries.some((entry) => entry.categoryId === categoryId);
         const usedByBill = state.bills.some((bill) => bill.categoryId === categoryId);
@@ -1120,7 +1122,7 @@ const createActions = (
             budget.categoryIds.includes(categoryId),
         );
         if (used || usedByBill || usedByBudget) {
-            return fail("该分类已有流水、账单或预算，不能删除");
+            return fail(t("该分类已有流水、账单或预算，不能删除"));
         }
         set({
             categories: state.categories.filter((item) => item.id !== categoryId),
@@ -1136,7 +1138,7 @@ const createActions = (
     addMember(input) {
         const name = input.name.trim();
         if (!name) {
-            return fail("成员名称不能为空");
+            return fail(t("成员名称不能为空"));
         }
         const state = get();
         const member: Member = {
@@ -1156,10 +1158,10 @@ const createActions = (
         const state = get();
         const member = state.members.find((item) => item.id === memberId);
         if (!member) {
-            return fail("成员不存在");
+            return fail(t("成员不存在"));
         }
         if (patch.name !== undefined && patch.name.trim() === "") {
-            return fail("成员名称不能为空");
+            return fail(t("成员名称不能为空"));
         }
         set({
             members: state.members.map((item) =>
@@ -1180,10 +1182,10 @@ const createActions = (
         const state = get();
         const member = state.members.find((item) => item.id === memberId);
         if (!member) {
-            return fail("成员不存在");
+            return fail(t("成员不存在"));
         }
         if (state.members.length <= 1) {
-            return fail("至少保留一个成员");
+            return fail(t("至少保留一个成员"));
         }
         const usedByEntry = state.entries.some((entry) => entry.memberId === memberId);
         const usedByBill = state.bills.some((bill) => bill.memberId === memberId);
@@ -1197,7 +1199,7 @@ const createActions = (
             ...state.attachments,
         ].some((item) => item.ownerId === memberId);
         if (usedByEntry || usedByBill || usedByBudget || ownedRecords) {
-            return fail("该成员已有记账、流水、账单或预算，不能删除");
+            return fail(t("该成员已有记账、流水、账单或预算，不能删除"));
         }
         set({
             members: state.members.filter((item) => item.id !== memberId),
@@ -1213,7 +1215,7 @@ const createActions = (
     addTagGroup(input) {
         const name = input.name.trim();
         if (!name) {
-            return fail("标签组名称不能为空");
+            return fail(t("标签组名称不能为空"));
         }
         const state = get();
         const group: TagGroup = {
@@ -1230,10 +1232,10 @@ const createActions = (
         const state = get();
         const group = state.tagGroups.find((item) => item.id === groupId);
         if (!group) {
-            return fail("标签组不存在");
+            return fail(t("标签组不存在"));
         }
         if (patch.name !== undefined && patch.name.trim() === "") {
-            return fail("标签组名称不能为空");
+            return fail(t("标签组名称不能为空"));
         }
         set({
             tagGroups: state.tagGroups.map((item) =>
@@ -1254,10 +1256,10 @@ const createActions = (
         const state = get();
         const group = state.tagGroups.find((item) => item.id === groupId);
         if (!group) {
-            return fail("标签组不存在");
+            return fail(t("标签组不存在"));
         }
         if (state.tags.some((tag) => tag.groupId === groupId)) {
-            return fail("请先删除这个标签组下的标签");
+            return fail(t("请先删除这个标签组下的标签"));
         }
         set({
             tagGroups: state.tagGroups.filter((item) => item.id !== groupId),
@@ -1273,11 +1275,11 @@ const createActions = (
     addTag(input) {
         const name = input.name.trim();
         if (!name) {
-            return fail("标签名称不能为空");
+            return fail(t("标签名称不能为空"));
         }
         const state = get();
         if (input.groupId && !state.tagGroups.some((group) => group.id === input.groupId)) {
-            return fail("标签组不存在");
+            return fail(t("标签组不存在"));
         }
         const tag: Tag = {
             id: newId("tag"),
@@ -1294,17 +1296,17 @@ const createActions = (
         const state = get();
         const tag = state.tags.find((item) => item.id === tagId);
         if (!tag) {
-            return fail("标签不存在");
+            return fail(t("标签不存在"));
         }
         if (patch.name !== undefined && patch.name.trim() === "") {
-            return fail("标签名称不能为空");
+            return fail(t("标签名称不能为空"));
         }
         if (
             patch.groupId !== undefined &&
             patch.groupId !== "" &&
             !state.tagGroups.some((group) => group.id === patch.groupId)
         ) {
-            return fail("标签组不存在");
+            return fail(t("标签组不存在"));
         }
         set({
             tags: state.tags.map((item) =>
@@ -1329,7 +1331,7 @@ const createActions = (
         const state = get();
         const tag = state.tags.find((item) => item.id === tagId);
         if (!tag) {
-            return fail("标签不存在");
+            return fail(t("标签不存在"));
         }
         const usedByEntry = state.entries.some((entry) =>
             entry.tagIds?.includes(tagId),
@@ -1339,7 +1341,7 @@ const createActions = (
             budget.tagIds.includes(tagId),
         );
         if (usedByEntry || usedByBill || usedByBudget) {
-            return fail("该标签已有流水、账单或预算，不能删除");
+            return fail(t("该标签已有流水、账单或预算，不能删除"));
         }
         set({
             tags: state.tags.filter((item) => item.id !== tagId),
@@ -1382,23 +1384,23 @@ const createActions = (
     addBudget(input) {
         const name = input.name.trim();
         if (!name) {
-            return fail("预算名称不能为空");
+            return fail(t("预算名称不能为空"));
         }
         if (!isPositiveInteger(input.amount)) {
-            return fail("预算金额必须大于 0");
+            return fail(t("预算金额必须大于 0"));
         }
         const state = get();
         const categoryIds = [...new Set(input.categoryIds ?? [])];
         const tagIds = [...new Set(input.tagIds ?? [])];
         const memberIds = [...new Set(input.memberIds ?? [])];
         if (categoryIds.some((id) => !state.categories.some((item) => item.id === id))) {
-            return fail("预算关联的分类不存在");
+            return fail(t("预算关联的分类不存在"));
         }
         if (tagIds.some((id) => !state.tags.some((item) => item.id === id))) {
-            return fail("预算关联的标签不存在");
+            return fail(t("预算关联的标签不存在"));
         }
         if (memberIds.some((id) => !state.members.some((item) => item.id === id))) {
-            return fail("预算关联的成员不存在");
+            return fail(t("预算关联的成员不存在"));
         }
         const budget: Budget = {
             id: newId("budget"),
@@ -1418,13 +1420,13 @@ const createActions = (
         const state = get();
         const budget = state.budgets.find((item) => item.id === budgetId);
         if (!budget) {
-            return fail("预算不存在");
+            return fail(t("预算不存在"));
         }
         if (patch.name !== undefined && patch.name.trim() === "") {
-            return fail("预算名称不能为空");
+            return fail(t("预算名称不能为空"));
         }
         if (patch.amount !== undefined && !isPositiveInteger(patch.amount)) {
-            return fail("预算金额必须大于 0");
+            return fail(t("预算金额必须大于 0"));
         }
         const categoryIds =
             patch.categoryIds === undefined
@@ -1437,13 +1439,13 @@ const createActions = (
                 ? budget.memberIds
                 : [...new Set(patch.memberIds)];
         if (categoryIds.some((id) => !state.categories.some((item) => item.id === id))) {
-            return fail("预算关联的分类不存在");
+            return fail(t("预算关联的分类不存在"));
         }
         if (tagIds.some((id) => !state.tags.some((item) => item.id === id))) {
-            return fail("预算关联的标签不存在");
+            return fail(t("预算关联的标签不存在"));
         }
         if (memberIds.some((id) => !state.members.some((item) => item.id === id))) {
-            return fail("预算关联的成员不存在");
+            return fail(t("预算关联的成员不存在"));
         }
         set({
             budgets: state.budgets.map((item) =>
@@ -1465,7 +1467,7 @@ const createActions = (
     deleteBudget(budgetId) {
         const state = get();
         if (!state.budgets.some((item) => item.id === budgetId)) {
-            return fail("预算不存在");
+            return fail(t("预算不存在"));
         }
         set({
             budgets: state.budgets.filter((item) => item.id !== budgetId),
@@ -1481,49 +1483,49 @@ const createActions = (
     addRecurringRule(input) {
         const name = input.name.trim();
         if (!name) {
-            return fail("周期记账名称不能为空");
+            return fail(t("周期记账名称不能为空"));
         }
         if (!isPositiveInteger(input.amount)) {
-            return fail("金额必须大于 0");
+            return fail(t("金额必须大于 0"));
         }
         if (!isPositiveInteger(input.interval)) {
-            return fail("间隔必须是大于 0 的整数");
+            return fail(t("间隔必须是大于 0 的整数"));
         }
         if (!isValidDate(input.startDate)) {
-            return fail("请选择开始日期");
+            return fail(t("请选择开始日期"));
         }
         if (input.endDate !== undefined && !isValidDate(input.endDate)) {
-            return fail("请选择有效的结束日期");
+            return fail(t("请选择有效的结束日期"));
         }
         if (input.endDate !== undefined && input.endDate < input.startDate) {
-            return fail("结束日期不能早于开始日期");
+            return fail(t("结束日期不能早于开始日期"));
         }
 
         const state = get();
         const category = state.categories.find((item) => item.id === input.categoryId);
         if (!category || category.kind !== input.kind) {
-            return fail(input.kind === "expense" ? "请选择支出分类" : "请选择收入分类");
+            return fail(input.kind === "expense" ? t("请选择支出分类") : t("请选择收入分类"));
         }
         if (input.kind === "expense" && input.liabilityAccountId) {
             const liability = state.accounts.find(
                 (item) => item.id === input.liabilityAccountId,
             );
             if (!liability || liability.kind !== "liability") {
-                return fail("请选择负债账户");
+                return fail(t("请选择负债账户"));
             }
         } else {
             const account = input.accountId
                 ? state.accounts.find((item) => item.id === input.accountId)
                 : undefined;
             if (!account || account.kind !== "asset") {
-                return fail(input.kind === "income" ? "请选择收款账户" : "请选择储蓄账户");
+                return fail(input.kind === "income" ? t("请选择收款账户") : t("请选择储蓄账户"));
             }
         }
         if (
             input.memberId &&
             !state.members.some((member) => member.id === input.memberId)
         ) {
-            return fail("请选择成员");
+            return fail(t("请选择成员"));
         }
         const tagResult = cleanTagIds(input.tagIds, state.tags);
         if (!tagResult.ok) {
@@ -1531,7 +1533,7 @@ const createActions = (
         }
         const actor = getActiveMember();
         if (!actor) {
-            return fail("请先选择当前记账成员");
+            return fail(t("请先选择当前记账成员"));
         }
 
         const rule: RecurringRule = {
@@ -1565,10 +1567,10 @@ const createActions = (
         const state = get();
         const rule = state.recurringRules.find((item) => item.id === ruleId);
         if (!rule) {
-            return fail("周期记账不存在");
+            return fail(t("周期记账不存在"));
         }
         if (!canModify(rule)) {
-            return fail("不能修改其他成员的周期记账");
+            return fail(t("不能修改其他成员的周期记账"));
         }
         const next: RecurringRule = {
             ...rule,
@@ -1591,44 +1593,44 @@ const createActions = (
                     : rule.nextDueDate),
         };
         if (!next.name) {
-            return fail("周期记账名称不能为空");
+            return fail(t("周期记账名称不能为空"));
         }
         if (!isPositiveInteger(next.amount)) {
-            return fail("金额必须大于 0");
+            return fail(t("金额必须大于 0"));
         }
         if (!isPositiveInteger(next.interval)) {
-            return fail("间隔必须是大于 0 的整数");
+            return fail(t("间隔必须是大于 0 的整数"));
         }
         if (!isValidDate(next.startDate)) {
-            return fail("请选择开始日期");
+            return fail(t("请选择开始日期"));
         }
         if (next.endDate !== undefined && !isValidDate(next.endDate)) {
-            return fail("请选择有效的结束日期");
+            return fail(t("请选择有效的结束日期"));
         }
         if (next.endDate !== undefined && next.endDate < next.startDate) {
-            return fail("结束日期不能早于开始日期");
+            return fail(t("结束日期不能早于开始日期"));
         }
         const category = state.categories.find((item) => item.id === next.categoryId);
         if (!category || category.kind !== next.kind) {
-            return fail(next.kind === "expense" ? "请选择支出分类" : "请选择收入分类");
+            return fail(next.kind === "expense" ? t("请选择支出分类") : t("请选择收入分类"));
         }
         if (next.kind === "expense" && next.liabilityAccountId) {
             const liability = state.accounts.find(
                 (item) => item.id === next.liabilityAccountId,
             );
             if (!liability || liability.kind !== "liability") {
-                return fail("请选择负债账户");
+                return fail(t("请选择负债账户"));
             }
         } else {
             const account = next.accountId
                 ? state.accounts.find((item) => item.id === next.accountId)
                 : undefined;
             if (!account || account.kind !== "asset") {
-                return fail(next.kind === "income" ? "请选择收款账户" : "请选择储蓄账户");
+                return fail(next.kind === "income" ? t("请选择收款账户") : t("请选择储蓄账户"));
             }
         }
         if (next.memberId && !state.members.some((member) => member.id === next.memberId)) {
-            return fail("请选择成员");
+            return fail(t("请选择成员"));
         }
         const tagResult = cleanTagIds(next.tagIds, state.tags);
         if (!tagResult.ok) {
@@ -1647,11 +1649,11 @@ const createActions = (
     deleteRecurringRule(ruleId) {
         const state = get();
         if (!state.recurringRules.some((item) => item.id === ruleId)) {
-            return fail("周期记账不存在");
+            return fail(t("周期记账不存在"));
         }
         const rule = state.recurringRules.find((item) => item.id === ruleId);
         if (rule && !canModify(rule)) {
-            return fail("不能删除其他成员的周期记账");
+            return fail(t("不能删除其他成员的周期记账"));
         }
         set({
             recurringRules: state.recurringRules.filter((item) => item.id !== ruleId),
@@ -1797,21 +1799,21 @@ const createActions = (
         if (target.kind === "entry") {
             targetRecord = state.entries.find((entry) => entry.id === target.id);
             if (!targetRecord) {
-                return fail("流水不存在");
+                return fail(t("流水不存在"));
             }
         } else {
             targetRecord = state.bills.find((bill) => bill.id === target.id);
             if (!targetRecord) {
-                return fail("账单不存在");
+                return fail(t("账单不存在"));
             }
         }
         if (!canModify(targetRecord)) {
-            return fail("不能修改其他成员的记账");
+            return fail(t("不能修改其他成员的记账"));
         }
         const existing = new Set(state.attachments.map((item) => item.id));
         const actor = getActiveMember();
         if (!actor) {
-            return fail("请先选择当前记账成员");
+            return fail(t("请先选择当前记账成员"));
         }
         const additions = items
             .filter((item) => !existing.has(item.id))
@@ -1877,10 +1879,10 @@ const createActions = (
         const state = get();
         const attachment = state.attachments.find((item) => item.id === attachmentId);
         if (!attachment) {
-            return fail("附件不存在");
+            return fail(t("附件不存在"));
         }
         if (attachment.ownerId && attachment.ownerId !== getActiveMember()?.id) {
-            return fail("不能删除其他成员添加的附件");
+            return fail(t("不能删除其他成员添加的附件"));
         }
         const changedAt = Date.now();
         set({
@@ -1930,7 +1932,7 @@ const createActions = (
 
     importData(data) {
         if (!data.accounts.length) {
-            return fail("导入文件里没有账户");
+            return fail(t("导入文件里没有账户"));
         }
         const seeded = seedDefaultTags(data);
         set({
@@ -2010,16 +2012,16 @@ export function useTheme(): ThemeMode {
 
 export function getAccountName(accounts: Account[], accountId?: string): string {
     if (!accountId) {
-        return "未指定账户";
+        return t("未指定账户");
     }
-    return accounts.find((account) => account.id === accountId)?.name ?? "已删除账户";
+    return accounts.find((account) => account.id === accountId)?.name ?? t("已删除账户");
 }
 
 export function getCategoryName(categories: Category[], categoryId?: string): string {
     if (!categoryId) {
-        return "未分类";
+        return t("未分类");
     }
-    return categories.find((category) => category.id === categoryId)?.name ?? "未分类";
+    return categories.find((category) => category.id === categoryId)?.name ?? t("未分类");
 }
 
 export function getBillRemainingForState(bill: Bill, state: LedgerData): number {

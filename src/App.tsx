@@ -29,10 +29,15 @@ import { DataSource } from "@/pages/data-source";
 import { Members } from "@/pages/members";
 import { useLedgerStore } from "@/store/ledger";
 import { useUIStore } from "@/store/ui";
+import { t } from "@/i18n";
 
 export default function App() {
     useApplyTheme();
     const customCss = useLedgerStore((state) => state.settings.customCss);
+
+    useEffect(() => {
+        document.title = t("两讫 · 银货两讫，账目两清");
+    }, []);
 
     useEffect(() => {
         const id = "liangqi-custom-css";

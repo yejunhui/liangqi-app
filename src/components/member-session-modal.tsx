@@ -13,6 +13,8 @@ import {
 import { useUIStore } from "@/store/ui";
 import { toast } from "@/store/toast";
 
+import { t } from "@/i18n";
+
 export function MemberSessionModal() {
     const open = useUIStore((state) => state.memberModalOpen);
     const close = useUIStore((state) => state.closeMemberModal);
@@ -36,20 +38,18 @@ export function MemberSessionModal() {
     }
 
     function switchUser() {
-        lockAndClose("已退出当前成员，请重新登录");
+        lockAndClose(t("已退出当前成员，请重新登录"));
     }
 
     return (
         <Modal
             open={open}
             onClose={close}
-            title="当前记账成员"
-            description="共享账本的成员身份决定记账作者；同一个私钥可以由多人共用。"
+            title={t("当前记账成员")}
+            description={t("共享账本的成员身份决定记账作者；同一个私钥可以由多人共用。")}
             size="sm"
             footer={
-                <Button className="w-full" onClick={close}>
-                    关闭
-                </Button>
+                <Button className="w-full" onClick={close}>{t("关闭")}</Button>
             }
         >
             <div className="space-y-4">
@@ -68,37 +68,27 @@ export function MemberSessionModal() {
                             {activeMember.name}
                         </p>
                         <p className="mt-0.5 flex items-center gap-1 text-[10px] text-success">
-                            <ShieldCheck className="size-3" />
-                            已登录，新流水会记在这个成员名下
-                        </p>
+                            <ShieldCheck className="size-3" />{` ${t("已登录，新流水会记在这个成员名下")}`}</p>
                     </div>
                 </div>
 
                 {remote && (
                     <div className="grid grid-cols-2 gap-2">
                         <Button variant="secondary" onClick={switchUser}>
-                            <ArrowLeftRight className="size-3.5" />
-                            切换用户
-                        </Button>
+                            <ArrowLeftRight className="size-3.5" />{` ${t("切换用户")}`}</Button>
                         <Button
                             variant="secondary"
-                            onClick={() => lockAndClose("已锁定，请重新登录")}
+                            onClick={() => lockAndClose(t("已锁定，请重新登录"))}
                         >
-                            <LockKeyhole className="size-3.5" />
-                            锁定
-                        </Button>
+                            <LockKeyhole className="size-3.5" />{` ${t("锁定")}`}</Button>
                     </div>
                 )}
 
                 {remote && (
-                    <p className="text-[10px] leading-relaxed text-muted">
-                        「切换用户」和「锁定」都会退出当前成员并回到登录页的成员列表。上次登录的成员排在第一位，也可以选择其他成员，再输入密码登录。
-                    </p>
+                    <p className="text-[10px] leading-relaxed text-muted">{t("「切换用户」和「锁定」都会退出当前成员并回到登录页的成员列表。上次登录的成员排在第一位，也可以选择其他成员，再输入密码登录。")}</p>
                 )}
                 {!remote && (
-                    <p className="text-[10px] leading-relaxed text-muted">
-                        本地账本没有共享成员登录限制；连接远程仓库后会启用成员密码登录。
-                    </p>
+                    <p className="text-[10px] leading-relaxed text-muted">{t("本地账本没有共享成员登录限制；连接远程仓库后会启用成员密码登录。")}</p>
                 )}
             </div>
         </Modal>

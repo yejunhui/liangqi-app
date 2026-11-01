@@ -7,6 +7,8 @@ import type { Account } from "@/types";
 import { formatCents } from "@/domain/money";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 interface AccountCardProps {
     account: Account;
     balance: number;
@@ -41,9 +43,9 @@ export function AccountCard({
                     <h3 className="truncate text-sm font-bold text-text">{account.name}</h3>
                     <p className="mt-0.5 text-[11px] text-muted">
                         {isLiability
-                            ? `${billCount ?? 0} 笔待还账单`
-                            : `${account.note ?? "储蓄账户"}${
-                                  account.liquid === false ? " · 非流动" : ""
+                            ? t("{0} 笔待还账单", [billCount ?? 0])
+                            : `${account.note ?? t("储蓄账户")}${
+                                  account.liquid === false ? t(" · 非流动") : ""
                               }`}
                     </p>
                 </div>
@@ -52,7 +54,7 @@ export function AccountCard({
                         type="button"
                         onClick={onEdit}
                         className="grid size-7 place-items-center rounded-lg text-muted transition hover:bg-surface-2 hover:text-text"
-                        aria-label="编辑账户"
+                        aria-label={t("编辑账户")}
                     >
                         <Pencil className="size-3.5" />
                     </button>
@@ -60,7 +62,7 @@ export function AccountCard({
                         type="button"
                         onClick={onDelete}
                         className="grid size-7 place-items-center rounded-lg text-muted transition hover:bg-danger-soft hover:text-danger"
-                        aria-label="删除账户"
+                        aria-label={t("删除账户")}
                     >
                         <Trash2 className="size-3.5" />
                     </button>
@@ -69,7 +71,7 @@ export function AccountCard({
 
             <div className="mt-4">
                 <p className="text-[10px] font-medium text-muted">
-                    {isLiability ? "待还负债" : "当前余额"}
+                    {isLiability ? t("待还负债") : t("当前余额")}
                 </p>
                 <p
                     className={cn(

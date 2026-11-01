@@ -6,6 +6,8 @@ import { encodeBasicAuth } from "@/remote/base64";
 import { RemoteConflictError, RemoteError } from "@/remote/errors";
 import type { RemoteAdapter, RemoteFile, RemoteTestResult } from "@/remote/adapter";
 
+import { t } from "@/i18n";
+
 interface WebDavConfig {
     url: string;
     username: string;
@@ -15,7 +17,7 @@ interface WebDavConfig {
 function normalizeBaseUrl(value: string): string {
     const trimmed = value.trim();
     if (!trimmed) {
-        throw new RemoteError("WebDAV 地址不能为空");
+        throw new RemoteError(t("WebDAV 地址不能为空"));
     }
     return trimmed.endsWith("/") ? trimmed : `${trimmed}/`;
 }
@@ -51,7 +53,7 @@ export function createWebDavAdapter(config: WebDavConfig): RemoteAdapter {
             });
         } catch {
             throw new RemoteError(
-                "无法连接 WebDAV。请检查地址、账号密码，以及服务器是否允许浏览器跨域访问。",
+                t("无法连接 WebDAV。请检查地址、账号密码，以及服务器是否允许浏览器跨域访问。"),
             );
         }
     }
@@ -67,14 +69,14 @@ export function createWebDavAdapter(config: WebDavConfig): RemoteAdapter {
                 },
             });
             if (response.status === 401 || response.status === 403) {
-                throw new RemoteError("WebDAV 认证失败，请检查账号和密码", response.status);
+                throw new RemoteError(t("WebDAV 认证失败，请检查账号和密码"), response.status);
             }
             if (response.status === 404) {
-                throw new RemoteError("WebDAV 地址不存在，请检查路径", 404);
+                throw new RemoteError(t("WebDAV 地址不存在，请检查路径"), 404);
             }
             if (!response.ok && response.status !== 207) {
                 throw new RemoteError(
-                    `WebDAV 连接失败（HTTP ${response.status}）`,
+                    t("WebDAV 连接失败（HTTP {0}）", [response.status]),
                     response.status,
                 );
             }
@@ -87,11 +89,11 @@ export function createWebDavAdapter(config: WebDavConfig): RemoteAdapter {
                 return null;
             }
             if (response.status === 401 || response.status === 403) {
-                throw new RemoteError("WebDAV 认证失败，请检查账号和密码", response.status);
+                throw new RemoteError(t("WebDAV 认证失败，请检查账号和密码"), response.status);
             }
             if (!response.ok) {
                 throw new RemoteError(
-                    `读取 ${path} 失败（HTTP ${response.status}）`,
+                    t("读取 {0} 失败（HTTP {1}）", [path, response.status]),
                     response.status,
                 );
             }
@@ -130,11 +132,11 @@ export function createWebDavAdapter(config: WebDavConfig): RemoteAdapter {
                 throw new RemoteConflictError();
             }
             if (response.status === 401 || response.status === 403) {
-                throw new RemoteError("WebDAV 认证失败，请检查账号和密码", response.status);
+                throw new RemoteError(t("WebDAV 认证失败，请检查账号和密码"), response.status);
             }
             if (!response.ok) {
                 throw new RemoteError(
-                    `写入 ${path} 失败（HTTP ${response.status}）`,
+                    t("写入 {0} 失败（HTTP {1}）", [path, response.status]),
                     response.status,
                 );
             }
@@ -162,12 +164,12 @@ export function createWebDavAdapter(config: WebDavConfig): RemoteAdapter {
                 }
                 if (response.status === 401 || response.status === 403) {
                     throw new RemoteError(
-                        "WebDAV 认证失败，请检查账号和密码",
+                        t("WebDAV 认证失败，请检查账号和密码"),
                         response.status,
                     );
                 }
                 throw new RemoteError(
-                    `创建目录 ${current} 失败（HTTP ${response.status}）`,
+                    t("创建目录 {0} 失败（HTTP {1}）", [current, response.status]),
                     response.status,
                 );
             }

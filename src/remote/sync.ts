@@ -29,6 +29,8 @@ import { RemoteError } from "@/remote/errors";
 import { getMemberForBook, useMemberSessionStore } from "@/store/member-session";
 import { uploadPendingAttachments } from "@/remote/attachments";
 
+import { t } from "@/i18n";
+
 export type SyncAction = "push" | "pull" | "conflict" | "noop" | "local-only";
 
 export interface SyncResult {
@@ -170,7 +172,7 @@ async function pushWithRetry(
     }
     throw lastError instanceof Error
         ? lastError
-        : new RemoteError("多个用户同时同步，暂时无法合并，请稍后重试");
+        : new RemoteError(t("多个用户同时同步，暂时无法合并，请稍后重试"));
 }
 
 export async function syncBookNow(bookId?: string): Promise<SyncResult> {
@@ -178,15 +180,15 @@ export async function syncBookNow(bookId?: string): Promise<SyncResult> {
     const id = bookId ?? library.activeBookId;
     let book = library.books.find((item) => item.id === id);
     if (!book) {
-        throw new RemoteError("账本不存在");
+        throw new RemoteError(t("账本不存在"));
     }
     if (!book.remote) {
-        return { action: "local-only", message: "这个账本还没有连接远程" };
+        return { action: "local-only", message: t("这个账本还没有连接远程") };
     }
     const binding = book.remote;
     const connection = getConnectionById(library, binding.connectionId);
     if (!connection) {
-        return { action: "local-only", message: "远程连接配置已丢失，请重新连接" };
+        return { action: "local-only", message: t("远程连接配置已丢失，请重新连接") };
     }
 
     const last = binding.lastSyncedAt ?? 0;
@@ -208,7 +210,7 @@ export async function syncBookNow(bookId?: string): Promise<SyncResult> {
         return {
             action: "noop",
             book: synced,
-            message: "已是最新",
+            message: t("已是最新"),
             revision: manifestRecord.revision,
             manifest: manifestRecord.manifest,
         };
@@ -231,7 +233,7 @@ export async function syncBookNow(bookId?: string): Promise<SyncResult> {
         return {
             action: "push",
             book: synced,
-            message: "已上传本地更新",
+            message: t("已上传本地更新"),
             revision: pushed.revision,
             manifest: pushed.manifest,
         };
@@ -251,7 +253,7 @@ export async function syncBookNow(bookId?: string): Promise<SyncResult> {
         return {
             action: "push",
             book: synced,
-            message: "远程还没有这个账本，已上传",
+            message: t("远程还没有这个账本，已上传"),
             revision: pushed.revision,
             manifest: pushed.manifest,
         };
@@ -276,7 +278,7 @@ export async function syncBookNow(bookId?: string): Promise<SyncResult> {
         return {
             action: "pull",
             book: synced,
-            message: "已拉取远程更新并合并",
+            message: t("已拉取远程更新并合并"),
             revision: remote.revision,
             manifest: remote.manifest,
         };
@@ -293,7 +295,7 @@ export async function syncBookNow(bookId?: string): Promise<SyncResult> {
     return {
         action: "push",
         book: synced,
-        message: "已合并远程和本地更新",
+        message: t("已合并远程和本地更新"),
         revision: pushed.revision,
         manifest: pushed.manifest,
     };
@@ -305,7 +307,7 @@ export async function openRemoteBook(
 ): Promise<Book> {
     const remote = await pullRemoteBook(connection, remoteBookId ?? "");
     if (!remote) {
-        throw new RemoteError("远程账本不存在");
+        throw new RemoteError(t("远程账本不存在"));
     }
     const library = useLibraryStore.getState();
     const existing = library.books.find((book) => book.id === remote.book.id);
@@ -351,15 +353,15 @@ export async function uploadCurrentBook(connection: Connection): Promise<SyncRes
     const library = useLibraryStore.getState();
     const book = library.books.find((item) => item.id === library.activeBookId);
     if (!book) {
-        throw new RemoteError("没有当前账本");
+        throw new RemoteError(t("没有当前账本"));
     }
     const existingRemote = await pullRemoteBook(connection, book.id);
     if (existingRemote) {
-        throw new RemoteError("这个仓库已经有一本账，请直接打开共享账本");
+        throw new RemoteError(t("这个仓库已经有一本账，请直接打开共享账本"));
     }
     const actor = getMemberForBook(book);
     if (!actor) {
-        throw new RemoteError("请先选择当前记账成员，再上传账本");
+        throw new RemoteError(t("请先选择当前记账成员，再上传账本"));
     }
     const claimed = claimUnownedRecords(book, actor);
     try {
@@ -381,13 +383,13 @@ export async function uploadCurrentBook(connection: Connection): Promise<SyncRes
             book: bound,
             revision: pushed.revision,
             manifest: pushed.manifest,
-            message: "当前账本已上传到这个仓库",
+            message: t("当前账本已上传到这个仓库"),
         };
     } catch (error) {
         if (error instanceof RemoteNewerError) {
             const latest = latestBook(book.id, book);
             saveConflictBackup(latest);
-            throw new RemoteError("远程已经有账本，请重新打开共享账本");
+            throw new RemoteError(t("远程已经有账本，请重新打开共享账本"));
         }
         throw error;
     }

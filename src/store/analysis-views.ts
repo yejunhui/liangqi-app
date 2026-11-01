@@ -6,6 +6,8 @@ import { create } from "zustand";
 import type { EntryFilter } from "@/domain/filters";
 import { newId } from "@/utils/id";
 
+import { t } from "@/i18n";
+
 const VIEWS_KEY = "liangqi-analysis-views-v1";
 
 export interface AnalysisView {
@@ -58,7 +60,7 @@ export const useAnalysisViewStore = create<AnalysisViewState>()((set) => ({
     addView(bookId, name, filter) {
         const view: AnalysisView = {
             id: newId("view"),
-            name: name.trim() || "分析视图",
+            name: name.trim() || t("分析视图"),
             filter,
             createdAt: Date.now(),
         };

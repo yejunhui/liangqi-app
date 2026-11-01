@@ -15,6 +15,8 @@ import { getActiveBook, useLibraryStore } from "@/store/library";
 import { useSyncStatusStore } from "@/store/sync-status";
 import { cn } from "@/utils/cn";
 
+import { getLocale, t } from "@/i18n";
+
 type SyncVisualKind =
     | "local"
     | "disabled"
@@ -54,14 +56,14 @@ function useOnlineStatus(): boolean {
 
 function lastSyncText(timestamp?: number): string {
     if (!timestamp) {
-        return "还没有同步记录";
+        return t("还没有同步记录");
     }
-    return `上次同步：${new Date(timestamp).toLocaleString("zh-CN", {
+    return t("上次同步：{0}", [new Date(timestamp).toLocaleString(getLocale(), {
         month: "numeric",
         day: "numeric",
         hour: "2-digit",
         minute: "2-digit",
-    })}`;
+    })]);
 }
 
 export function SyncStatusBadge() {
@@ -76,8 +78,8 @@ export function SyncStatusBadge() {
         if (!book || !remote) {
             return {
                 kind: "local",
-                label: "本地账本",
-                title: "这个账本还没有连接远程仓库",
+                label: t("本地账本"),
+                title: t("这个账本还没有连接远程仓库"),
                 icon: CloudOff,
                 className: "border-line bg-surface-2/60 text-muted",
                 dotClassName: "bg-muted/60",
@@ -86,8 +88,8 @@ export function SyncStatusBadge() {
         if (!remote.autoSync) {
             return {
                 kind: "disabled",
-                label: "自动同步关闭",
-                title: "当前账本已关闭自动同步，可在数据源页手动同步",
+                label: t("自动同步关闭"),
+                title: t("当前账本已关闭自动同步，可在数据源页手动同步"),
                 icon: CloudOff,
                 className: "border-line bg-surface-2/60 text-muted",
                 dotClassName: "bg-muted/60",
@@ -96,8 +98,8 @@ export function SyncStatusBadge() {
         if (!online) {
             return {
                 kind: "offline",
-                label: "离线",
-                title: "当前离线，数据保存在本机，联网后会自动同步",
+                label: t("离线"),
+                title: t("当前离线，数据保存在本机，联网后会自动同步"),
                 icon: CloudOff,
                 className: "border-liability/25 bg-liability-soft text-liability",
                 dotClassName: "bg-liability",
@@ -106,8 +108,8 @@ export function SyncStatusBadge() {
         if (live?.phase === "syncing") {
             return {
                 kind: "syncing",
-                label: "同步中",
-                title: "正在和远程仓库同步",
+                label: t("同步中"),
+                title: t("正在和远程仓库同步"),
                 icon: Cloud,
                 className: "border-accent/25 bg-accent-soft text-accent",
                 dotClassName: "animate-pulse bg-accent",
@@ -116,7 +118,7 @@ export function SyncStatusBadge() {
         if (live?.phase === "error") {
             return {
                 kind: "error",
-                label: "同步失败",
+                label: t("同步失败"),
                 title: live.message
                     ? `${live.message} · ${lastSyncText(remote.lastSyncedAt)}`
                     : lastSyncText(remote.lastSyncedAt),
@@ -131,8 +133,8 @@ export function SyncStatusBadge() {
         if (pending) {
             return {
                 kind: "pending",
-                label: "待同步",
-                title: `${lastSyncText(remote.lastSyncedAt)} · 本地有新修改`,
+                label: t("待同步"),
+                title: t("{0} · 本地有新修改", [lastSyncText(remote.lastSyncedAt)]),
                 icon: CloudUpload,
                 className: "border-accent/25 bg-accent-soft text-accent",
                 dotClassName: "animate-pulse bg-accent",
@@ -141,7 +143,7 @@ export function SyncStatusBadge() {
 
         return {
             kind: "synced",
-            label: "已同步",
+            label: t("已同步"),
             title: lastSyncText(remote.lastSyncedAt),
             icon: CloudCheck,
             className: "border-success/25 bg-success-soft text-success",
@@ -154,7 +156,7 @@ export function SyncStatusBadge() {
     return (
         <Link
             to="/data"
-            aria-label={`远程同步状态：${visual.label}`}
+            aria-label={t("远程同步状态：{0}", [visual.label])}
             title={visual.title}
             className={cn(
                 "inline-flex h-9 items-center gap-1.5 rounded-xl border px-2.5 text-[11px] font-semibold transition hover:brightness-[0.98]",

@@ -6,6 +6,7 @@ import type { Account, Category, Entry, Member, Tag } from "@/types";
 import { formatCents, formatCentsPlain } from "@/domain/money";
 import { isRecognizedExpense } from "@/domain/ledger";
 import { toDateInputValue } from "@/utils/date";
+import { getLocale, t } from "@/i18n";
 
 const KIND_LABELS = {
     expense: "支出",
@@ -16,9 +17,9 @@ const KIND_LABELS = {
 
 function entryKindLabel(entry: Entry): string {
     if (entry.kind === "expense" && entry.billId) {
-        return "赊账";
+        return t("赊账");
     }
-    return KIND_LABELS[entry.kind];
+    return t(KIND_LABELS[entry.kind]);
 }
 
 function csvCell(value: string): string {
@@ -60,16 +61,16 @@ export function createEntriesCsv(input: {
     tags: Tag[];
 }): string {
     const header = [
-        "日期",
-        "类型",
-        "金额",
-        "分类",
-        "账户",
-        "成员",
-        "记账人",
-        "标签",
-        "备注",
-        "币种",
+        t("日期"),
+        t("类型"),
+        t("金额"),
+        t("分类"),
+        t("账户"),
+        t("成员"),
+        t("记账人"),
+        t("标签"),
+        t("备注"),
+        t("币种"),
     ];
     const rows = input.entries
         .slice()
@@ -172,7 +173,7 @@ export function buildReportHtml(input: {
         .join("");
 
     return `<!doctype html>
-<html lang="zh-CN">
+<html lang="${getLocale()}">
 <head>
 <meta charset="utf-8">
 <title>${escapeHtml(input.title)} · ${escapeHtml(input.periodLabel)}</title>
@@ -198,31 +199,31 @@ export function buildReportHtml(input: {
 </head>
 <body>
     <h1>${escapeHtml(input.title)}</h1>
-    <p class="muted">${escapeHtml(input.periodLabel)} · 本位币 ${escapeHtml(input.currency)} · 生成于 ${new Date().toLocaleString("zh-CN")}</p>
+    <p class="muted">${escapeHtml(input.periodLabel)} · ${t("本位币")} ${escapeHtml(input.currency)} · ${t("生成于")} ${new Date().toLocaleString(getLocale())}</p>
     <div class="summary">
-        <div class="metric"><p>支出</p><strong>${formatCents(expense, input.currency)}</strong></div>
-        <div class="metric"><p>收入</p><strong>${formatCents(income, input.currency)}</strong></div>
-        <div class="metric"><p>结余</p><strong>${formatCents(net, input.currency)}</strong></div>
-        <div class="metric"><p>还款（计入支出）</p><strong>${formatCents(repayment, input.currency)}</strong></div>
+        <div class="metric"><p>${t("支出")}</p><strong>${formatCents(expense, input.currency)}</strong></div>
+        <div class="metric"><p>${t("收入")}</p><strong>${formatCents(income, input.currency)}</strong></div>
+        <div class="metric"><p>${t("结余")}</p><strong>${formatCents(net, input.currency)}</strong></div>
+        <div class="metric"><p>${t("还款（计入支出）")}</p><strong>${formatCents(repayment, input.currency)}</strong></div>
     </div>
     <div class="grid">
         <section>
-            <h2>分类支出</h2>
-            <table><thead><tr><th>分类</th><th class="amount">金额</th></tr></thead><tbody>${categoryRows || '<tr><td colspan="2" class="muted">没有支出</td></tr>'}</tbody></table>
+            <h2>${t("分类支出")}</h2>
+            <table><thead><tr><th>${t("分类")}</th><th class="amount">${t("金额")}</th></tr></thead><tbody>${categoryRows || `<tr><td colspan="2" class="muted">${t("没有支出")}</td></tr>`}</tbody></table>
         </section>
         <section>
-            <h2>说明</h2>
-            <p class="muted">赊账消费只记负债，还款时计入支出；转账不计入支出。外币按记账时汇率换算成本位币。</p>
-            <p class="muted">共 ${input.entries.length} 笔流水。</p>
+            <h2>${t("说明")}</h2>
+            <p class="muted">${t("赊账消费只记负债，还款时计入支出；转账不计入支出。外币按记账时汇率换算成本位币。")}</p>
+            <p class="muted">${t("共 {0} 笔流水。", [input.entries.length])}</p>
         </section>
     </div>
-    <h2>流水明细</h2>
+    <h2>${t("流水明细")}</h2>
     <table>
-        <thead><tr><th>日期</th><th>类型</th><th>分类</th><th>账户</th><th>成员</th><th>记账人</th><th>备注</th><th class="amount">金额</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="8" class="muted">没有流水</td></tr>'}</tbody>
+        <thead><tr><th>${t("日期")}</th><th>${t("类型")}</th><th>${t("分类")}</th><th>${t("账户")}</th><th>${t("成员")}</th><th>${t("记账人")}</th><th>${t("备注")}</th><th class="amount">${t("金额")}</th></tr></thead>
+        <tbody>${rows || `<tr><td colspan="8" class="muted">${t("没有流水")}</td></tr>`}</tbody>
     </table>
-    <p class="footer">两讫 · 本地优先记账 · 数据以账本为准</p>
-    <p class="no-print" style="margin-top:24px"><button onclick="window.print()">打印 / 保存为 PDF</button></p>
+    <p class="footer">${t("两讫 · 本地优先记账 · 数据以账本为准")}</p>
+    <p class="no-print" style="margin-top:24px"><button onclick="window.print()">${t("打印 / 保存为 PDF")}</button></p>
 </body>
 </html>`;
 }

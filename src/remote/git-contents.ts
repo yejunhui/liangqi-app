@@ -7,6 +7,8 @@ import { decodeBase64Utf8, encodeBase64Utf8 } from "@/remote/base64";
 import { RemoteConflictError, RemoteError } from "@/remote/errors";
 import type { RemoteAdapter, RemoteFile, RemoteTestResult } from "@/remote/adapter";
 
+import { t } from "@/i18n";
+
 interface GitContentsConfig {
     provider: Extract<RemoteProvider, "github" | "gitee">;
     owner: string;
@@ -94,7 +96,7 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
             return await fetch(url, { ...init, headers: { ...headers(), ...init?.headers } });
         } catch {
             throw new RemoteError(
-                `无法连接 ${label}。请检查网络，或确认该服务允许浏览器跨域访问。`,
+                t("无法连接 {0}。请检查网络，或确认该服务允许浏览器跨域访问。", [label]),
             );
         }
     }
@@ -107,11 +109,11 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
         }
         const response = await request(repoUrl());
         if (!response.ok) {
-            throw new RemoteError(`读取 ${label} 默认分支失败`, response.status);
+            throw new RemoteError(t("读取 {0} 默认分支失败", [label]), response.status);
         }
         const data = (await response.json()) as Record<string, unknown>;
         if (typeof data.default_branch !== "string") {
-            throw new RemoteError(`${label} 没有返回默认分支`);
+            throw new RemoteError(t("{0} 没有返回默认分支", [label]));
         }
         resolvedBranch = data.default_branch;
         return resolvedBranch;
@@ -142,28 +144,28 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
 
         const refResponse = await request(gitUrl(`ref/heads/${branchRef}`));
         if (refResponse.status === 404) {
-            throw new RemoteError(`${label} 分支 ${branch} 不存在`, 404);
+            throw new RemoteError(t("{0} 分支 {1} 不存在", [label, branch]), 404);
         }
         if (!refResponse.ok) {
-            throw new RemoteError(`读取 ${label} 分支失败`, refResponse.status);
+            throw new RemoteError(t("读取 {0} 分支失败", [label]), refResponse.status);
         }
         const refData = (await refResponse.json()) as Record<string, unknown>;
         const refObject = refData.object as Record<string, unknown> | undefined;
         const commitSha =
             typeof refObject?.sha === "string" ? refObject.sha : undefined;
         if (!commitSha) {
-            throw new RemoteError("无法读取远程 commit");
+            throw new RemoteError(t("无法读取远程 commit"));
         }
 
         const commitResponse = await request(gitUrl(`commits/${commitSha}`));
         if (!commitResponse.ok) {
-            throw new RemoteError("读取远程 commit 失败", commitResponse.status);
+            throw new RemoteError(t("读取远程 commit 失败"), commitResponse.status);
         }
         const commitData = (await commitResponse.json()) as Record<string, unknown>;
         const tree = commitData.tree as Record<string, unknown> | undefined;
         const baseTreeSha = typeof tree?.sha === "string" ? tree.sha : undefined;
         if (!baseTreeSha) {
-            throw new RemoteError("无法读取远程 tree");
+            throw new RemoteError(t("无法读取远程 tree"));
         }
 
         const treeEntries = await Promise.all(
@@ -184,11 +186,11 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
                     }),
                 });
                 if (!blobResponse.ok) {
-                    throw new RemoteError("创建远程 blob 失败", blobResponse.status);
+                    throw new RemoteError(t("创建远程 blob 失败"), blobResponse.status);
                 }
                 const blob = (await blobResponse.json()) as Record<string, unknown>;
                 if (typeof blob.sha !== "string") {
-                    throw new RemoteError("远程 blob 没有返回 sha");
+                    throw new RemoteError(t("远程 blob 没有返回 sha"));
                 }
                 return {
                     path: file.path,
@@ -207,11 +209,11 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
             }),
         });
         if (!treeResponse.ok) {
-            throw new RemoteError("创建远程 tree 失败", treeResponse.status);
+            throw new RemoteError(t("创建远程 tree 失败"), treeResponse.status);
         }
         const newTree = (await treeResponse.json()) as Record<string, unknown>;
         if (typeof newTree.sha !== "string") {
-            throw new RemoteError("远程 tree 没有返回 sha");
+            throw new RemoteError(t("远程 tree 没有返回 sha"));
         }
 
         const newCommitResponse = await request(gitUrl("commits"), {
@@ -223,11 +225,11 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
             }),
         });
         if (!newCommitResponse.ok) {
-            throw new RemoteError("创建远程 commit 失败", newCommitResponse.status);
+            throw new RemoteError(t("创建远程 commit 失败"), newCommitResponse.status);
         }
         const newCommit = (await newCommitResponse.json()) as Record<string, unknown>;
         if (typeof newCommit.sha !== "string") {
-            throw new RemoteError("远程 commit 没有返回 sha");
+            throw new RemoteError(t("远程 commit 没有返回 sha"));
         }
 
         const updateResponse = await request(
@@ -244,7 +246,7 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
             throw new RemoteConflictError();
         }
         if (!updateResponse.ok) {
-            throw new RemoteError("更新远程分支失败", updateResponse.status);
+            throw new RemoteError(t("更新远程分支失败"), updateResponse.status);
         }
     }
 
@@ -255,14 +257,14 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
         }
         if (response.status === 401 || response.status === 403) {
             throw new RemoteError(
-                `${label} 认证失败，或 token 没有仓库读写权限`,
+                t("{0} 认证失败，或 token 没有仓库读写权限", [label]),
                 response.status,
             );
         }
         if (!response.ok) {
             const data: unknown = await response.json().catch(() => null);
             throw new RemoteError(
-                errorMessage(data, `读取 ${path} 失败（HTTP ${response.status}）`),
+                errorMessage(data, t("读取 {0} 失败（HTTP {1}）", [path, response.status])),
                 response.status,
             );
         }
@@ -271,7 +273,7 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
             if (data.length === 0) {
                 return undefined;
             }
-            throw new RemoteError(`${path} 是目录，不是文件`);
+            throw new RemoteError(t("{0} 是目录，不是文件", [path]));
         }
         if (typeof data !== "object" || data === null) {
             return undefined;
@@ -286,12 +288,12 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
         async test(): Promise<RemoteTestResult> {
             const response = await request(repoUrl());
             if (response.status === 404) {
-                throw new RemoteError("仓库不存在，或 token 没有访问权限", 404);
+                throw new RemoteError(t("仓库不存在，或 token 没有访问权限"), 404);
             }
             if (!response.ok) {
                 const data: unknown = await response.json().catch(() => null);
                 throw new RemoteError(
-                    errorMessage(data, `${label} 认证失败`),
+                    errorMessage(data, t("{0} 认证失败", [label])),
                     response.status,
                 );
             }
@@ -311,14 +313,14 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
             }
             if (response.status === 401 || response.status === 403) {
                 throw new RemoteError(
-                    `${label} 认证失败，或 token 没有仓库读写权限`,
+                    t("{0} 认证失败，或 token 没有仓库读写权限", [label]),
                     response.status,
                 );
             }
             if (!response.ok) {
                 const data: unknown = await response.json().catch(() => null);
                 throw new RemoteError(
-                    errorMessage(data, `读取 ${path} 失败`),
+                    errorMessage(data, t("读取 {0} 失败", [path])),
                     response.status,
                 );
             }
@@ -328,16 +330,16 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
                 if (data.length === 0) {
                     return null;
                 }
-                throw new RemoteError(`${path} 是目录，不是文件`);
+                throw new RemoteError(t("{0} 是目录，不是文件", [path]));
             }
             if (
                 typeof data.content !== "string" ||
                 (typeof data.type === "string" && data.type !== "file")
             ) {
-                throw new RemoteError(`${path} 不是可读取的文件`);
+                throw new RemoteError(t("{0} 不是可读取的文件", [path]));
             }
             if (data.encoding !== "base64") {
-                throw new RemoteError(`${path} 的编码格式不受支持`);
+                throw new RemoteError(t("{0} 的编码格式不受支持", [path]));
             }
             return {
                 text: decodeBase64Utf8(data.content),
@@ -406,7 +408,7 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
             }
             if (response.status === 401 || response.status === 403) {
                 throw new RemoteError(
-                    `${label} 认证失败，或 token 没有仓库读写权限`,
+                    t("{0} 认证失败，或 token 没有仓库读写权限", [label]),
                     response.status,
                 );
             }
@@ -414,7 +416,7 @@ export function createGitContentsAdapter(config: GitContentsConfig): RemoteAdapt
                 const data: unknown = await response.json().catch(() => null);
                 const message = errorMessage(
                     data,
-                    `写入 ${path} 失败（HTTP ${response.status}）`,
+                    t("写入 {0} 失败（HTTP {1}）", [path, response.status]),
                 );
                 if (response.status === 422 && /sha|conflict|does not match/i.test(message)) {
                     throw new RemoteConflictError(message);

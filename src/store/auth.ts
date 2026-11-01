@@ -5,6 +5,8 @@
 import { create } from "zustand";
 import { base64ToBytes, bytesToBase64 } from "@/utils/base64";
 
+import { t } from "@/i18n";
+
 const AUTH_KEY = "liangqi-auth-v1";
 const SESSION_KEY = "liangqi-unlocked-v1";
 const ITERATIONS = 210_000;
@@ -102,7 +104,7 @@ async function deriveHash(
     iterations: number,
 ): Promise<string> {
     if (!globalThis.crypto?.subtle) {
-        throw new Error("当前环境不支持 Web Crypto，请使用 HTTPS 或 localhost");
+        throw new Error(t("当前环境不支持 Web Crypto，请使用 HTTPS 或 localhost"));
     }
     const key = await globalThis.crypto.subtle.importKey(
         "raw",
@@ -168,7 +170,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
     async setPassword(password) {
         if (password.length < MIN_PASSWORD_LENGTH) {
-            throw new Error(`密码至少需要 ${MIN_PASSWORD_LENGTH} 位`);
+            throw new Error(t("密码至少需要 {0} 位", [MIN_PASSWORD_LENGTH]));
         }
         const salt = randomSalt();
         const hash = await deriveHash(password, salt, ITERATIONS);
@@ -186,7 +188,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
     async changePassword(current, next) {
         const valid = await verifyStoredPassword(current);
         if (!valid) {
-            throw new Error("当前密码不正确");
+            throw new Error(t("当前密码不正确"));
         }
         await useAuthStore.getState().setPassword(next);
     },

@@ -51,6 +51,8 @@ import {
 } from "@/store/analysis-views";
 import { cn } from "@/utils/cn";
 
+import { getLocale, t } from "@/i18n";
+
 const EMPTY_VIEWS: AnalysisView[] = [];
 
 export function Analytics() {
@@ -149,7 +151,7 @@ export function Analytics() {
                 : category;
             const key = root?.id ?? "uncategorized";
             const current = byParent.get(key) ?? {
-                name: root?.name ?? "未分类",
+                name: root?.name ?? t("未分类"),
                 emoji: root?.emoji ?? "📦",
                 color: root?.color ?? "#a8a29e",
                 amount: 0,
@@ -191,7 +193,7 @@ export function Analytics() {
                 const tag = tags.find((item) => item.id === tagId);
                 return {
                     id: tagId,
-                    name: tag?.name ?? "已删除标签",
+                    name: tag?.name ?? t("已删除标签"),
                     color: tag?.color ?? "#a8a29e",
                     amount,
                     share: total > 0 ? amount / total : 0,
@@ -216,7 +218,7 @@ export function Analytics() {
                 const member = members.find((item) => item.id === memberId);
                 return {
                     id: memberId || "unknown",
-                    name: member?.name ?? "未指定",
+                    name: member?.name ?? t("未指定"),
                     color: member?.color ?? "#a8a29e",
                     amount,
                     share: total > 0 ? amount / total : 0,
@@ -350,7 +352,7 @@ export function Analytics() {
     function printReport() {
         openReportPrint(
             buildReportHtml({
-                title: "两讫月报",
+                title: t("两讫月报"),
                 periodLabel: formatMonthLabel(month),
                 currency,
                 entries: filteredMonthEntries,
@@ -371,16 +373,16 @@ export function Analytics() {
     return (
         <div>
             <PageHeader
-                eyebrow="分析"
-                title="钱都去哪了"
-                description="按月查看收支、分类、标签和成员分布；点击大额支出可以查看详情。"
+                eyebrow={t("分析")}
+                title={t("钱都去哪了")}
+                description={t("按月查看收支、分类、标签和成员分布；点击大额支出可以查看详情。")}
                 action={
                     <div className="flex items-center gap-1 rounded-lg border border-line bg-surface-2/70 p-0.5">
                         <button
                             type="button"
                             onClick={() => shiftMonth(-1)}
                             className="grid size-7 place-items-center rounded-md text-muted transition hover:bg-surface hover:text-text"
-                            aria-label="上个月"
+                            aria-label={t("上个月")}
                         >
                             <ChevronLeft className="size-3.5" />
                         </button>
@@ -392,7 +394,7 @@ export function Analytics() {
                             onClick={() => shiftMonth(1)}
                             disabled={!canGoNext}
                             className="grid size-7 place-items-center rounded-md text-muted transition hover:bg-surface hover:text-text disabled:cursor-not-allowed disabled:opacity-30"
-                            aria-label="下个月"
+                            aria-label={t("下个月")}
                         >
                             <ChevronRight className="size-3.5" />
                         </button>
@@ -407,10 +409,8 @@ export function Analytics() {
                             <SlidersHorizontal className="size-4" />
                         </span>
                         <div>
-                            <h2 className="text-sm font-bold text-text">自定义分析</h2>
-                            <p className="text-[10px] text-muted">
-                                组合分类、标签、账户、成员和关键词，保存成自己的分析视图
-                            </p>
+                            <h2 className="text-sm font-bold text-text">{t("自定义分析")}</h2>
+                            <p className="text-[10px] text-muted">{t("组合分类、标签、账户、成员和关键词，保存成自己的分析视图")}</p>
                         </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -424,7 +424,7 @@ export function Analytics() {
                                 applyView(view);
                             }}
                         >
-                            <option value="">未保存视图</option>
+                            <option value="">{t("未保存视图")}</option>
                             {views.map((view) => (
                                 <option key={view.id} value={view.id}>
                                     {view.name}
@@ -439,7 +439,7 @@ export function Analytics() {
                                     setSelectedViewId("");
                                 }}
                                 className="grid size-8 place-items-center rounded-lg border border-line text-muted transition hover:border-danger/30 hover:bg-danger-soft hover:text-danger"
-                                aria-label="删除分析视图"
+                                aria-label={t("删除分析视图")}
                             >
                                 <Trash2 className="size-3.5" />
                             </button>
@@ -449,9 +449,7 @@ export function Analytics() {
                             variant={filterOpen || activeFilterCount > 0 ? "primary" : "secondary"}
                             onClick={() => setFilterOpen((current) => !current)}
                         >
-                            <SlidersHorizontal className="size-3.5" />
-                            筛选
-                            {activeFilterCount > 0 && (
+                            <SlidersHorizontal className="size-3.5" />{` ${t("筛选")} `}{activeFilterCount > 0 && (
                                 <span className="rounded-full bg-surface/25 px-1.5 text-[10px]">
                                     {activeFilterCount}
                                 </span>
@@ -463,9 +461,7 @@ export function Analytics() {
                             onClick={() => setSaveOpen(true)}
                             disabled={activeFilterCount === 0}
                         >
-                            <Bookmark className="size-3.5" />
-                            保存视图
-                        </Button>
+                            <Bookmark className="size-3.5" />{` ${t("保存视图")}`}</Button>
                         <Button
                             size="sm"
                             variant="secondary"
@@ -491,9 +487,7 @@ export function Analytics() {
                     <div className="mt-4 border-t border-line pt-4">
                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                             <label className="block">
-                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
-                                    分类
-                                </span>
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">{t("分类")}</span>
                                 <select
                                     className="field py-2 text-xs"
                                     value={filter.categoryId}
@@ -505,7 +499,7 @@ export function Analytics() {
                                         }));
                                     }}
                                 >
-                                    <option value="">全部分类</option>
+                                    <option value="">{t("全部分类")}</option>
                                     {categories.map((category) => {
                                         const parent = category.parent
                                             ? categories.find(
@@ -523,9 +517,7 @@ export function Analytics() {
                                 </select>
                             </label>
                             <label className="block">
-                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
-                                    标签
-                                </span>
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">{t("标签")}</span>
                                 <select
                                     className="field py-2 text-xs"
                                     value={filter.tagId}
@@ -537,7 +529,7 @@ export function Analytics() {
                                         }));
                                     }}
                                 >
-                                    <option value="">全部标签</option>
+                                    <option value="">{t("全部标签")}</option>
                                     {tags.map((tag) => (
                                         <option key={tag.id} value={tag.id}>
                                             {tag.name}
@@ -546,9 +538,7 @@ export function Analytics() {
                                 </select>
                             </label>
                             <label className="block">
-                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
-                                    成员
-                                </span>
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">{t("成员")}</span>
                                 <select
                                     className="field py-2 text-xs"
                                     value={filter.memberId}
@@ -560,7 +550,7 @@ export function Analytics() {
                                         }));
                                     }}
                                 >
-                                    <option value="">全部成员</option>
+                                    <option value="">{t("全部成员")}</option>
                                     {members.map((member) => (
                                         <option key={member.id} value={member.id}>
                                             {member.name}
@@ -569,9 +559,7 @@ export function Analytics() {
                                 </select>
                             </label>
                             <label className="block">
-                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
-                                    账户
-                                </span>
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">{t("账户")}</span>
                                 <select
                                     className="field py-2 text-xs"
                                     value={filter.accountId}
@@ -583,7 +571,7 @@ export function Analytics() {
                                         }));
                                     }}
                                 >
-                                    <option value="">全部账户</option>
+                                    <option value="">{t("全部账户")}</option>
                                     {accounts.map((account) => (
                                         <option key={account.id} value={account.id}>
                                             {account.emoji} {account.name}
@@ -592,9 +580,7 @@ export function Analytics() {
                                 </select>
                             </label>
                             <label className="block">
-                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
-                                    关键词
-                                </span>
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">{t("关键词")}</span>
                                 <input
                                     className="field py-2 text-xs"
                                     value={filter.keyword}
@@ -605,23 +591,19 @@ export function Analytics() {
                                             keyword: event.target.value,
                                         }));
                                     }}
-                                    placeholder="备注、分类、记账人"
+                                    placeholder={t("备注、分类、记账人")}
                                 />
                             </label>
                         </div>
                         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-[10px] text-muted">
-                                分析视图保存在本机，按账本区分；上方月份仍然是时间维度。
-                            </p>
+                            <p className="text-[10px] text-muted">{t("分析视图保存在本机，按账本区分；上方月份仍然是时间维度。")}</p>
                             <Button
                                 size="sm"
                                 variant="ghost"
                                 onClick={clearFilters}
                                 disabled={activeFilterCount === 0}
                             >
-                                <X className="size-3.5" />
-                                清空筛选
-                            </Button>
+                                <X className="size-3.5" />{` ${t("清空筛选")}`}</Button>
                         </div>
                     </div>
                 )}
@@ -629,29 +611,32 @@ export function Analytics() {
 
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <Metric
-                    label="本月支出"
+                    label={t("本月支出")}
                     value={totals.expense}
                     currency={currency}
                     hint={
                         expenseChange === null
-                            ? "上月没有支出"
-                            : `较上月 ${expenseChange >= 0 ? "+" : ""}${formatPercent(expenseChange, 1)}`
+                            ? t("上月没有支出")
+                            : t(
+                            "较上月 {0}{1}",
+                            [expenseChange >= 0 ? "+" : "", formatPercent(expenseChange, 1)]
+                        )
                     }
                     tone={expenseChange !== null && expenseChange > 0 ? "danger" : "muted"}
                 />
-                <Metric label="本月收入" value={totals.income} currency={currency} hint="工资、报销等" tone="success" />
+                <Metric label={t("本月收入")} value={totals.income} currency={currency} hint={t("工资、报销等")} tone="success" />
                 <Metric
-                    label="结余"
+                    label={t("结余")}
                     value={totals.net}
                     currency={currency}
-                    hint={`储蓄率 ${formatPercent(savingsRate, 1)}`}
+                    hint={t("储蓄率 {0}", [formatPercent(savingsRate, 1)])}
                     tone={totals.net >= 0 ? "success" : "danger"}
                 />
                 <Metric
-                    label="还款"
+                    label={t("还款")}
                     value={totals.repayment}
                     currency={currency}
-                    hint="已计入支出"
+                    hint={t("已计入支出")}
                     tone="muted"
                 />
             </div>
@@ -660,16 +645,14 @@ export function Analytics() {
                 <section className="card p-5 lg:col-span-2">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-sm font-bold text-text">近 6 个月趋势</h2>
-                            <p className="mt-0.5 text-[11px] text-muted">收入与支出对比</p>
+                            <h2 className="text-sm font-bold text-text">{t("近 6 个月趋势")}</h2>
+                            <p className="mt-0.5 text-[11px] text-muted">{t("收入与支出对比")}</p>
                         </div>
                         <div className="flex items-center gap-3 text-[10px] text-muted">
                             <span className="flex items-center gap-1">
-                                <span className="size-2 rounded-full bg-liability" /> 支出
-                            </span>
+                                <span className="size-2 rounded-full bg-liability" />{` ${t("支出")}`}</span>
                             <span className="flex items-center gap-1">
-                                <span className="size-2 rounded-full bg-success" /> 收入
-                            </span>
+                                <span className="size-2 rounded-full bg-success" />{` ${t("收入")}`}</span>
                         </div>
                     </div>
                     <div className="mt-5 flex h-44 items-end gap-2 sm:gap-3">
@@ -698,7 +681,9 @@ export function Analytics() {
                                     />
                                 </div>
                                 <span className="truncate text-[9px] text-muted">
-                                    {new Date(item.start).getMonth() + 1}月
+                                    {new Intl.DateTimeFormat(getLocale(), {
+                                        month: "short",
+                                    }).format(item.start)}
                                 </span>
                             </div>
                         ))}
@@ -708,15 +693,13 @@ export function Analytics() {
                 <section className="card p-5">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-sm font-bold text-text">分类占比</h2>
-                            <p className="mt-0.5 text-[11px] text-muted">已合并二级分类</p>
+                            <h2 className="text-sm font-bold text-text">{t("分类占比")}</h2>
+                            <p className="mt-0.5 text-[11px] text-muted">{t("已合并二级分类")}</p>
                         </div>
                         <Link
                             to="/categories"
                             className="flex items-center gap-0.5 text-[10px] font-semibold text-accent hover:underline"
-                        >
-                            分类
-                            <ArrowUpRight className="size-3" />
+                        >{`${t("分类")} `}<ArrowUpRight className="size-3" />
                         </Link>
                     </div>
                     <div className="mt-4">
@@ -728,19 +711,19 @@ export function Analytics() {
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
                 <BreakdownCard
                     icon={Tags}
-                    title="标签支出"
-                    description="同一笔流水多个标签会分别计入"
+                    title={t("标签支出")}
+                    description={t("同一笔流水多个标签会分别计入")}
                     items={tagBreakdown}
                     currency={currency}
-                    empty="这个月还没有带标签的支出"
+                    empty={t("这个月还没有带标签的支出")}
                 />
                 <BreakdownCard
                     icon={Users}
-                    title="成员支出"
-                    description="按流水归属统计"
+                    title={t("成员支出")}
+                    description={t("按流水归属统计")}
                     items={memberBreakdown}
                     currency={currency}
-                    empty="这个月还没有支出"
+                    empty={t("这个月还没有支出")}
                 />
             </div>
 
@@ -748,23 +731,17 @@ export function Analytics() {
                 <div className="flex items-center justify-between border-b border-line px-4 py-3">
                     <div>
                         <h2 className="flex items-center gap-1.5 text-sm font-bold text-text">
-                            <ReceiptText className="size-4 text-muted" />
-                            本月大额支出
-                        </h2>
-                        <p className="mt-0.5 text-[10px] text-muted">按金额从高到低</p>
+                            <ReceiptText className="size-4 text-muted" />{` ${t("本月大额支出")}`}</h2>
+                        <p className="mt-0.5 text-[10px] text-muted">{t("按金额从高到低")}</p>
                     </div>
                     <Link
                         to="/entries"
                         className="flex items-center gap-0.5 text-[10px] font-semibold text-accent hover:underline"
-                    >
-                        全部流水
-                        <ArrowUpRight className="size-3" />
+                    >{`${t("全部流水")} `}<ArrowUpRight className="size-3" />
                     </Link>
                 </div>
                 {topExpenses.length === 0 ? (
-                    <p className="px-4 py-10 text-center text-xs text-muted">
-                        这个月还没有支出
-                    </p>
+                    <p className="px-4 py-10 text-center text-xs text-muted">{t("这个月还没有支出")}</p>
                 ) : (
                     <div className="divide-y divide-line/60">
                         {topExpenses.map((entry) => {
@@ -788,10 +765,10 @@ export function Analytics() {
                                     </span>
                                     <span className="min-w-0 flex-1">
                                         <span className="block truncate text-xs font-semibold text-text">
-                                            {entry.note || category?.name || "支出"}
+                                            {entry.note || category?.name || t("支出")}
                                         </span>
                                         <span className="mt-0.5 block text-[10px] text-muted">
-                                            {category?.name ?? "未分类"} ·{" "}
+                                            {category?.name ?? t("未分类")} ·{" "}
                                             {new Date(entry.date).getMonth() + 1}/
                                             {new Date(entry.date).getDate()}
                                         </span>
@@ -810,22 +787,15 @@ export function Analytics() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h2 className="flex items-center gap-1.5 text-sm font-bold text-text">
-                            <MapPin className="size-4 text-muted" />
-                            消费足迹
-                        </h2>
-                        <p className="mt-0.5 text-[11px] text-muted">
-                            记录了位置的支出会出现在这里，点击地点切换地图。
-                        </p>
+                            <MapPin className="size-4 text-muted" />{` ${t("消费足迹")}`}</h2>
+                        <p className="mt-0.5 text-[11px] text-muted">{t("记录了位置的支出会出现在这里，点击地点切换地图。")}</p>
                     </div>
                     <span className="text-[10px] text-muted">
-                        {locations.length} 个地点
-                    </span>
+                        {locations.length}{` ${t("个地点")}`}</span>
                 </div>
 
                 {locations.length === 0 || !activeLocation ? (
-                    <p className="mt-4 rounded-xl border border-dashed border-line bg-surface-2/30 px-4 py-8 text-center text-[11px] leading-relaxed text-muted">
-                        还没有带位置的支出。记账时点「获取当前位置」，就能在这里看到消费足迹。
-                    </p>
+                    <p className="mt-4 rounded-xl border border-dashed border-line bg-surface-2/30 px-4 py-8 text-center text-[11px] leading-relaxed text-muted">{t("还没有带位置的支出。记账时点「获取当前位置」，就能在这里看到消费足迹。")}</p>
                 ) : (
                     <div className="mt-4 grid gap-4 lg:grid-cols-[0.9fr_1.4fr]">
                         <div className="max-h-80 space-y-1.5 overflow-y-auto pr-1">
@@ -859,8 +829,7 @@ export function Analytics() {
                                                     `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`}
                                             </span>
                                             <span className="mt-0.5 block text-[9px] text-muted">
-                                                {location.count} 笔
-                                            </span>
+                                                {location.count}{` ${t("笔")}`}</span>
                                         </span>
                                         <span className="shrink-0 text-[11px] font-bold tabular-nums text-text">
                                             {formatCents(location.amount, currency)}
@@ -872,24 +841,21 @@ export function Analytics() {
                         <div className="overflow-hidden rounded-xl border border-line">
                             <iframe
                                 key={activeLocation.key}
-                                title="消费地点地图"
+                                title={t("消费地点地图")}
                                 src={mapUrl}
                                 className="h-80 w-full"
                                 loading="lazy"
                             />
                             <div className="flex items-center justify-between gap-2 border-t border-line bg-surface-2/45 px-3 py-2 text-[10px] text-muted">
                                 <span>
-                                    {activeLocation.label || "未命名地点"} ·{" "}
-                                    {activeLocation.count} 笔
-                                </span>
+                                    {activeLocation.label || t("未命名地点")} ·{" "}
+                                    {activeLocation.count}{` ${t("笔")}`}</span>
                                 <a
                                     href={`https://www.openstreetmap.org/?mlat=${activeLocation.lat}&mlon=${activeLocation.lng}#map=16/${activeLocation.lat}/${activeLocation.lng}`}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="inline-flex items-center gap-1 font-medium text-accent hover:underline"
-                                >
-                                    打开地图
-                                    <ExternalLink className="size-3" />
+                                >{`${t("打开地图")} `}<ExternalLink className="size-3" />
                                 </a>
                             </div>
                         </div>
@@ -898,15 +864,13 @@ export function Analytics() {
             </section>
 
             <p className="mt-5 flex items-center justify-center gap-1 text-[10px] text-muted">
-                <ChartNoAxesColumn className="size-3" />
-                统计口径：现金支出立即计入，赊账只记负债，还款时计入支出；转账不计收支
-            </p>
+                <ChartNoAxesColumn className="size-3" />{` ${t("统计口径：现金支出立即计入，赊账只记负债，还款时计入支出；转账不计收支")}`}</p>
 
             <Modal
                 open={saveOpen}
                 onClose={() => setSaveOpen(false)}
-                title="保存分析视图"
-                description="保存当前的分类、标签、账户、成员和关键词组合；时间维度继续使用上方月份。"
+                title={t("保存分析视图")}
+                description={t("保存当前的分类、标签、账户、成员和关键词组合；时间维度继续使用上方月份。")}
                 size="sm"
                 footer={
                     <div className="flex gap-2">
@@ -914,28 +878,22 @@ export function Analytics() {
                             variant="secondary"
                             className="flex-1"
                             onClick={() => setSaveOpen(false)}
-                        >
-                            取消
-                        </Button>
+                        >{t("取消")}</Button>
                         <Button
                             className="flex-1"
                             onClick={saveView}
                             disabled={!viewName.trim()}
-                        >
-                            保存
-                        </Button>
+                        >{t("保存")}</Button>
                     </div>
                 }
             >
                 <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-muted">
-                        视图名称
-                    </span>
+                    <span className="mb-1.5 block text-xs font-semibold text-muted">{t("视图名称")}</span>
                     <input
                         className="field"
                         value={viewName}
                         onChange={(event) => setViewName(event.target.value)}
-                        placeholder="例如：家庭餐饮、旅行支出、某成员账单"
+                        placeholder={t("例如：家庭餐饮、旅行支出、某成员账单")}
                         autoFocus
                         onKeyDown={(event) => {
                             if (event.key === "Enter") {

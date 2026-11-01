@@ -14,6 +14,8 @@ import type { Account, Bill, BillStatus, Book, Category, Entry, LedgerData } fro
 import { formatDate, isInMonth, startOfDay } from "@/utils/date";
 import { formatCents } from "@/domain/money";
 
+import { t } from "@/i18n";
+
 export function getAccountBalance(account: Account, entries: Entry[]): number {
     let balance = account.openingBalance;
 
@@ -264,7 +266,7 @@ export function getCategoryBreakdown(
             const category = categoryMap.get(categoryId);
             return {
                 categoryId: category ? category.id : null,
-                name: category?.name ?? "未分类",
+                name: category?.name ?? t("未分类"),
                 emoji: category?.emoji ?? "📦",
                 color: category?.color ?? "#a8a29e",
                 amount,
@@ -314,10 +316,10 @@ export function getBillDueInfo(
     now = Date.now(),
 ): DueInfo {
     if (status === "paid") {
-        return { label: "已还清", tone: "success" };
+        return { label: t("已还清"), tone: "success" };
     }
     if (bill.dueDate === undefined) {
-        return { label: "未设到期日", tone: "neutral" };
+        return { label: t("未设到期日"), tone: "neutral" };
     }
 
     const days = Math.round(
@@ -325,15 +327,15 @@ export function getBillDueInfo(
     );
 
     if (days < 0) {
-        return { label: `逾期 ${Math.abs(days)} 天`, tone: "danger" };
+        return { label: t("逾期 {0} 天", [Math.abs(days)]), tone: "danger" };
     }
     if (days === 0) {
-        return { label: "今天到期", tone: "warning" };
+        return { label: t("今天到期"), tone: "warning" };
     }
     if (days <= 7) {
-        return { label: `${days} 天后到期`, tone: "warning" };
+        return { label: t("{0} 天后到期", [days]), tone: "warning" };
     }
-    return { label: `${formatDate(bill.dueDate)}到期`, tone: "neutral" };
+    return { label: t("{0}到期", [formatDate(bill.dueDate)]), tone: "neutral" };
 }
 
 export function getAccountUsage(accountId: string, data: Pick<LedgerData, "bills" | "entries">) {
@@ -360,17 +362,17 @@ export function validateRepayment(
     assetAccount: Account | undefined,
 ): string | null {
     if (!assetAccount || assetAccount.kind !== "asset") {
-        return "请选择一个储蓄账户";
+        return t("请选择一个储蓄账户");
     }
     if (!Number.isInteger(amount) || amount <= 0) {
-        return "还款金额必须大于 0";
+        return t("还款金额必须大于 0");
     }
     const remaining = getBillRemaining(bill, entries);
     if (remaining <= 0) {
-        return "这笔账单已经还清";
+        return t("这笔账单已经还清");
     }
     if (amount > remaining) {
-        return `还款金额不能超过待还金额 ${formatCents(remaining)}`;
+        return t("还款金额不能超过待还金额 {0}", [formatCents(remaining)]);
     }
     return null;
 }

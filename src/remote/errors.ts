@@ -2,6 +2,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { t } from "@/i18n";
+
 export class RemoteError extends Error {
     readonly status?: number;
 
@@ -13,7 +15,7 @@ export class RemoteError extends Error {
 }
 
 export class RemoteConflictError extends RemoteError {
-    constructor(message = "远程文件已被修改，请先同步") {
+    constructor(message = t("远程文件已被修改，请先同步")) {
         super(message, 409);
         this.name = "RemoteConflictError";
     }

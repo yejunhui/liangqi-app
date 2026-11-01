@@ -6,6 +6,8 @@ import { useMemo } from "react";
 import type { Tag, TagGroup } from "@/types";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 interface TagSelectorProps {
     tags: Tag[];
     groups: TagGroup[];
@@ -19,7 +21,7 @@ export function TagSelector({
     groups,
     value,
     onChange,
-    label = "标签",
+    label = t("标签"),
 }: TagSelectorProps) {
     const grouped = useMemo(() => {
         const map = new Map<string, Tag[]>();
@@ -87,12 +89,10 @@ export function TagSelector({
         <div>
             <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-semibold text-muted">{label}</p>
-                <span className="text-[10px] text-muted">可选</span>
+                <span className="text-[10px] text-muted">{t("可选")}</span>
             </div>
             {tags.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-line bg-surface-2/50 px-3 py-2.5 text-[11px] text-muted">
-                    还没有标签，可以到「标签」页添加。
-                </p>
+                <p className="rounded-xl border border-dashed border-line bg-surface-2/50 px-3 py-2.5 text-[11px] text-muted">{t("还没有标签，可以到「标签」页添加。")}</p>
             ) : (
                 <div className="space-y-2.5">
                     {groups.map((group) => {
@@ -105,7 +105,7 @@ export function TagSelector({
                                 <p className="mb-1.5 text-[10px] font-medium text-muted">
                                     {group.name}
                                     <span className="ml-1 text-muted/70">
-                                        {group.selection === "single" ? "单选" : "多选"}
+                                        {group.selection === "single" ? t("单选") : t("多选")}
                                     </span>
                                 </p>
                                 {renderTags(list)}
@@ -115,9 +115,7 @@ export function TagSelector({
                     {ungrouped.length > 0 && (
                         <div>
                             {groups.length > 0 && (
-                                <p className="mb-1.5 text-[10px] font-medium text-muted">
-                                    未分组
-                                </p>
+                                <p className="mb-1.5 text-[10px] font-medium text-muted">{t("未分组")}</p>
                             )}
                             {renderTags(ungrouped)}
                         </div>

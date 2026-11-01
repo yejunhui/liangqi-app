@@ -4,6 +4,7 @@
 
 import type { Account, Category, EntryKind } from "@/types";
 import { toDateInputValue } from "@/utils/date";
+import { t } from "@/i18n";
 
 export interface QuickEntrySuggestion {
     kind: EntryKind;
@@ -30,7 +31,7 @@ function extractAmount(text: string): number | null {
     if (currency) {
         return Math.round(Number.parseFloat(currency[1].replace(/,/g, "")) * 100);
     }
-    const yuan = text.match(new RegExp(`(${NUMBER_PATTERN})\\s*(?:元|块|块钱)`));
+    const yuan = text.match(new RegExp(`(${NUMBER_PATTERN})\\s*(?:元|块|块钱|yuan|rmb)`, "i"));
     if (yuan) {
         return Math.round(Number.parseFloat(yuan[1].replace(/,/g, "")) * 100);
     }
@@ -53,15 +54,16 @@ function extractAmount(text: string): number | null {
 
 function extractDate(text: string, now: number): number {
     const day = new Date(now);
-    if (text.includes("前天")) {
+    const lower = text.toLowerCase();
+    if (text.includes("前天") || lower.includes("day before yesterday")) {
         day.setDate(day.getDate() - 2);
         return day.getTime();
     }
-    if (text.includes("昨天")) {
+    if (text.includes("昨天") || lower.includes("yesterday")) {
         day.setDate(day.getDate() - 1);
         return day.getTime();
     }
-    if (text.includes("明天")) {
+    if (text.includes("明天") || lower.includes("tomorrow")) {
         day.setDate(day.getDate() + 1);
         return day.getTime();
     }
@@ -93,32 +95,32 @@ function findName<T extends { id: string; name: string }>(
 
 const CATEGORY_HINTS: Array<{ pattern: RegExp; names: string[] }> = [
     {
-        pattern: /早餐|早饭|午餐|午饭|晚餐|晚饭|吃饭|外卖|咖啡|奶茶|餐厅|食堂|零食|水果/,
-        names: ["餐饮", "吃饭", "食品", "零食"],
+        pattern: /早餐|早饭|午餐|午饭|晚餐|晚饭|吃饭|外卖|咖啡|奶茶|餐厅|食堂|零食|水果|breakfast|lunch|dinner|food|cafe|coffee|restaurant|snack|fruit/i,
+        names: ["餐饮", "吃饭", "食品", "零食", "Food", "Dining", "Meal", "Snack"],
     },
     {
-        pattern: /打车|滴滴|出租车|地铁|公交|加油|停车|高铁|机票/,
-        names: ["交通", "打车", "出行"],
+        pattern: /打车|滴滴|出租车|地铁|公交|加油|停车|高铁|机票|taxi|uber|metro|subway|bus|fuel|parking|train|flight/i,
+        names: ["交通", "打车", "出行", "Transport", "Travel", "Taxi"],
     },
     {
-        pattern: /房租|水费|电费|燃气|物业/,
-        names: ["住房", "房租", "生活缴费", "居家"],
+        pattern: /房租|水费|电费|燃气|物业|rent|utilities|electricity|water|gas|property/i,
+        names: ["住房", "房租", "生活缴费", "居家", "Housing", "Rent", "Utilities"],
     },
     {
-        pattern: /工资|薪水|奖金|报销|利息|分红/,
-        names: ["工资", "收入", "奖金"],
+        pattern: /工资|薪水|奖金|报销|利息|分红|salary|income|bonus|reimburse|interest|dividend/i,
+        names: ["工资", "收入", "奖金", "Salary", "Income", "Bonus"],
     },
     {
-        pattern: /淘宝|京东|超市|购物|日用品/,
-        names: ["购物", "日用", "超市"],
+        pattern: /淘宝|京东|超市|购物|日用品|taobao|jd|supermarket|shopping|groceries/i,
+        names: ["购物", "日用", "超市", "Shopping", "Groceries"],
     },
     {
-        pattern: /电影|游戏|娱乐|旅游|旅行/,
-        names: ["娱乐", "旅行", "旅游"],
+        pattern: /电影|游戏|娱乐|旅游|旅行|movie|game|entertainment|travel|trip/i,
+        names: ["娱乐", "旅行", "旅游", "Entertainment", "Travel"],
     },
     {
-        pattern: /医院|医药|看病|买药/,
-        names: ["医疗", "健康", "医药"],
+        pattern: /医院|医药|看病|买药|hospital|doctor|medicine|health|pharmacy/i,
+        names: ["医疗", "健康", "医药", "Health", "Medical"],
     },
 ];
 
@@ -152,16 +154,16 @@ export function parseQuickEntry(input: {
 }): QuickEntryParseResult {
     const text = input.text.trim();
     if (!text) {
-        return { ok: false, error: "说点什么，或者输入一句话" };
+        return { ok: false, error: t("说点什么，或者输入一句话") };
     }
     const now = input.now ?? Date.now();
     const amount = extractAmount(text);
     if (amount === null || amount <= 0) {
-        return { ok: false, error: "没有识别到金额，例如「午饭 35」" };
+        return { ok: false, error: t("没有识别到金额，例如「午饭 35」") };
     }
-    const income = /收入|工资|奖金|报销|退款|收到|进账|利息|分红|卖了/.test(text);
+    const income = /收入|工资|奖金|报销|退款|收到|进账|利息|分红|卖了|income|salary|bonus|reimburse|refund|received|interest|dividend|sold/i.test(text);
     const namedAccount = findName(input.accounts, text);
-    const liabilityWord = /信用卡|花呗|白条|借呗|借款|赊账|赊|负债|分期/.test(text);
+    const liabilityWord = /信用卡|花呗|白条|借呗|借款|赊账|赊|负债|分期|credit card|huabei|baitiao|jiebei|loan|debt|installment|borrow/i.test(text);
     const kind: EntryKind = income ? "income" : "expense";
     const paymentMode =
         !income &&
@@ -212,10 +214,10 @@ export function describeQuickEntry(
             (suggestion.liabilityAccountId ?? suggestion.accountId),
     );
     return [
-        suggestion.kind === "income" ? "收入" : "支出",
-        suggestion.paymentMode === "liability" ? "赊账" : "存款",
-        category?.name ?? "默认分类",
-        account?.name ?? "默认账户",
+        suggestion.kind === "income" ? t("收入") : t("支出"),
+        suggestion.paymentMode === "liability" ? t("赊账") : t("存款"),
+        category?.name ?? t("默认分类"),
+        account?.name ?? t("默认账户"),
         toDateInputValue(suggestion.date),
     ].join(" · ");
 }

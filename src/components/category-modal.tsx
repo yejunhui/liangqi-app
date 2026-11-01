@@ -10,6 +10,8 @@ import { useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 const COLORS = [
     "#e07a5f",
     "#f2b84b",
@@ -106,7 +108,7 @@ export function CategoryModal({
                 setError(result.error);
                 return;
             }
-            toast("分类已更新", "success");
+            toast(t("分类已更新"), "success");
             onClose();
             return;
         }
@@ -116,7 +118,7 @@ export function CategoryModal({
             setError(result.error);
             return;
         }
-        toast("分类已创建", "success");
+        toast(t("分类已创建"), "success");
         onClose();
     }
 
@@ -124,16 +126,14 @@ export function CategoryModal({
         <Modal
             open={open}
             onClose={onClose}
-            title={editing ? "编辑分类" : "添加分类"}
-            description="分类只影响统计展示，不会改变账户余额或账单金额。"
+            title={editing ? t("编辑分类") : t("添加分类")}
+            description={t("分类只影响统计展示，不会改变账户余额或账单金额。")}
             size="sm"
             footer={
                 <div className="flex gap-2">
-                    <Button variant="secondary" className="flex-1" onClick={onClose}>
-                        取消
-                    </Button>
+                    <Button variant="secondary" className="flex-1" onClick={onClose}>{t("取消")}</Button>
                     <Button type="submit" form="category-form" className="flex-1">
-                        {editing ? "保存" : "创建分类"}
+                        {editing ? t("保存") : t("创建分类")}
                     </Button>
                 </div>
             }
@@ -141,12 +141,12 @@ export function CategoryModal({
             <form id="category-form" className="space-y-4" onSubmit={handleSubmit}>
                 {!editing && (
                     <div>
-                        <p className="mb-2 text-xs font-semibold text-muted">分类类型</p>
+                        <p className="mb-2 text-xs font-semibold text-muted">{t("分类类型")}</p>
                         <div className="grid grid-cols-2 gap-2">
                             {(
                                 [
-                                    { value: "expense", label: "支出分类", hint: "餐饮、交通等" },
-                                    { value: "income", label: "收入分类", hint: "工资、奖金等" },
+                                    { value: "expense", label: t("支出分类"), hint: t("餐饮、交通等") },
+                                    { value: "income", label: t("收入分类"), hint: t("工资、奖金等") },
                                 ] as const
                             ).map((option) => (
                                 <button
@@ -177,27 +177,25 @@ export function CategoryModal({
                 )}
 
                 <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-muted">名称</span>
+                    <span className="mb-1.5 block text-xs font-semibold text-muted">{t("名称")}</span>
                     <input
                         className="field"
                         value={name}
                         onChange={(event) => setName(event.target.value)}
-                        placeholder={kind === "income" ? "例如：工资" : "例如：餐饮"}
+                        placeholder={kind === "income" ? t("例如：工资") : t("例如：餐饮")}
                         autoFocus
                     />
                 </label>
 
                 <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-muted">
-                        父分类（可选）
-                    </span>
+                    <span className="mb-1.5 block text-xs font-semibold text-muted">{t("父分类（可选）")}</span>
                     <select
                         className="field"
                         value={parent}
                         onChange={(event) => setParent(event.target.value)}
                         disabled={hasChildren}
                     >
-                        <option value="">作为一级分类</option>
+                        <option value="">{t("作为一级分类")}</option>
                         {parentOptions.map((item) => (
                             <option key={item.id} value={item.id}>
                                 {item.emoji} {item.name}
@@ -206,13 +204,13 @@ export function CategoryModal({
                     </select>
                     <span className="mt-1.5 block text-[10px] leading-relaxed text-muted">
                         {hasChildren
-                            ? "这个分类下已有子分类，不能再设为其他分类的子分类。"
-                            : "支持两级分类，例如「餐饮 / 午餐」。"}
+                            ? t("这个分类下已有子分类，不能再设为其他分类的子分类。")
+                            : t("支持两级分类，例如「餐饮 / 午餐」。")}
                     </span>
                 </label>
 
                 <div>
-                    <p className="mb-1.5 text-xs font-semibold text-muted">图标</p>
+                    <p className="mb-1.5 text-xs font-semibold text-muted">{t("图标")}</p>
                     <div className="flex flex-wrap gap-1.5">
                         {EMOJIS.map((item) => (
                             <button
@@ -233,7 +231,7 @@ export function CategoryModal({
                 </div>
 
                 <div>
-                    <p className="mb-1.5 text-xs font-semibold text-muted">颜色</p>
+                    <p className="mb-1.5 text-xs font-semibold text-muted">{t("颜色")}</p>
                     <div className="flex flex-wrap gap-2">
                         {COLORS.map((item) => (
                             <button
@@ -247,7 +245,7 @@ export function CategoryModal({
                                         : "border-transparent hover:scale-105",
                                 )}
                                 style={{ backgroundColor: item }}
-                                aria-label={`选择颜色 ${item}`}
+                                aria-label={t("选择颜色 {0}", [item])}
                             />
                         ))}
                     </div>
@@ -265,11 +263,11 @@ export function CategoryModal({
                             {parent
                                 ? `${parentOptions.find((item) => item.id === parent)?.name ?? ""} / `
                                 : ""}
-                            {name || "分类预览"}
+                            {name || t("分类预览")}
                         </p>
                         <p className="text-[10px] text-muted">
-                            {kind === "income" ? "收入分类" : "支出分类"}
-                            {parent ? " · 二级分类" : ""}
+                            {kind === "income" ? t("收入分类") : t("支出分类")}
+                            {parent ? t(" · 二级分类") : ""}
                         </p>
                     </div>
                 </div>

@@ -12,6 +12,8 @@ import { fromDateInputValue, toDateInputValue } from "@/utils/date";
 import { useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
 
+import { t } from "@/i18n";
+
 interface EditBillModalProps {
     bill: Bill | null;
     onClose: () => void;
@@ -58,7 +60,7 @@ export function EditBillModal({ bill, onClose }: EditBillModalProps) {
         if (dueDate) {
             const parsed = fromDateInputValue(dueDate);
             if (parsed === null) {
-                setError("请选择有效到期日");
+                setError(t("请选择有效到期日"));
                 return;
             }
             dueTimestamp = parsed;
@@ -75,7 +77,7 @@ export function EditBillModal({ bill, onClose }: EditBillModalProps) {
             setError(result.error);
             return;
         }
-        toast("账单已更新", "success");
+        toast(t("账单已更新"), "success");
         onClose();
     }
 
@@ -83,45 +85,37 @@ export function EditBillModal({ bill, onClose }: EditBillModalProps) {
         <Modal
             open={bill !== null}
             onClose={onClose}
-            title="编辑账单"
-            description="修改名称、分类或到期日，不影响已产生的流水。"
+            title={t("编辑账单")}
+            description={t("修改名称、分类或到期日，不影响已产生的流水。")}
             size="sm"
             footer={
                 <div className="flex gap-2">
-                    <Button variant="secondary" className="flex-1" onClick={onClose}>
-                        取消
-                    </Button>
-                    <Button type="submit" form="edit-bill-form" className="flex-1">
-                        保存
-                    </Button>
+                    <Button variant="secondary" className="flex-1" onClick={onClose}>{t("取消")}</Button>
+                    <Button type="submit" form="edit-bill-form" className="flex-1">{t("保存")}</Button>
                 </div>
             }
         >
             {bill && (
                 <form id="edit-bill-form" className="space-y-4" onSubmit={handleSubmit}>
                     <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-muted">
-                            账单名称
-                        </span>
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("账单名称")}</span>
                         <input
                             className="field"
                             value={title}
                             onChange={(event) => setTitle(event.target.value)}
-                            placeholder="例如：花呗消费"
+                            placeholder={t("例如：花呗消费")}
                         />
                     </label>
 
                     {!bill.opening && (
                         <label className="block">
-                            <span className="mb-1.5 block text-xs font-semibold text-muted">
-                                支出分类
-                            </span>
+                            <span className="mb-1.5 block text-xs font-semibold text-muted">{t("支出分类")}</span>
                             <select
                                 className="field"
                                 value={categoryId}
                                 onChange={(event) => setCategoryId(event.target.value)}
                             >
-                                <option value="">未分类</option>
+                                <option value="">{t("未分类")}</option>
                                 {expenseCategories.map((category) => (
                                     <option key={category.id} value={category.id}>
                                         {category.emoji} {category.name}
@@ -132,15 +126,13 @@ export function EditBillModal({ bill, onClose }: EditBillModalProps) {
                     )}
 
                     <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-muted">
-                            成员
-                        </span>
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("成员")}</span>
                         <select
                             className="field"
                             value={memberId}
                             onChange={(event) => setMemberId(event.target.value)}
                         >
-                            <option value="">未指定</option>
+                            <option value="">{t("未指定")}</option>
                             {members.map((member) => (
                                 <option key={member.id} value={member.id}>
                                     {member.name}
@@ -150,9 +142,7 @@ export function EditBillModal({ bill, onClose }: EditBillModalProps) {
                     </label>
 
                     <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-muted">
-                            到期日
-                        </span>
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("到期日")}</span>
                         <input
                             type="date"
                             className="field"
@@ -162,12 +152,12 @@ export function EditBillModal({ bill, onClose }: EditBillModalProps) {
                     </label>
 
                     <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-muted">备注</span>
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("备注")}</span>
                         <textarea
                             className="field min-h-20 resize-none"
                             value={note}
                             onChange={(event) => setNote(event.target.value)}
-                            placeholder="可选"
+                            placeholder={t("可选")}
                         />
                     </label>
 

@@ -25,6 +25,8 @@ import { useActiveMember } from "@/store/member-session";
 import { useUIStore } from "@/store/ui";
 import { toast } from "@/store/toast";
 
+import { t } from "@/i18n";
+
 type Filter = "open" | "paid" | "all";
 
 export function Bills() {
@@ -76,9 +78,9 @@ export function Bills() {
         filter === "open" ? openBills : filter === "paid" ? paidBills : [...openBills, ...paidBills];
 
     const tabs: TabItem<Filter>[] = [
-        { value: "open", label: "待还", count: openBills.length },
-        { value: "paid", label: "已还清", count: paidBills.length },
-        { value: "all", label: "全部", count: bills.length },
+        { value: "open", label: t("待还"), count: openBills.length },
+        { value: "paid", label: t("已还清"), count: paidBills.length },
+        { value: "all", label: t("全部"), count: bills.length },
     ];
 
     function handleDelete() {
@@ -90,47 +92,45 @@ export function Bills() {
             toast(result.error, "error");
             return;
         }
-        toast("账单已删除", "success");
+        toast(t("账单已删除"), "success");
         setDeletingBill(null);
     }
 
     return (
         <div>
             <PageHeader
-                title="账单"
-                description="赊账消费会生成待还账单；还款后自动更新进度，并按还款金额计入支出。"
+                title={t("账单")}
+                description={t("赊账消费会生成待还账单；还款后自动更新进度，并按还款金额计入支出。")}
                 action={
                     <Button
                         onClick={() =>
                             openEntryModal({ kind: "expense", paymentMode: "liability" })
                         }
                     >
-                        <Plus className="size-4" />
-                        记一笔赊账
-                    </Button>
+                        <Plus className="size-4" />{` ${t("记一笔赊账")}`}</Button>
                 }
             />
 
             <section className="card overflow-hidden">
                 <div className="grid gap-5 p-5 sm:grid-cols-[1.4fr_1fr] sm:p-6">
                     <div>
-                        <p className="text-[11px] font-medium text-muted">待还总额</p>
+                        <p className="text-[11px] font-medium text-muted">{t("待还总额")}</p>
                         <p className="mt-1 text-3xl font-bold tracking-tight tabular-nums text-liability">
                             {formatCents(outstanding, currency)}
                         </p>
                         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
-                            <span>{openBills.length} 笔未结清</span>
+                            <span>{openBills.length}{` ${t("笔未结清")}`}</span>
                             <span className="text-line-strong">·</span>
                             <span className={overdue.length > 0 ? "text-danger" : ""}>
                                 {overdue.length > 0
-                                    ? `${overdue.length} 笔逾期`
-                                    : "没有逾期账单"}
+                                    ? t("{0} 笔逾期", [overdue.length])
+                                    : t("没有逾期账单")}
                             </span>
                         </div>
 
                         <div className="mt-5 max-w-md">
                             <div className="flex items-center justify-between text-[10px] text-muted">
-                                <span>累计还款进度</span>
+                                <span>{t("累计还款进度")}</span>
                                 <span className="tabular-nums">
                                     {formatCents(totalRepaid, currency)} /{" "}
                                     {formatCents(totalPrincipal, currency)}
@@ -147,13 +147,13 @@ export function Bills() {
 
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
                         <div className="rounded-xl border border-line bg-surface-2/55 p-3">
-                            <p className="text-[10px] text-muted">本月已还（计入支出）</p>
+                            <p className="text-[10px] text-muted">{t("本月已还（计入支出）")}</p>
                             <p className="mt-1 text-base font-bold tabular-nums text-text">
                                 {formatCents(monthRepayment, currency)}
                             </p>
                         </div>
                         <div className="rounded-xl border border-line bg-surface-2/55 p-3">
-                            <p className="text-[10px] text-muted">累计已还</p>
+                            <p className="text-[10px] text-muted">{t("累计已还")}</p>
                             <p className="mt-1 text-base font-bold tabular-nums text-text">
                                 {formatCents(totalRepaid, currency)}
                             </p>
@@ -161,16 +161,12 @@ export function Bills() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2 border-t border-line bg-accent-soft/35 px-5 py-2.5 text-[10px] text-muted sm:px-6">
-                    <ShieldCheck className="size-3.5 text-accent" />
-                    还款是“存款 → 负债”的转移，并在还款时计入支出。
-                </div>
+                    <ShieldCheck className="size-3.5 text-accent" />{` ${t("还款是“存款 → 负债”的转移，并在还款时计入支出。")}`}</div>
             </section>
 
             <div className="mt-5 flex items-center justify-between gap-3">
                 <Tabs items={tabs} value={filter} onChange={setFilter} />
-                <p className="hidden text-[11px] text-muted sm:block">
-                    共 {visibleBills.length} 笔
-                </p>
+                <p className="hidden text-[11px] text-muted sm:block">{`${t("共")} `}{visibleBills.length}{` ${t("笔")}`}</p>
             </div>
 
             {visibleBills.length === 0 ? (
@@ -178,15 +174,15 @@ export function Bills() {
                     icon={CreditCard}
                     title={
                         filter === "paid"
-                            ? "还没有还清的账单"
+                            ? t("还没有还清的账单")
                             : filter === "open"
-                              ? "没有待还账单"
-                              : "还没有账单"
+                              ? t("没有待还账单")
+                              : t("还没有账单")
                     }
                     description={
                         filter === "paid"
-                            ? "完成一次还款后，账单会出现在这里。"
-                            : "赊账消费不会动存款，会先生成一张待还账单。"
+                            ? t("完成一次还款后，账单会出现在这里。")
+                            : t("赊账消费不会动存款，会先生成一张待还账单。")
                     }
                     className="mt-4"
                     action={
@@ -200,9 +196,7 @@ export function Bills() {
                                     })
                                 }
                             >
-                                <Plus className="size-3.5" />
-                                记一笔赊账
-                            </Button>
+                                <Plus className="size-3.5" />{` ${t("记一笔赊账")}`}</Button>
                         ) : undefined
                     }
                 />
@@ -238,19 +232,17 @@ export function Bills() {
             <ConfirmDialog
                 open={deletingBill !== null}
                 onClose={() => setDeletingBill(null)}
-                title="删除这张账单？"
+                title={t("删除这张账单？")}
                 description={
                     deletingBill
-                        ? `“${deletingBill.title}”对应的赊账流水也会一起删除。已有还款的账单不能删除。`
+                        ? t("“{0}”对应的赊账流水也会一起删除。已有还款的账单不能删除。", [deletingBill.title])
                         : ""
                 }
-                confirmLabel="删除"
+                confirmLabel={t("删除")}
                 onConfirm={handleDelete}
             />
 
-            <p className="mt-5 text-center text-[10px] text-muted">
-                待还金额合计 {formatCents(outstanding, currency)} · 数据只保存在本机浏览器
-            </p>
+            <p className="mt-5 text-center text-[10px] text-muted">{`${t("待还金额合计")} `}{formatCents(outstanding, currency)}{` ${t("· 数据只保存在本机浏览器")}`}</p>
         </div>
     );
 }

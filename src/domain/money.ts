@@ -4,6 +4,8 @@
  * Money is stored as integer cents everywhere. Never use floats for balances.
  */
 
+import { getLocale } from "@/i18n";
+
 export function parseAmountToCents(raw: string): number | null {
     const normalized = raw.trim().replace(/[,\s¥￥$€£]/g, "");
     if (normalized === "") {
@@ -23,7 +25,7 @@ export function parseAmountToCents(raw: string): number | null {
 }
 
 export function formatCentsPlain(cents: number): string {
-    return (cents / 100).toLocaleString("zh-CN", {
+    return (cents / 100).toLocaleString(getLocale(), {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     });
@@ -31,9 +33,10 @@ export function formatCentsPlain(cents: number): string {
 
 export function formatCents(cents: number, currency = "CNY"): string {
     try {
-        return new Intl.NumberFormat("zh-CN", {
+        return new Intl.NumberFormat(getLocale(), {
             style: "currency",
             currency,
+            currencyDisplay: "narrowSymbol",
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }).format(cents / 100);
@@ -49,7 +52,7 @@ export function formatCentsSigned(cents: number, currency = "CNY"): string {
 
 export function currencySymbol(currency: string): string {
     try {
-        const parts = new Intl.NumberFormat("zh-CN", {
+        const parts = new Intl.NumberFormat(getLocale(), {
             style: "currency",
             currency,
             currencyDisplay: "narrowSymbol",

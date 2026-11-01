@@ -49,11 +49,13 @@ import { useUIStore } from "@/store/ui";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { getLocale, t } from "@/i18n";
+
 const KIND_OPTIONS: Array<{ value: EntryKind; label: string; icon: typeof Wallet }> = [
-    { value: "expense", label: "支出", icon: ReceiptText },
-    { value: "income", label: "收入", icon: ArrowDownUp },
-    { value: "repayment", label: "还款", icon: CreditCard },
-    { value: "transfer", label: "转账", icon: ArrowRightLeft },
+    { value: "expense", label: t("支出"), icon: ReceiptText },
+    { value: "income", label: t("收入"), icon: ArrowDownUp },
+    { value: "repayment", label: t("还款"), icon: CreditCard },
+    { value: "transfer", label: t("转账"), icon: ArrowRightLeft },
 ];
 
 export function EntryModal() {
@@ -298,7 +300,7 @@ export function EntryModal() {
 
         const rawForeignCents = parseAmountToCents(amount);
         if (rawForeignCents === null || rawForeignCents <= 0) {
-            setError("请输入大于 0 的金额");
+            setError(t("请输入大于 0 的金额"));
             return;
         }
 
@@ -315,16 +317,16 @@ export function EntryModal() {
                 : null
             : rawForeignCents;
         if (cents === null || cents <= 0) {
-            setError("请输入有效汇率");
+            setError(t("请输入有效汇率"));
             return;
         }
         const timestamp = fromDateInputValue(date);
         if (timestamp === null) {
-            setError("请选择有效日期");
+            setError(t("请选择有效日期"));
             return;
         }
         if (!memberId) {
-            setError("请选择成员");
+            setError(t("请选择成员"));
             return;
         }
 
@@ -340,12 +342,12 @@ export function EntryModal() {
 
         if (kind === "expense") {
             if (!categoryId) {
-                setError("请选择支出分类");
+                setError(t("请选择支出分类"));
                 return;
             }
             if (paymentMode === "asset") {
                 if (!assetAccountId) {
-                    setError("请选择储蓄账户");
+                    setError(t("请选择储蓄账户"));
                     return;
                 }
                 const result = addExpense({
@@ -364,17 +366,17 @@ export function EntryModal() {
                     return;
                 }
                 createdEntryId = result.entryId;
-                toast("支出已记入，存款已扣减", "success");
+                toast(t("支出已记入，存款已扣减"), "success");
             } else {
                 if (!liabilityAccountId) {
-                    setError("请选择负债账户");
+                    setError(t("请选择负债账户"));
                     return;
                 }
                 let dueTimestamp: number | undefined;
                 if (dueDate) {
                     const parsedDue = fromDateInputValue(dueDate);
                     if (parsedDue === null) {
-                        setError("请选择有效到期日");
+                        setError(t("请选择有效到期日"));
                         return;
                     }
                     dueTimestamp = parsedDue;
@@ -400,15 +402,15 @@ export function EntryModal() {
                     return;
                 }
                 createdEntryId = result.entryId;
-                toast("已生成待还账单，存款不变，暂不计支出", "success");
+                toast(t("已生成待还账单，存款不变，暂不计支出"), "success");
             }
         } else if (kind === "income") {
             if (!categoryId) {
-                setError("请选择收入分类");
+                setError(t("请选择收入分类"));
                 return;
             }
             if (!assetAccountId) {
-                setError("请选择收款账户");
+                setError(t("请选择收款账户"));
                 return;
             }
             const result = addIncome({
@@ -427,14 +429,14 @@ export function EntryModal() {
                 return;
             }
             createdEntryId = result.entryId;
-            toast("收入已记入", "success");
+            toast(t("收入已记入"), "success");
         } else if (kind === "transfer") {
             if (!assetAccountId || !toAccountId) {
-                setError("请选择转出和转入账户");
+                setError(t("请选择转出和转入账户"));
                 return;
             }
             if (assetAccountId === toAccountId) {
-                setError("转出账户和转入账户不能相同");
+                setError(t("转出账户和转入账户不能相同"));
                 return;
             }
             const result = addTransfer({
@@ -453,14 +455,14 @@ export function EntryModal() {
                 return;
             }
             createdEntryId = result.entryId;
-            toast("转账已记录，不计入支出和收入", "success");
+            toast(t("转账已记录，不计入支出和收入"), "success");
         } else {
             if (!billId) {
-                setError("请选择要还款的账单");
+                setError(t("请选择要还款的账单"));
                 return;
             }
             if (!assetAccountId) {
-                setError("请选择还款账户");
+                setError(t("请选择还款账户"));
                 return;
             }
             const result = addRepayment({
@@ -479,7 +481,7 @@ export function EntryModal() {
                 return;
             }
             createdEntryId = result.entryId;
-            toast("还款已记录，计入支出", "success");
+            toast(t("还款已记录，计入支出"), "success");
         }
 
         if (createdEntryId && files.length > 0) {
@@ -495,10 +497,10 @@ export function EntryModal() {
                     await Promise.all(metas.map((meta) => deleteAttachmentFile(meta.id)));
                     toast(attachResult.error, "error");
                 } else {
-                    toast(`已添加 ${metas.length} 个附件`, "success");
+                    toast(t("已添加 {0} 个附件", [metas.length]), "success");
                 }
             } catch {
-                toast("附件保存失败，流水已正常记入", "error");
+                toast(t("附件保存失败，流水已正常记入"), "error");
             }
         }
 
@@ -507,25 +509,23 @@ export function EntryModal() {
 
     const submitLabel =
         kind === "expense"
-            ? "记支出"
+            ? t("记支出")
             : kind === "income"
-              ? "记收入"
+              ? t("记收入")
               : kind === "transfer"
-                ? "确认转账"
-                : "确认还款";
+                ? t("确认转账")
+                : t("确认还款");
 
     return (
         <Modal
             open={open}
             onClose={close}
-            title="记一笔"
-            description="现金支出、赊账和还款分开记，统计才不会乱。"
+            title={t("记一笔")}
+            description={t("现金支出、赊账和还款分开记，统计才不会乱。")}
             size="md"
             footer={
                 <div className="flex gap-2">
-                    <Button variant="secondary" className="flex-1" onClick={close}>
-                        取消
-                    </Button>
+                    <Button variant="secondary" className="flex-1" onClick={close}>{t("取消")}</Button>
                     <Button type="submit" form="entry-form" className="flex-[1.5]">
                         {submitLabel}
                     </Button>
@@ -560,13 +560,13 @@ export function EntryModal() {
                     <p className="text-[11px] font-medium text-muted">
                         {kind === "expense"
                             ? paymentMode === "asset"
-                                ? "现在从存款里扣"
-                                : "先记负债，之后还款"
+                                ? t("现在从存款里扣")
+                                : t("先记负债，之后还款")
                             : kind === "income"
-                              ? "这笔钱收到哪里"
+                              ? t("这笔钱收到哪里")
                               : kind === "transfer"
-                                ? "从哪个账户转到哪个账户"
-                                : "这次还多少"}
+                                ? t("从哪个账户转到哪个账户")
+                                : t("这次还多少")}
                     </p>
                     <div className="mt-2 flex items-baseline justify-center gap-1.5">
                         <span className="text-xl font-semibold text-muted">
@@ -577,7 +577,7 @@ export function EntryModal() {
                             onChange={(event) => setAmount(event.target.value)}
                             inputMode="decimal"
                             placeholder="0.00"
-                            aria-label="金额"
+                            aria-label={t("金额")}
                             className="w-44 bg-transparent text-center text-4xl font-bold tracking-tight text-text outline-none placeholder:text-line-strong sm:w-56"
                         />
                     </div>
@@ -593,7 +593,7 @@ export function EntryModal() {
                                 manualRateRef.current = false;
                             }}
                             className="rounded-lg border border-line bg-surface px-2 py-1 text-[10px] font-medium text-text"
-                            aria-label="记账币种"
+                            aria-label={t("记账币种")}
                         >
                             {!CURRENCIES.some((item) => item.value === currency) && (
                                 <option value={currency}>{currency}</option>
@@ -617,7 +617,7 @@ export function EntryModal() {
                                     }}
                                     inputMode="decimal"
                                     className="w-20 rounded-md border border-line bg-surface px-1.5 py-1 text-center text-[10px] text-text outline-none"
-                                    aria-label="汇率"
+                                    aria-label={t("汇率")}
                                 />
                                 {currency}
                             </label>
@@ -633,9 +633,7 @@ export function EntryModal() {
                                         "size-3",
                                         rateStatus === "loading" && "animate-spin",
                                     )}
-                                />
-                                实时
-                            </button>
+                                />{` ${t("实时")}`}</button>
                         )}
                     </div>
                     {isForeign && (
@@ -651,41 +649,36 @@ export function EntryModal() {
                             )}
                         >
                             {rateStatus === "loading"
-                                ? "正在获取实时汇率…"
+                                ? t("正在获取实时汇率…")
                                 : rateStatus === "live"
-                                  ? `实时汇率${
-                                        rateFetchedAt
-                                            ? ` · ${new Date(rateFetchedAt).toLocaleTimeString(
-                                                  "zh-CN",
-                                                  {
-                                                      hour: "2-digit",
-                                                      minute: "2-digit",
-                                                  },
-                                              )} 更新`
-                                            : ""
-                                    }`
+                                  ? t("实时汇率{0}", [rateFetchedAt
+                                ? ` · ${new Date(rateFetchedAt).toLocaleTimeString(
+                                      getLocale(),
+                                      {
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                      },
+                                  )} 更新`
+                                : ""])
                                   : rateStatus === "cached"
-                                    ? "使用本机缓存汇率，可点「实时」刷新或手动修改"
+                                    ? t("使用本机缓存汇率，可点「实时」刷新或手动修改")
                                     : rateStatus === "unavailable"
-                                      ? "实时汇率不可用，请手动填写汇率"
+                                      ? t("实时汇率不可用，请手动填写汇率")
                                       : rateStatus === "manual"
-                                        ? "手动汇率；保存时不会自动刷新"
+                                        ? t("手动汇率；保存时不会自动刷新")
                                         : ""}
                         </p>
                     )}
                     {isForeign && parsedAmount !== null && foreignCents !== null && (
-                        <p className="mt-1.5 text-[10px] text-accent">
-                            折合 {formatCents(parsedAmount, currency)}
+                        <p className="mt-1.5 text-[10px] text-accent">{`${t("折合")} `}{formatCents(parsedAmount, currency)}
                         </p>
                     )}
 
                     {kind === "repayment" && selectedBill && (
-                        <p className="mt-2 text-[11px] text-muted">
-                            待还 {formatCents(repaymentRemaining, currency)}
+                        <p className="mt-2 text-[11px] text-muted">{`${t("待还")} `}{formatCents(repaymentRemaining, currency)}
                             {parsedAmount !== null && parsedAmount > 0 && (
                                 <>
-                                    {" "}
-                                    · 还款后剩 {formatCents(repaymentProjected, currency)}
+                                    {" "}{` ${t("· 还款后剩")} `}{formatCents(repaymentProjected, currency)}
                                 </>
                             )}
                         </p>
@@ -697,7 +690,7 @@ export function EntryModal() {
                 {kind === "expense" && (
                     <div className="space-y-4">
                         <div>
-                            <p className="mb-2 text-xs font-semibold text-muted">这笔钱怎么付？</p>
+                            <p className="mb-2 text-xs font-semibold text-muted">{t("这笔钱怎么付？")}</p>
                             <div className="grid grid-cols-2 gap-2">
                                 <button
                                     type="button"
@@ -715,12 +708,8 @@ export function EntryModal() {
                                             paymentMode === "asset" ? "text-accent" : "text-muted",
                                         )}
                                     />
-                                    <span className="mt-2 block text-xs font-semibold text-text">
-                                        现在扣存款
-                                    </span>
-                                    <span className="mt-0.5 block text-[10px] leading-relaxed text-muted">
-                                        从现金 / 银行卡直接扣
-                                    </span>
+                                    <span className="mt-2 block text-xs font-semibold text-text">{t("现在扣存款")}</span>
+                                    <span className="mt-0.5 block text-[10px] leading-relaxed text-muted">{t("从现金 / 银行卡直接扣")}</span>
                                 </button>
                                 <button
                                     type="button"
@@ -740,12 +729,8 @@ export function EntryModal() {
                                                 : "text-muted",
                                         )}
                                     />
-                                    <span className="mt-2 block text-xs font-semibold text-text">
-                                        先记负债
-                                    </span>
-                                    <span className="mt-0.5 block text-[10px] leading-relaxed text-muted">
-                                        生成待还账单，不动存款
-                                    </span>
+                                    <span className="mt-2 block text-xs font-semibold text-text">{t("先记负债")}</span>
+                                    <span className="mt-0.5 block text-[10px] leading-relaxed text-muted">{t("生成待还账单，不动存款")}</span>
                                 </button>
                             </div>
                         </div>
@@ -753,53 +738,44 @@ export function EntryModal() {
                         {paymentMode === "asset" ? (
                             <>
                                 <AccountPicker
-                                    label="从哪个账户支出"
+                                    label={t("从哪个账户支出")}
                                     accounts={assetAccounts}
                                     value={assetAccountId}
                                     onChange={setAssetAccountId}
-                                    emptyHint="还没有储蓄账户，请先到账户页添加"
+                                    emptyHint={t("还没有储蓄账户，请先到账户页添加")}
                                 />
                                 {selectedAsset &&
                                     parsedAmount !== null &&
                                     parsedAmount > 0 &&
                                     parsedAmount > assetBalance && (
-                                        <p className="rounded-xl border border-danger/20 bg-danger-soft px-3 py-2 text-[11px] leading-relaxed text-danger">
-                                            这个账户当前余额是{" "}
-                                            {formatCents(assetBalance, currency)}
-                                            ，支出后余额会变成负数。
-                                        </p>
+                                        <p className="rounded-xl border border-danger/20 bg-danger-soft px-3 py-2 text-[11px] leading-relaxed text-danger">{t("这个账户当前余额是")}{" "}
+                                            {formatCents(assetBalance, currency)}{` ${t("，支出后余额会变成负数。")}`}</p>
                                     )}
                             </>
                         ) : (
                             <div className="space-y-4">
                                 <AccountPicker
-                                    label="记到哪个负债账户"
+                                    label={t("记到哪个负债账户")}
                                     accounts={liabilityAccounts}
                                     value={liabilityAccountId}
                                     onChange={setLiabilityAccountId}
-                                    emptyHint="还没有负债账户，可以先添加一个"
+                                    emptyHint={t("还没有负债账户，可以先添加一个")}
                                     onAdd={() => setAccountModalOpen(true)}
-                                    addLabel="添加负债账户"
+                                    addLabel={t("添加负债账户")}
                                 />
-                                <p className="-mt-2 text-[10px] leading-relaxed text-muted">
-                                    这里只显示负债账户。信用卡、花呗、借呗、借款都可以作为赊账账户。
-                                </p>
+                                <p className="-mt-2 text-[10px] leading-relaxed text-muted">{t("这里只显示负债账户。信用卡、花呗、借呗、借款都可以作为赊账账户。")}</p>
                                 <div className="grid grid-cols-2 gap-3">
                                     <label className="block">
-                                        <span className="mb-1.5 block text-xs font-semibold text-muted">
-                                            账单名称
-                                        </span>
+                                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("账单名称")}</span>
                                         <input
                                             className="field"
                                             value={billTitle}
                                             onChange={(event) => setBillTitle(event.target.value)}
-                                            placeholder={selectedCategory?.name ?? "例如：这笔赊账"}
+                                            placeholder={selectedCategory?.name ?? t("例如：这笔赊账")}
                                         />
                                     </label>
                                     <label className="block">
-                                        <span className="mb-1.5 block text-xs font-semibold text-muted">
-                                            到期日（可选）
-                                        </span>
+                                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("到期日（可选）")}</span>
                                         <input
                                             type="date"
                                             className="field"
@@ -812,7 +788,7 @@ export function EntryModal() {
                         )}
 
                         <CategoryPicker
-                            label="支出分类"
+                            label={t("支出分类")}
                             categories={expenseCategories}
                             value={categoryId}
                             onChange={setCategoryId}
@@ -823,17 +799,17 @@ export function EntryModal() {
                 {kind === "income" && (
                     <div className="space-y-4">
                         <CategoryPicker
-                            label="收入分类"
+                            label={t("收入分类")}
                             categories={incomeCategories}
                             value={categoryId}
                             onChange={setCategoryId}
                         />
                         <AccountPicker
-                            label="收到哪个账户"
+                            label={t("收到哪个账户")}
                             accounts={assetAccounts}
                             value={assetAccountId}
                             onChange={setAssetAccountId}
-                            emptyHint="还没有储蓄账户，请先到账户页添加"
+                            emptyHint={t("还没有储蓄账户，请先到账户页添加")}
                         />
                     </div>
                 )}
@@ -841,27 +817,23 @@ export function EntryModal() {
                 {kind === "transfer" && (
                     <div className="space-y-4">
                         <AccountPicker
-                            label="从哪个账户转出"
+                            label={t("从哪个账户转出")}
                             accounts={assetAccounts}
                             value={assetAccountId}
                             onChange={setAssetAccountId}
-                            emptyHint="还没有储蓄账户，请先到账户页添加"
+                            emptyHint={t("还没有储蓄账户，请先到账户页添加")}
                         />
                         <AccountPicker
-                            label="转到哪个账户"
+                            label={t("转到哪个账户")}
                             accounts={assetAccounts}
                             value={toAccountId}
                             onChange={setToAccountId}
-                            emptyHint="至少需要两个储蓄账户才能转账"
+                            emptyHint={t("至少需要两个储蓄账户才能转账")}
                         />
                         {assetAccountId === toAccountId && (
-                            <p className="rounded-xl border border-danger/20 bg-danger-soft px-3 py-2 text-[11px] text-danger">
-                                转出账户和转入账户不能相同。
-                            </p>
+                            <p className="rounded-xl border border-danger/20 bg-danger-soft px-3 py-2 text-[11px] text-danger">{t("转出账户和转入账户不能相同。")}</p>
                         )}
-                        <p className="rounded-xl border border-line bg-surface-2/50 px-3 py-2 text-[10px] leading-relaxed text-muted">
-                            转账只改变两个账户的余额，不会计入支出、收入或预算。
-                        </p>
+                        <p className="rounded-xl border border-line bg-surface-2/50 px-3 py-2 text-[10px] leading-relaxed text-muted">{t("转账只改变两个账户的余额，不会计入支出、收入或预算。")}</p>
                     </div>
                 )}
 
@@ -869,10 +841,8 @@ export function EntryModal() {
                     <div className="space-y-4">
                         {openBills.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-line bg-surface-2/50 px-4 py-6 text-center">
-                                <p className="text-sm font-semibold text-text">当前没有待还账单</p>
-                                <p className="mt-1 text-xs text-muted">
-                                    赊账消费会自动生成账单，也可以先记一笔。
-                                </p>
+                                <p className="text-sm font-semibold text-text">{t("当前没有待还账单")}</p>
+                                <p className="mt-1 text-xs text-muted">{t("赊账消费会自动生成账单，也可以先记一笔。")}</p>
                                 <Button
                                     size="sm"
                                     variant="secondary"
@@ -882,14 +852,12 @@ export function EntryModal() {
                                         setPaymentMode("liability");
                                     }}
                                 >
-                                    <Plus className="size-3.5" />
-                                    去记一笔赊账
-                                </Button>
+                                    <Plus className="size-3.5" />{` ${t("去记一笔赊账")}`}</Button>
                             </div>
                         ) : (
                             <>
                                 <div>
-                                    <p className="mb-2 text-xs font-semibold text-muted">选择账单</p>
+                                    <p className="mb-2 text-xs font-semibold text-muted">{t("选择账单")}</p>
                                     <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
                                         {openBills.map((bill) => {
                                             const remaining = getBillRemaining(bill, entries);
@@ -926,9 +894,7 @@ export function EntryModal() {
                                                         <span className="block text-xs font-bold tabular-nums text-liability">
                                                             {formatCents(remaining, currency)}
                                                         </span>
-                                                        <span className="text-[10px] text-muted">
-                                                            待还
-                                                        </span>
+                                                        <span className="text-[10px] text-muted">{t("待还")}</span>
                                                     </span>
                                                 </button>
                                             );
@@ -937,22 +903,20 @@ export function EntryModal() {
                                 </div>
 
                                 <AccountPicker
-                                    label="从哪个账户还款"
+                                    label={t("从哪个账户还款")}
                                     accounts={assetAccounts}
                                     value={assetAccountId}
                                     onChange={setAssetAccountId}
-                                    emptyHint="还没有储蓄账户，请先到账户页添加"
+                                    emptyHint={t("还没有储蓄账户，请先到账户页添加")}
                                 />
 
                                 {selectedBill && (
                                     <div className="rounded-xl border border-line bg-surface-2/60 p-3.5">
                                         <div className="flex items-center gap-2 text-[11px] font-semibold text-text">
-                                            <Info className="size-3.5 text-accent" />
-                                            还款会减少存款和负债，并计入支出
-                                        </div>
+                                            <Info className="size-3.5 text-accent" />{` ${t("还款会减少存款和负债，并计入支出")}`}</div>
                                         <div className="mt-2 space-y-1 text-[11px] text-muted">
                                             <div className="flex justify-between">
-                                                <span>存款</span>
+                                                <span>{t("存款")}</span>
                                                 <span className="tabular-nums">
                                                     {formatCents(assetBalance, currency)} →{" "}
                                                     {formatCents(
@@ -962,7 +926,7 @@ export function EntryModal() {
                                                 </span>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span>负债</span>
+                                                <span>{t("负债")}</span>
                                                 <span className="tabular-nums">
                                                     {formatCents(repaymentRemaining, currency)} →{" "}
                                                     {formatCents(repaymentProjected, currency)}
@@ -972,9 +936,7 @@ export function EntryModal() {
                                         {parsedAmount !== null &&
                                             parsedAmount > 0 &&
                                             parsedAmount > assetBalance && (
-                                                <p className="mt-2 text-[10px] leading-relaxed text-danger">
-                                                    还款后该账户余额会变成负数，请确认余额。
-                                                </p>
+                                                <p className="mt-2 text-[10px] leading-relaxed text-danger">{t("还款后该账户余额会变成负数，请确认余额。")}</p>
                                             )}
                                     </div>
                                 )}
@@ -986,9 +948,7 @@ export function EntryModal() {
                 <div className="grid grid-cols-2 gap-3">
                     <label className="block">
                         <span className="mb-1.5 flex items-center gap-1 text-xs font-semibold text-muted">
-                            <CalendarDays className="size-3" />
-                            日期
-                        </span>
+                            <CalendarDays className="size-3" />{` ${t("日期")}`}</span>
                         <input
                             type="date"
                             className="field"
@@ -997,12 +957,12 @@ export function EntryModal() {
                         />
                     </label>
                     <label className="block">
-                        <span className="mb-1.5 block text-xs font-semibold text-muted">备注</span>
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("备注")}</span>
                         <input
                             className="field"
                             value={note}
                             onChange={(event) => setNote(event.target.value)}
-                            placeholder="可选"
+                            placeholder={t("可选")}
                         />
                     </label>
                 </div>
@@ -1010,14 +970,12 @@ export function EntryModal() {
                 <div>
                     <div className="mb-2 flex items-center justify-between">
                         <p className="flex items-center gap-1 text-xs font-semibold text-muted">
-                            <MapPin className="size-3" />
-                            位置
-                        </p>
+                            <MapPin className="size-3" />{` ${t("位置")}`}</p>
                         <button
                             type="button"
                             onClick={() => {
                                 if (!navigator.geolocation) {
-                                    toast("这个浏览器不支持定位", "info");
+                                    toast(t("这个浏览器不支持定位"), "info");
                                     return;
                                 }
                                 navigator.geolocation.getCurrentPosition(
@@ -1027,16 +985,14 @@ export function EntryModal() {
                                             lng: position.coords.longitude,
                                             label: current?.label,
                                         }));
-                                        toast("已记录当前位置", "success");
+                                        toast(t("已记录当前位置"), "success");
                                     },
-                                    () => toast("定位失败，请检查浏览器权限", "error"),
+                                    () => toast(t("定位失败，请检查浏览器权限"), "error"),
                                     { enableHighAccuracy: false, timeout: 10_000 },
                                 );
                             }}
                             className="rounded-lg border border-line px-2 py-1 text-[10px] font-medium text-muted transition hover:text-text"
-                        >
-                            获取当前位置
-                        </button>
+                        >{t("获取当前位置")}</button>
                     </div>
                     {location ? (
                         <div className="flex flex-wrap items-center gap-2">
@@ -1057,22 +1013,18 @@ export function EntryModal() {
                                 target="_blank"
                                 rel="noreferrer"
                                 className="text-[10px] font-medium text-accent hover:underline"
-                            >
-                                看地图
-                            </a>
+                            >{t("看地图")}</a>
                             <button
                                 type="button"
                                 onClick={() => setLocation(undefined)}
                                 className="grid size-6 place-items-center rounded text-muted hover:text-danger"
-                                aria-label="清除位置"
+                                aria-label={t("清除位置")}
                             >
                                 <X className="size-3" />
                             </button>
                         </div>
                     ) : (
-                        <p className="rounded-xl border border-dashed border-line bg-surface-2/40 px-3 py-2.5 text-[10px] text-muted">
-                            可选，记录这笔消费发生的地点。
-                        </p>
+                        <p className="rounded-xl border border-dashed border-line bg-surface-2/40 px-3 py-2.5 text-[10px] text-muted">{t("可选，记录这笔消费发生的地点。")}</p>
                     )}
                 </div>
 
@@ -1086,16 +1038,12 @@ export function EntryModal() {
                 <div>
                     <div className="mb-2 flex items-center justify-between">
                         <p className="flex items-center gap-1 text-xs font-semibold text-muted">
-                            <Paperclip className="size-3" />
-                            附件
-                        </p>
+                            <Paperclip className="size-3" />{` ${t("附件")}`}</p>
                         <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
                             className="rounded-lg border border-line px-2 py-1 text-[10px] font-medium text-muted transition hover:text-text"
-                        >
-                            选择文件
-                        </button>
+                        >{t("选择文件")}</button>
                     </div>
                     <input
                         ref={fileInputRef}
@@ -1110,16 +1058,14 @@ export function EntryModal() {
                                 (file) => file.size > MAX_ATTACHMENT_SIZE,
                             );
                             if (tooLarge) {
-                                setError(`单个附件不能超过 10 MB：${tooLarge.name}`);
+                                setError(t("单个附件不能超过 10 MB：{0}", [tooLarge.name]));
                                 return;
                             }
                             setFiles((current) => [...current, ...next]);
                         }}
                     />
                     {files.length === 0 ? (
-                        <p className="rounded-xl border border-dashed border-line bg-surface-2/40 px-3 py-2.5 text-[10px] text-muted">
-                            可选，小票 / 发票 / 截图，保存后会关联到这笔流水。
-                        </p>
+                        <p className="rounded-xl border border-dashed border-line bg-surface-2/40 px-3 py-2.5 text-[10px] text-muted">{t("可选，小票 / 发票 / 截图，保存后会关联到这笔流水。")}</p>
                     ) : (
                         <div className="space-y-1.5">
                             {files.map((file, index) => (
@@ -1139,7 +1085,7 @@ export function EntryModal() {
                                             )
                                         }
                                         className="grid size-5 place-items-center rounded text-muted hover:text-danger"
-                                        aria-label="移除附件"
+                                        aria-label={t("移除附件")}
                                     >
                                         <X className="size-3" />
                                     </button>
@@ -1177,7 +1123,7 @@ function AccountPicker({
     onChange,
     emptyHint,
     onAdd,
-    addLabel = "添加账户",
+    addLabel = t("添加账户"),
 }: {
     label: string;
     accounts: Array<{ id: string; name: string; emoji: string }>;
@@ -1262,15 +1208,13 @@ function CategoryPicker({
         if (parentA !== parentB) {
             return parentA.localeCompare(parentB);
         }
-        return a.name.localeCompare(b.name, "zh-CN");
+        return a.name.localeCompare(b.name, getLocale());
     });
     return (
         <div>
             <p className="mb-2 text-xs font-semibold text-muted">{label}</p>
             {categories.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-line bg-surface-2/50 px-3 py-3 text-[11px] text-muted">
-                    还没有可用分类，请先到分类页添加。
-                </p>
+                <p className="rounded-xl border border-dashed border-line bg-surface-2/50 px-3 py-3 text-[11px] text-muted">{t("还没有可用分类，请先到分类页添加。")}</p>
             ) : (
                 <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
                     {ordered.map((category) => {
@@ -1327,11 +1271,9 @@ function MemberPicker({
 }) {
     return (
         <div>
-            <p className="mb-2 text-xs font-semibold text-muted">成员</p>
+            <p className="mb-2 text-xs font-semibold text-muted">{t("成员")}</p>
             {members.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-line bg-surface-2/50 px-3 py-3 text-[11px] text-muted">
-                    还没有成员，请先到成员页添加。
-                </p>
+                <p className="rounded-xl border border-dashed border-line bg-surface-2/50 px-3 py-3 text-[11px] text-muted">{t("还没有成员，请先到成员页添加。")}</p>
             ) : (
                 <div className="flex flex-wrap gap-2">
                     {members.map((member) => {

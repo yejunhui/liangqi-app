@@ -14,6 +14,8 @@ import { remoteChunkPath } from "@/remote/paths";
 import { RemoteError } from "@/remote/errors";
 import { ensureRepaymentCategories } from "@/domain/ledger";
 
+import { t } from "@/i18n";
+
 export const CHUNK_SIZE = 1000;
 
 export interface BuiltChunk {
@@ -130,13 +132,13 @@ export function parseManifest(text: string): RemoteBookManifest {
     try {
         raw = JSON.parse(text);
     } catch {
-        throw new RemoteError("远程 manifest.json 不是合法 JSON");
+        throw new RemoteError(t("远程 manifest.json 不是合法 JSON"));
     }
     if (!isObject(raw) || raw.app !== "liangqi" || raw.version !== 2) {
-        throw new RemoteError("远程 manifest.json 格式不正确");
+        throw new RemoteError(t("远程 manifest.json 格式不正确"));
     }
     if (!isObject(raw.chunks)) {
-        throw new RemoteError("远程 manifest.json 缺少分片信息");
+        throw new RemoteError(t("远程 manifest.json 缺少分片信息"));
     }
     const parseRefs = (value: unknown): RemoteChunkRef[] => {
         if (!Array.isArray(value)) {
@@ -175,13 +177,13 @@ export function parseMetaFile(text: string): RemoteBookMetaFile {
     try {
         raw = JSON.parse(text);
     } catch {
-        throw new RemoteError("远程 meta.json 不是合法 JSON");
+        throw new RemoteError(t("远程 meta.json 不是合法 JSON"));
     }
     if (!isObject(raw) || raw.app !== "liangqi" || raw.version !== 2) {
-        throw new RemoteError("远程 meta.json 格式不正确");
+        throw new RemoteError(t("远程 meta.json 格式不正确"));
     }
     if (!isObject(raw.book)) {
-        throw new RemoteError("远程 meta.json 缺少账本数据");
+        throw new RemoteError(t("远程 meta.json 缺少账本数据"));
     }
     return raw as unknown as RemoteBookMetaFile;
 }
@@ -191,10 +193,10 @@ export function parseChunkFile<T>(text: string): T[] {
     try {
         raw = JSON.parse(text);
     } catch {
-        throw new RemoteError("远程分片不是合法 JSON");
+        throw new RemoteError(t("远程分片不是合法 JSON"));
     }
     if (!Array.isArray(raw)) {
-        throw new RemoteError("远程分片不是数组");
+        throw new RemoteError(t("远程分片不是数组"));
     }
     return raw as T[];
 }

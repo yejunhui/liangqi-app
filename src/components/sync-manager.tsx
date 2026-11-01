@@ -9,6 +9,8 @@ import { useSyncStatusStore } from "@/store/sync-status";
 import { syncBookNow } from "@/remote/sync";
 import { toast } from "@/store/toast";
 
+import { t } from "@/i18n";
+
 /**
  * Runs quietly in the background:
  * - pull when a connected book becomes active or the window regains focus
@@ -55,7 +57,7 @@ export function SyncManager() {
             useLedgerStore.getState().postDueRecurring();
         } catch (error) {
             const message =
-                error instanceof Error ? error.message : "远程同步失败";
+                error instanceof Error ? error.message : t("远程同步失败");
             setError(bookId, message);
             const now = Date.now();
             if (now - lastErrorAtRef.current > 60_000) {

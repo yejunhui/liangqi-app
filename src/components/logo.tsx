@@ -1,4 +1,10 @@
+/**
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { cn } from "@/utils/cn";
+
+import { t } from "@/i18n";
 
 export function Logo({ compact = false }: { compact?: boolean }) {
     return (
@@ -6,7 +12,7 @@ export function Logo({ compact = false }: { compact?: boolean }) {
             <LogoMark />
             {!compact && (
                 <span className="flex flex-col leading-none">
-                    <span className="text-[17px] font-bold tracking-tight text-text">两讫</span>
+                    <span className="text-[17px] font-bold tracking-tight text-text">{t("两讫")}</span>
                     <span className="mt-1 text-[10px] font-medium tracking-[0.18em] text-muted">
                         LIANGQI
                     </span>

@@ -25,6 +25,8 @@ import {
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 export function MemberLoginGate() {
     const bookId = useLedgerStore((state) => state.id);
     const bookName = useLedgerStore((state) => state.name);
@@ -99,7 +101,7 @@ export function MemberLoginGate() {
                 return;
             }
             if (pin !== pinConfirm) {
-                setError("两次输入的密码不一致");
+                setError(t("两次输入的密码不一致"));
                 return;
             }
             setBusy(true);
@@ -113,9 +115,9 @@ export function MemberLoginGate() {
                 unlockMember(bookId, target.id);
                 setActiveMember(bookId, target.id);
                 setView("list");
-                toast(`已登录：${target.name}`, "success");
+                toast(t("已登录：{0}", [target.name]), "success");
             } catch (cause) {
-                setError(cause instanceof Error ? cause.message : "密码设置失败");
+                setError(cause instanceof Error ? cause.message : t("密码设置失败"));
             } finally {
                 setBusy(false);
             }
@@ -125,13 +127,13 @@ export function MemberLoginGate() {
         const valid = await verifyMemberPin(pin, target);
         setBusy(false);
         if (!valid) {
-            setError("密码不正确");
+            setError(t("密码不正确"));
             return;
         }
         unlockMember(bookId, target.id);
         setActiveMember(bookId, target.id);
         setView("list");
-        toast(`已登录：${target.name}`, "success");
+        toast(t("已登录：{0}", [target.name]), "success");
     }
 
     return (
@@ -140,21 +142,15 @@ export function MemberLoginGate() {
                 <div className="w-full max-w-sm rounded-[1.75rem] border border-line bg-surface p-6 shadow-2xl">
                     <div className="flex flex-col items-center text-center">
                         <Logo />
-                        <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-accent">
-                            共享账登录
-                        </p>
+                        <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-accent">{t("共享账登录")}</p>
                         <h1 className="mt-1 text-xl font-bold text-text">{bookName}</h1>
-                        <p className="mt-1 text-[11px] leading-relaxed text-muted">
-                            请选择成员并输入密码；上次登录的成员排在第一位。
-                        </p>
+                        <p className="mt-1 text-[11px] leading-relaxed text-muted">{t("请选择成员并输入密码；上次登录的成员排在第一位。")}</p>
                     </div>
 
                     {view === "list" ? (
                         <div className="mt-5 space-y-2">
                             {members.length === 0 && (
-                                <p className="rounded-xl border border-dashed border-line bg-surface-2/40 px-3 py-4 text-center text-[11px] text-muted">
-                                    这个共享账还没有成员，先新建一个。
-                                </p>
+                                <p className="rounded-xl border border-dashed border-line bg-surface-2/40 px-3 py-4 text-center text-[11px] text-muted">{t("这个共享账还没有成员，先新建一个。")}</p>
                             )}
                             {orderedMembers.map((member) => (
                                 <button
@@ -180,10 +176,10 @@ export function MemberLoginGate() {
                                         </span>
                                         <span className="mt-0.5 block text-[10px] text-muted">
                                             {member.id === selectedMember?.id &&
-                                                "上次登录 · "}
+                                                t("上次登录 · ")}
                                             {hasMemberPin(member)
-                                                ? "输入密码"
-                                                : "首次登录，设置密码"}
+                                                ? t("输入密码")
+                                                : t("首次登录，设置密码")}
                                         </span>
                                     </span>
                                 </button>
@@ -192,17 +188,13 @@ export function MemberLoginGate() {
                                 variant="secondary"
                                 className="w-full"
                                 onClick={() => setCreateOpen(true)}
-                            >
-                                新建成员
-                            </Button>
+                            >{t("新建成员")}</Button>
                             {target && members.length > 0 && (
                                 <button
                                     type="button"
                                     onClick={() => setView("login")}
                                     className="w-full py-1 text-[10px] font-medium text-muted hover:text-text"
-                                >
-                                    返回登录
-                                </button>
+                                >{t("返回登录")}</button>
                             )}
                         </div>
                     ) : target ? (
@@ -226,15 +218,15 @@ export function MemberLoginGate() {
                                     </p>
                                     <p className="text-[10px] text-muted">
                                         {hasMemberPin(target)
-                                            ? "该成员已设置密码"
-                                            : "首次登录，请先设置密码"}
+                                            ? t("该成员已设置密码")
+                                            : t("首次登录，请先设置密码")}
                                     </p>
                                 </div>
                             </div>
 
                             <label className="block">
                                 <span className="mb-1.5 block text-xs font-semibold text-muted">
-                                    {hasMemberPin(target) ? "成员密码" : "设置成员密码"}
+                                    {hasMemberPin(target) ? t("成员密码") : t("设置成员密码")}
                                 </span>
                                 <input
                                     className="field text-center text-base"
@@ -245,7 +237,7 @@ export function MemberLoginGate() {
                                         setPin(event.target.value);
                                         setError("");
                                     }}
-                                    placeholder="输入密码"
+                                    placeholder={t("输入密码")}
                                     autoFocus
                                     autoComplete={
                                         hasMemberPin(target)
@@ -257,9 +249,7 @@ export function MemberLoginGate() {
 
                             {!hasMemberPin(target) && (
                                 <label className="block">
-                                    <span className="mb-1.5 block text-xs font-semibold text-muted">
-                                        再输一次密码
-                                    </span>
+                                    <span className="mb-1.5 block text-xs font-semibold text-muted">{t("再输一次密码")}</span>
                                     <input
                                         className="field text-center text-base"
                                         type="password"
@@ -269,7 +259,7 @@ export function MemberLoginGate() {
                                             setPinConfirm(event.target.value);
                                             setError("");
                                         }}
-                                        placeholder="再输一次"
+                                        placeholder={t("再输一次")}
                                         autoComplete="new-password"
                                     />
                                 </label>
@@ -291,9 +281,7 @@ export function MemberLoginGate() {
                                         setPinConfirm("");
                                         setError("");
                                     }}
-                                >
-                                    切换用户
-                                </Button>
+                                >{t("切换用户")}</Button>
                                 <Button
                                     type="submit"
                                     disabled={
@@ -303,31 +291,25 @@ export function MemberLoginGate() {
                                     }
                                 >
                                     {busy
-                                        ? "登录中…"
+                                        ? t("登录中…")
                                         : hasMemberPin(target)
-                                          ? "登录"
-                                          : "设置密码并登录"}
+                                          ? t("登录")
+                                          : t("设置密码并登录")}
                                 </Button>
                             </div>
 
-                            <p className="text-center text-[9px] leading-relaxed text-muted">
-                                密码哈希随成员信息保存在仓库
-                            </p>
+                            <p className="text-center text-[9px] leading-relaxed text-muted">{t("密码哈希随成员信息保存在仓库")}</p>
                         </form>
                     ) : (
                         <div className="mt-5">
                             <Button
                                 className="w-full"
                                 onClick={() => setView("list")}
-                            >
-                                选择成员
-                            </Button>
+                            >{t("选择成员")}</Button>
                         </div>
                     )}
 
-                    <p className="mt-5 text-center text-[9px] leading-relaxed text-muted">
-                        同一个私钥可以由多人共用；成员身份由登录决定，而不是 token。锁定或新会话打开后需要重新登录。
-                    </p>
+                    <p className="mt-5 text-center text-[9px] leading-relaxed text-muted">{t("同一个私钥可以由多人共用；成员身份由登录决定，而不是 token。锁定或新会话打开后需要重新登录。")}</p>
                 </div>
             </div>
 
@@ -339,7 +321,7 @@ export function MemberLoginGate() {
                         unlockMember(bookId, id);
                         setActiveMember(bookId, id);
                         setView("list");
-                        toast("成员已创建并登录", "success");
+                        toast(t("成员已创建并登录"), "success");
                         setCreateOpen(false);
                     } else {
                         setTargetId(id);

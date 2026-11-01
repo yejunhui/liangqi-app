@@ -11,6 +11,8 @@ import { useCurrency, useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 const EMOJI_SUGGESTIONS = [
     "💵",
     "🏦",
@@ -92,14 +94,14 @@ export function AccountModal({
                 setError(result.error);
                 return;
             }
-            toast("账户已更新", "success");
+            toast(t("账户已更新"), "success");
             onClose();
             return;
         }
 
         const openingCents = openingBalance.trim() === "" ? 0 : parseAmountToCents(openingBalance);
         if (openingCents === null) {
-            setError("期初余额格式不正确");
+            setError(t("期初余额格式不正确"));
             return;
         }
 
@@ -118,7 +120,7 @@ export function AccountModal({
         if (result.id) {
             onCreated?.(result.id);
         }
-        toast(kind === "liability" ? "负债账户已创建" : "资产账户已创建", "success");
+        toast(kind === "liability" ? t("负债账户已创建") : t("资产账户已创建"), "success");
         onClose();
     }
 
@@ -126,20 +128,18 @@ export function AccountModal({
         <Modal
             open={open}
             onClose={onClose}
-            title={editing ? "编辑账户" : "添加账户"}
+            title={editing ? t("编辑账户") : t("添加账户")}
             description={
                 editing
-                    ? "账户类型和期初余额创建后不可修改，避免历史账目错乱。"
-                    : "资产是存款，负债是待还的钱。赊账会记到负债账户里。"
+                    ? t("账户类型和期初余额创建后不可修改，避免历史账目错乱。")
+                    : t("资产是存款，负债是待还的钱。赊账会记到负债账户里。")
             }
             size="sm"
             footer={
                 <div className="flex gap-2">
-                    <Button variant="secondary" className="flex-1" onClick={onClose}>
-                        取消
-                    </Button>
+                    <Button variant="secondary" className="flex-1" onClick={onClose}>{t("取消")}</Button>
                     <Button type="submit" form="account-form" className="flex-1">
-                        {editing ? "保存" : "创建账户"}
+                        {editing ? t("保存") : t("创建账户")}
                     </Button>
                 </div>
             }
@@ -147,7 +147,7 @@ export function AccountModal({
             <form id="account-form" className="space-y-4" onSubmit={handleSubmit}>
                 {!editing && (
                     <div>
-                        <p className="mb-2 text-xs font-semibold text-muted">账户类型</p>
+                        <p className="mb-2 text-xs font-semibold text-muted">{t("账户类型")}</p>
                         <div className="grid grid-cols-2 gap-2">
                             <button
                                 type="button"
@@ -163,12 +163,8 @@ export function AccountModal({
                                 )}
                             >
                                 <span className="text-lg">💵</span>
-                                <span className="mt-1 block text-xs font-semibold text-text">
-                                    资产
-                                </span>
-                                <span className="mt-0.5 block text-[10px] text-muted">
-                                    现金、银行卡、余额
-                                </span>
+                                <span className="mt-1 block text-xs font-semibold text-text">{t("资产")}</span>
+                                <span className="mt-0.5 block text-[10px] text-muted">{t("现金、银行卡、余额")}</span>
                             </button>
                             <button
                                 type="button"
@@ -184,30 +180,26 @@ export function AccountModal({
                                 )}
                             >
                                 <span className="text-lg">💳</span>
-                                <span className="mt-1 block text-xs font-semibold text-text">
-                                    负债
-                                </span>
-                                <span className="mt-0.5 block text-[10px] text-muted">
-                                    信用卡、借款、待还
-                                </span>
+                                <span className="mt-1 block text-xs font-semibold text-text">{t("负债")}</span>
+                                <span className="mt-0.5 block text-[10px] text-muted">{t("信用卡、借款、待还")}</span>
                             </button>
                         </div>
                     </div>
                 )}
 
                 <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-muted">账户名称</span>
+                    <span className="mb-1.5 block text-xs font-semibold text-muted">{t("账户名称")}</span>
                     <input
                         className="field"
                         value={name}
                         onChange={(event) => setName(event.target.value)}
-                        placeholder={kind === "liability" ? "例如：信用卡、花呗、借款" : "例如：工资卡"}
+                        placeholder={kind === "liability" ? t("例如：信用卡、花呗、借款") : t("例如：工资卡")}
                         autoFocus
                     />
                 </label>
 
                 <div>
-                    <p className="mb-1.5 text-xs font-semibold text-muted">图标</p>
+                    <p className="mb-1.5 text-xs font-semibold text-muted">{t("图标")}</p>
                     <div className="flex flex-wrap gap-1.5">
                         {EMOJI_SUGGESTIONS.map((item) => (
                             <button
@@ -230,12 +222,8 @@ export function AccountModal({
                 {(editing ? account.kind : kind) === "asset" && (
                     <label className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-2/55 p-3">
                         <span>
-                            <span className="block text-xs font-semibold text-text">
-                                计入可支配资产
-                            </span>
-                            <span className="mt-0.5 block text-[10px] leading-relaxed text-muted">
-                                现金、银行卡等流动资产。房产、投资等可以关闭。
-                            </span>
+                            <span className="block text-xs font-semibold text-text">{t("计入可支配资产")}</span>
+                            <span className="mt-0.5 block text-[10px] leading-relaxed text-muted">{t("现金、银行卡等流动资产。房产、投资等可以关闭。")}</span>
                         </span>
                         <input
                             type="checkbox"
@@ -247,12 +235,8 @@ export function AccountModal({
                 )}
 
                 <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-muted">
-                        期初余额
-                        {!editing && kind === "liability" && (
-                            <span className="ml-1 font-normal text-liability">
-                                · 会生成期初负债账单
-                            </span>
+                    <span className="mb-1.5 block text-xs font-semibold text-muted">{`${t("期初余额")} `}{!editing && kind === "liability" && (
+                            <span className="ml-1 font-normal text-liability">{t("· 会生成期初负债账单")}</span>
                         )}
                     </span>
                     <div className="relative">
@@ -269,19 +253,17 @@ export function AccountModal({
                         />
                     </div>
                     {editing && (
-                        <span className="mt-1 block text-[10px] text-muted">
-                            期初余额不可修改，请通过流水或还款调整。
-                        </span>
+                        <span className="mt-1 block text-[10px] text-muted">{t("期初余额不可修改，请通过流水或还款调整。")}</span>
                     )}
                 </label>
 
                 <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-muted">备注</span>
+                    <span className="mb-1.5 block text-xs font-semibold text-muted">{t("备注")}</span>
                     <input
                         className="field"
                         value={note}
                         onChange={(event) => setNote(event.target.value)}
-                        placeholder="可选"
+                        placeholder={t("可选")}
                     />
                 </label>
 

@@ -1,3 +1,7 @@
+/**
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
@@ -7,8 +11,10 @@ import {
     useLibraryStore,
 } from "@/store/library";
 import { useLedgerStore } from "@/store/ledger";
+import { getLanguage } from "@/i18n";
 
 async function boot() {
+    document.documentElement.lang = getLanguage();
     const library = await bootstrapLibrary();
     useLibraryStore.setState(library);
     useLedgerStore.setState(getActiveBook(useLibraryStore.getState()));

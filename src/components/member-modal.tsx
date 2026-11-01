@@ -16,6 +16,8 @@ import { useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 interface MemberModalProps {
     open: boolean;
     member: Member | null;
@@ -51,15 +53,15 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
         event.preventDefault();
         setError("");
         if (!name.trim()) {
-            setError("成员名称不能为空");
+            setError(t("成员名称不能为空"));
             return;
         }
         if (remote && !pin.trim() && (!editing || !existingPin)) {
-            setError("共享账本的成员必须设置密码");
+            setError(t("共享账本的成员必须设置密码"));
             return;
         }
         if (remote && removePin) {
-            setError("共享账本的成员不能清除密码");
+            setError(t("共享账本的成员不能清除密码"));
             return;
         }
         const pinValue = pin.trim();
@@ -88,7 +90,7 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
                 };
             }
         } catch (cause) {
-            setError(cause instanceof Error ? cause.message : "密码处理失败");
+            setError(cause instanceof Error ? cause.message : t("密码处理失败"));
             return;
         }
 
@@ -102,7 +104,7 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
                 setError(result.error);
                 return;
             }
-            toast("成员已更新", "success");
+            toast(t("成员已更新"), "success");
             onClose();
             return;
         }
@@ -114,7 +116,7 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
         if (result.id) {
             onCreated?.(result.id, pinValue || undefined);
         }
-        toast("成员已添加", "success");
+        toast(t("成员已添加"), "success");
         onClose();
     }
 
@@ -122,34 +124,32 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
         <Modal
             open={open}
             onClose={onClose}
-            title={editing ? "编辑成员" : "添加成员"}
-            description="成员用于标记账单和流水归属，不会影响金额计算。"
+            title={editing ? t("编辑成员") : t("添加成员")}
+            description={t("成员用于标记账单和流水归属，不会影响金额计算。")}
             size="sm"
             footer={
                 <div className="flex gap-2">
-                    <Button variant="secondary" className="flex-1" onClick={onClose}>
-                        取消
-                    </Button>
+                    <Button variant="secondary" className="flex-1" onClick={onClose}>{t("取消")}</Button>
                     <Button type="submit" form="member-form" className="flex-1">
-                        {editing ? "保存" : "添加成员"}
+                        {editing ? t("保存") : t("添加成员")}
                     </Button>
                 </div>
             }
         >
             <form id="member-form" className="space-y-4" onSubmit={handleSubmit}>
                 <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold text-muted">名称</span>
+                    <span className="mb-1.5 block text-xs font-semibold text-muted">{t("名称")}</span>
                     <input
                         className="field"
                         value={name}
                         onChange={(event) => setName(event.target.value)}
-                        placeholder="例如：爸爸、妈妈、小明"
+                        placeholder={t("例如：爸爸、妈妈、小明")}
                         autoFocus
                     />
                 </label>
 
                 <div>
-                    <p className="mb-1.5 text-xs font-semibold text-muted">颜色</p>
+                    <p className="mb-1.5 text-xs font-semibold text-muted">{t("颜色")}</p>
                     <div className="flex flex-wrap gap-2">
                         {MEMBER_COLORS.map((item) => (
                             <button
@@ -163,7 +163,7 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
                                         : "border-transparent hover:scale-105",
                                 )}
                                 style={{ backgroundColor: item }}
-                                aria-label={`选择颜色 ${item}`}
+                                aria-label={t("选择颜色 {0}", [item])}
                             />
                         ))}
                     </div>
@@ -172,11 +172,11 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
                 <div className="rounded-xl border border-line bg-surface-2/40 p-3">
                     <div className="flex items-center justify-between gap-2">
                         <div>
-                            <p className="text-xs font-semibold text-text">成员密码</p>
+                            <p className="text-xs font-semibold text-text">{t("成员密码")}</p>
                             <p className="mt-0.5 text-[10px] text-muted">
                                 {remote
-                                    ? "共享账本必须设置密码；4–32 位，可包含字母和数字"
-                                    : "可选，4–32 位；切换成员时需要输入"}
+                                    ? t("共享账本必须设置密码；4–32 位，可包含字母和数字")
+                                    : t("可选，4–32 位；切换成员时需要输入")}
                             </p>
                         </div>
                         {existingPin && !removePin && (
@@ -187,23 +187,17 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
                                     setRemovePin(true);
                                 }}
                                 className="text-[10px] font-medium text-danger hover:underline"
-                            >
-                                清除密码
-                            </button>
+                            >{t("清除密码")}</button>
                         )}
                     </div>
                     {removePin ? (
                         <div className="mt-2 flex items-center justify-between rounded-lg bg-danger-soft/50 px-2.5 py-2">
-                            <span className="text-[10px] text-danger">
-                                保存后会清除已有密码
-                            </span>
+                            <span className="text-[10px] text-danger">{t("保存后会清除已有密码")}</span>
                             <button
                                 type="button"
                                 onClick={() => setRemovePin(false)}
                                 className="text-[10px] font-medium text-text hover:underline"
-                            >
-                                取消
-                            </button>
+                            >{t("取消")}</button>
                         </div>
                     ) : (
                         <input
@@ -214,8 +208,8 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
                             onChange={(event) => setPin(event.target.value)}
                             placeholder={
                                 existingPin
-                                    ? "留空保持现有密码，输入新密码可修改"
-                                    : "设置成员密码（可选）"
+                                    ? t("留空保持现有密码，输入新密码可修改")
+                                    : t("设置成员密码（可选）")
                             }
                             autoComplete="new-password"
                         />
@@ -227,13 +221,13 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
                         className="grid size-10 place-items-center rounded-full text-sm font-bold text-white"
                         style={{ backgroundColor: color }}
                     >
-                        {(name.trim() || "成").slice(0, 1)}
+                        {(name.trim() || t("成")).slice(0, 1)}
                     </span>
                     <div>
                         <p className="text-xs font-semibold text-text">
-                            {name.trim() || "成员预览"}
+                            {name.trim() || t("成员预览")}
                         </p>
-                        <p className="text-[10px] text-muted">账单和流水的归属成员</p>
+                        <p className="text-[10px] text-muted">{t("账单和流水的归属成员")}</p>
                     </div>
                 </div>
 

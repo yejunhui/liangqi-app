@@ -34,6 +34,8 @@ import { useCurrency, useLedgerStore } from "@/store/ledger";
 import { useActiveMember } from "@/store/member-session";
 import { useUIStore } from "@/store/ui";
 
+import { t } from "@/i18n";
+
 type Filter = "all" | EntryKind;
 
 interface AdvancedFilterState {
@@ -146,13 +148,13 @@ export function Entries() {
                     (entry.amount / 100).toFixed(2),
                     entry.kind === "expense"
                         ? entry.billId
-                            ? "赊账 支出"
-                            : "支出"
+                            ? t("赊账 支出")
+                            : t("支出")
                         : entry.kind === "income"
-                          ? "收入"
+                          ? t("收入")
                           : entry.kind === "transfer"
-                            ? "转账"
-                            : "还款",
+                            ? t("转账")
+                            : t("还款"),
                 ]
                     .filter(Boolean)
                     .join(" ")
@@ -177,11 +179,11 @@ export function Entries() {
     }, [filtered]);
 
     const tabs: TabItem<Filter>[] = [
-        { value: "all", label: "全部", count: counts.all },
-        { value: "expense", label: "支出", count: counts.expense },
-        { value: "income", label: "收入", count: counts.income },
-        { value: "repayment", label: "还款", count: counts.repayment },
-        { value: "transfer", label: "转账", count: counts.transfer },
+        { value: "all", label: t("全部"), count: counts.all },
+        { value: "expense", label: t("支出"), count: counts.expense },
+        { value: "income", label: t("收入"), count: counts.income },
+        { value: "repayment", label: t("还款"), count: counts.repayment },
+        { value: "transfer", label: t("转账"), count: counts.transfer },
     ];
 
     const hasFilter =
@@ -250,8 +252,8 @@ export function Entries() {
     return (
         <div>
             <PageHeader
-                title="流水"
-                description="每一笔支出、收入和还款都在这里。点开可以查看详情或删除。"
+                title={t("流水")}
+                description={t("每一笔支出、收入和还款都在这里。点开可以查看详情或删除。")}
                 action={
                     <div className="flex gap-2">
                         <Button
@@ -259,12 +261,10 @@ export function Entries() {
                             onClick={toggleSelectMode}
                         >
                             <ListChecks className="size-4" />
-                            {selectMode ? "完成" : "批量"}
+                            {selectMode ? t("完成") : t("批量")}
                         </Button>
                         <Button onClick={() => openEntryModal()}>
-                            <Plus className="size-4" />
-                            记一笔
-                        </Button>
+                            <Plus className="size-4" />{` ${t("记一笔")}`}</Button>
                     </div>
                 }
             />
@@ -279,8 +279,8 @@ export function Entries() {
                                 type="search"
                                 value={query}
                                 onChange={(event) => setQuery(event.target.value)}
-                                placeholder="搜索备注、分类、账户"
-                                aria-label="搜索流水"
+                                placeholder={t("搜索备注、分类、账户")}
+                                aria-label={t("搜索流水")}
                                 className="field py-2 pl-9 pr-9 text-xs"
                             />
                             {query && (
@@ -288,7 +288,7 @@ export function Entries() {
                                     type="button"
                                     onClick={() => setQuery("")}
                                     className="absolute right-2.5 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded text-muted transition hover:text-text"
-                                    aria-label="清空搜索"
+                                    aria-label={t("清空搜索")}
                                 >
                                     <X className="size-3.5" />
                                 </button>
@@ -299,9 +299,7 @@ export function Entries() {
                             onClick={() => setFilterOpen((current) => !current)}
                             className="shrink-0"
                         >
-                            <SlidersHorizontal className="size-4" />
-                            筛选
-                            {activeFilterCount > 0 && (
+                            <SlidersHorizontal className="size-4" />{` ${t("筛选")} `}{activeFilterCount > 0 && (
                                 <span className="rounded-full bg-surface/25 px-1.5 text-[10px]">
                                     {activeFilterCount}
                                 </span>
@@ -314,9 +312,7 @@ export function Entries() {
                     <div className="card p-4">
                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                             <label className="block">
-                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
-                                    开始日期
-                                </span>
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">{t("开始日期")}</span>
                                 <input
                                     type="date"
                                     className="field py-2 text-xs"
@@ -330,9 +326,7 @@ export function Entries() {
                                 />
                             </label>
                             <label className="block">
-                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
-                                    结束日期
-                                </span>
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">{t("结束日期")}</span>
                                 <input
                                     type="date"
                                     className="field py-2 text-xs"
@@ -346,9 +340,7 @@ export function Entries() {
                                 />
                             </label>
                             <label className="block">
-                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
-                                    分类
-                                </span>
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">{t("分类")}</span>
                                 <select
                                     className="field py-2 text-xs"
                                     value={advanced.categoryId}
@@ -359,7 +351,7 @@ export function Entries() {
                                         }))
                                     }
                                 >
-                                    <option value="">全部分类</option>
+                                    <option value="">{t("全部分类")}</option>
                                     {categories.map((category) => {
                                         const parent = category.parent
                                             ? categories.find(
@@ -377,9 +369,7 @@ export function Entries() {
                                 </select>
                             </label>
                             <label className="block">
-                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
-                                    成员
-                                </span>
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">{t("成员")}</span>
                                 <select
                                     className="field py-2 text-xs"
                                     value={advanced.memberId}
@@ -390,7 +380,7 @@ export function Entries() {
                                         }))
                                     }
                                 >
-                                    <option value="">全部成员</option>
+                                    <option value="">{t("全部成员")}</option>
                                     {members.map((member) => (
                                         <option key={member.id} value={member.id}>
                                             {member.name}
@@ -399,9 +389,7 @@ export function Entries() {
                                 </select>
                             </label>
                             <label className="block">
-                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
-                                    账户
-                                </span>
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">{t("账户")}</span>
                                 <select
                                     className="field py-2 text-xs"
                                     value={advanced.accountId}
@@ -412,7 +400,7 @@ export function Entries() {
                                         }))
                                     }
                                 >
-                                    <option value="">全部账户</option>
+                                    <option value="">{t("全部账户")}</option>
                                     {accounts.map((account) => (
                                         <option key={account.id} value={account.id}>
                                             {account.emoji} {account.name}
@@ -421,9 +409,7 @@ export function Entries() {
                                 </select>
                             </label>
                             <label className="block">
-                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
-                                    标签
-                                </span>
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">{t("标签")}</span>
                                 <select
                                     className="field py-2 text-xs"
                                     value={advanced.tagId}
@@ -434,7 +420,7 @@ export function Entries() {
                                         }))
                                     }
                                 >
-                                    <option value="">全部标签</option>
+                                    <option value="">{t("全部标签")}</option>
                                     {tags.map((tag) => (
                                         <option key={tag.id} value={tag.id}>
                                             {tag.name}
@@ -443,9 +429,7 @@ export function Entries() {
                                 </select>
                             </label>
                             <label className="block">
-                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
-                                    最小金额
-                                </span>
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">{t("最小金额")}</span>
                                 <input
                                     className="field py-2 text-xs"
                                     inputMode="decimal"
@@ -460,9 +444,7 @@ export function Entries() {
                                 />
                             </label>
                             <label className="block">
-                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">
-                                    最大金额
-                                </span>
+                                <span className="mb-1.5 block text-[10px] font-semibold text-muted">{t("最大金额")}</span>
                                 <input
                                     className="field py-2 text-xs"
                                     inputMode="decimal"
@@ -473,22 +455,18 @@ export function Entries() {
                                             maxAmount: event.target.value,
                                         }))
                                     }
-                                    placeholder="不限"
+                                    placeholder={t("不限")}
                                 />
                             </label>
                         </div>
                         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-[10px] text-muted">
-                                筛选会和上方类型、搜索关键词同时生效。
-                            </p>
+                            <p className="text-[10px] text-muted">{t("筛选会和上方类型、搜索关键词同时生效。")}</p>
                             <Button
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => setAdvanced(EMPTY_ADVANCED)}
                                 disabled={activeFilterCount === 0}
-                            >
-                                清空条件
-                            </Button>
+                            >{t("清空条件")}</Button>
                         </div>
                     </div>
                 )}
@@ -496,34 +474,26 @@ export function Entries() {
 
             {selectMode && (
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent/20 bg-accent-soft/45 px-3 py-2.5">
-                    <p className="text-xs font-semibold text-accent">
-                        已选 {selectedIds.size} 笔
-                        <span className="ml-2 font-normal text-muted">
-                            只能选择自己记的账
-                        </span>
+                    <p className="text-xs font-semibold text-accent">{`${t("已选")} `}{selectedIds.size}{` ${t("笔")} `}<span className="ml-2 font-normal text-muted">{t("只能选择自己记的账")}</span>
                     </p>
                     <div className="flex flex-wrap items-center gap-1.5">
                         <Button size="sm" variant="secondary" onClick={selectVisible}>
                             {selectableVisible.length > 0 &&
                             selectableVisible.every((entry) => selectedIds.has(entry.id))
-                                ? "取消全选"
-                                : "全选当前"}
+                                ? t("取消全选")
+                                : t("全选当前")}
                         </Button>
                         <Button
                             size="sm"
                             onClick={() => setBatchOpen(true)}
                             disabled={selectedIds.size === 0}
-                        >
-                            修改选中
-                        </Button>
+                        >{t("修改选中")}</Button>
                         <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => setSelectedIds(new Set())}
                             disabled={selectedIds.size === 0}
-                        >
-                            清空
-                        </Button>
+                        >{t("清空")}</Button>
                     </div>
                 </div>
             )}
@@ -532,11 +502,11 @@ export function Entries() {
                 {groups.length === 0 ? (
                     <EmptyState
                         icon={ReceiptText}
-                        title={hasFilter ? "没有找到流水" : "还没有流水"}
+                        title={hasFilter ? t("没有找到流水") : t("还没有流水")}
                         description={
                             hasFilter
-                                ? "换个筛选条件，或者清空搜索再看看。"
-                                : "先记一笔：现金支出、赊账或者收入都可以。"
+                                ? t("换个筛选条件，或者清空搜索再看看。")
+                                : t("先记一笔：现金支出、赊账或者收入都可以。")
                         }
                         className="border-0 bg-transparent"
                         action={
@@ -549,14 +519,10 @@ export function Entries() {
                                         setQuery("");
                                         setAdvanced(EMPTY_ADVANCED);
                                     }}
-                                >
-                                    清空筛选
-                                </Button>
+                                >{t("清空筛选")}</Button>
                             ) : (
                                 <Button size="sm" onClick={() => openEntryModal()}>
-                                    <Plus className="size-3.5" />
-                                    记一笔
-                                </Button>
+                                    <Plus className="size-3.5" />{` ${t("记一笔")}`}</Button>
                             )
                         }
                     />
@@ -590,19 +556,17 @@ export function Entries() {
                                     </div>
                                     <div className="flex items-center gap-2 text-[10px] tabular-nums text-muted">
                                         {expense > 0 && (
-                                            <span>
-                                                支出 {formatCents(expense, currency)}
+                                            <span>{`${t("支出")} `}{formatCents(expense, currency)}
                                                 {repayment > 0
-                                                    ? `（含还款 ${formatCents(
+                                                    ? t("（含还款 {0}）", [formatCents(
                                                           repayment,
                                                           currency,
-                                                      )}）`
+                                                      )])
                                                     : ""}
                                             </span>
                                         )}
                                         {income > 0 && (
-                                            <span className="text-success">
-                                                收入 {formatCents(income, currency)}
+                                            <span className="text-success">{`${t("收入")} `}{formatCents(income, currency)}
                                             </span>
                                         )}
                                     </div>

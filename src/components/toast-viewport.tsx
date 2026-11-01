@@ -6,6 +6,8 @@ import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";
 import { useToastStore } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 const toneStyles = {
     success: "border-success/25 bg-success-soft text-success",
     error: "border-danger/25 bg-danger-soft text-danger",
@@ -39,12 +41,12 @@ export function ToastViewport() {
                         )}
                     >
                         <Icon className="mt-0.5 size-4 shrink-0" />
-                        <p className="flex-1 text-xs font-medium leading-relaxed">{toast.message}</p>
+                        <p className="flex-1 text-xs font-medium leading-relaxed">{t(toast.message)}</p>
                         <button
                             type="button"
                             onClick={() => dismiss(toast.id)}
                             className="rounded p-0.5 opacity-60 transition hover:opacity-100"
-                            aria-label="关闭提示"
+                            aria-label={t("关闭提示")}
                         >
                             <X className="size-3.5" />
                         </button>

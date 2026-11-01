@@ -36,6 +36,8 @@ import { toast } from "@/store/toast";
 import { newId } from "@/utils/id";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 const WELCOME_FLAG = "liangqi-welcome-complete-v1";
 
 const PROVIDERS: TabItem<RemoteProvider>[] = [
@@ -148,12 +150,12 @@ export function WelcomeGate() {
 
         const token = form.token.trim();
         if (!token) {
-            throw new Error("请填写私钥 / Access Token");
+            throw new Error(t("请填写私钥 / Access Token"));
         }
         const repository = parseRepositoryInput(form.repo);
         if (!repository.repo) {
             throw new Error(
-                "请填写仓库名，例如 family-ledger 或 your-name/family-ledger",
+                t("请填写仓库名，例如 family-ledger 或 your-name/family-ledger"),
             );
         }
         let owner = repository.owner;
@@ -161,7 +163,7 @@ export function WelcomeGate() {
             owner = await resolveProviderLogin(provider, token);
             if (!owner) {
                 throw new Error(
-                    "无法从私钥识别账号，请把仓库名写成 owner/仓库名",
+                    t("无法从私钥识别账号，请把仓库名写成 owner/仓库名"),
                 );
             }
         }
@@ -229,7 +231,7 @@ export function WelcomeGate() {
             setRemoteBooks(books);
             setStep("books");
         } catch (cause) {
-            setError(cause instanceof Error ? cause.message : "连接失败");
+            setError(cause instanceof Error ? cause.message : t("连接失败"));
         } finally {
             setBusy(null);
         }
@@ -244,9 +246,9 @@ export function WelcomeGate() {
         try {
             const book = await openRemoteBook(target, remoteBookId);
             finishWelcome();
-            toast(`已打开“${book.name}”，请选择成员登录`, "success");
+            toast(t("已打开“{0}”，请选择成员登录", [book.name]), "success");
         } catch (cause) {
-            setError(cause instanceof Error ? cause.message : "打开共享账本失败");
+            setError(cause instanceof Error ? cause.message : t("打开共享账本失败"));
         } finally {
             setBusy(null);
         }
@@ -262,11 +264,11 @@ export function WelcomeGate() {
             const result = await uploadCurrentBook(connection);
             finishWelcome();
             toast(
-                result.message || "共享账本已创建，请设置成员密码",
+                result.message || t("共享账本已创建，请设置成员密码"),
                 "success",
             );
         } catch (cause) {
-            setError(cause instanceof Error ? cause.message : "创建共享账本失败");
+            setError(cause instanceof Error ? cause.message : t("创建共享账本失败"));
         } finally {
             setBusy(null);
         }
@@ -274,7 +276,7 @@ export function WelcomeGate() {
 
     function useLocally(): void {
         finishWelcome();
-        toast("已进入本地账本；之后可以在「数据源」连接共享仓库", "success");
+        toast(t("已进入本地账本；之后可以在「数据源」连接共享仓库"), "success");
     }
 
     return (
@@ -284,21 +286,21 @@ export function WelcomeGate() {
                     <div className="flex flex-col items-center text-center">
                         <Logo />
                         <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-accent">
-                            {step === "connect" ? "连接共享账本" : "共享账本"}
+                            {step === "connect" ? t("连接共享账本") : t("共享账本")}
                         </p>
                         <h1 className="mt-1 text-xl font-bold text-text">
                             {step === "connect"
-                                ? "先登录你的账本"
+                                ? t("先登录你的账本")
                                 : step === "books"
-                                  ? "选择要打开的账本"
-                                  : "仓库还是空的"}
+                                  ? t("选择要打开的账本")
+                                  : t("仓库还是空的")}
                         </h1>
                         <p className="mt-1 text-[11px] leading-relaxed text-muted">
                             {step === "connect"
-                                ? "第一次使用先连接仓库。连接信息会保存在这台设备，下次打开直接选择成员登录。"
+                                ? t("第一次使用先连接仓库。连接信息会保存在这台设备，下次打开直接选择成员登录。")
                                 : step === "books"
-                                  ? "这个仓库里已经有共享账，选择一本打开后登录成员。"
-                                  : "这个仓库还没有账本，可以把当前的本地账本上传上去。"}
+                                  ? t("这个仓库里已经有共享账，选择一本打开后登录成员。")
+                                  : t("这个仓库还没有账本，可以把当前的本地账本上传上去。")}
                         </p>
                     </div>
 
@@ -318,7 +320,7 @@ export function WelcomeGate() {
                                     <>
                                         <div className="sm:col-span-2">
                                             <WelcomeField
-                                                label="WebDAV 地址"
+                                                label={t("WebDAV 地址")}
                                                 value={form.url}
                                                 onChange={(value) =>
                                                     update("url", value)
@@ -327,27 +329,27 @@ export function WelcomeGate() {
                                             />
                                         </div>
                                         <WelcomeField
-                                            label="用户名"
+                                            label={t("用户名")}
                                             value={form.username}
                                             onChange={(value) =>
                                                 update("username", value)
                                             }
-                                            placeholder="WebDAV 用户名"
+                                            placeholder={t("WebDAV 用户名")}
                                         />
                                         <WelcomeField
-                                            label="密码"
+                                            label={t("密码")}
                                             value={form.password}
                                             onChange={(value) =>
                                                 update("password", value)
                                             }
-                                            placeholder="WebDAV 密码"
+                                            placeholder={t("WebDAV 密码")}
                                             type="password"
                                         />
                                     </>
                                 ) : (
                                     <>
                                         <WelcomeField
-                                            label="仓库名"
+                                            label={t("仓库名")}
                                             value={form.repo}
                                             onChange={(value) =>
                                                 update("repo", value)
@@ -355,24 +357,21 @@ export function WelcomeGate() {
                                             placeholder="family-ledger"
                                         />
                                         <WelcomeField
-                                            label="私钥 / Access Token"
+                                            label={t("私钥 / Access Token")}
                                             value={form.token}
                                             onChange={(value) =>
                                                 update("token", value)
                                             }
-                                            placeholder="repo / projects 权限"
+                                            placeholder={t("repo / projects 权限")}
                                             type="password"
                                         />
                                     </>
                                 )}
                             </div>
-                            <p className="text-[10px] leading-relaxed text-muted">
-                                仓库名可以只写 repo（用私钥自动补全账号），也可以写{" "}
+                            <p className="text-[10px] leading-relaxed text-muted">{t("仓库名可以只写 repo（用私钥自动补全账号），也可以写")}{" "}
                                 <code className="rounded bg-surface-2 px-1">
                                     owner/repo
-                                </code>
-                                。一个仓库只保存一本共享账，多个人可以共用同一个私钥。
-                            </p>
+                                </code>{` ${t("。一个仓库只保存一本共享账，多个人可以共用同一个私钥。")}`}</p>
 
                             {error && <WelcomeError>{error}</WelcomeError>}
 
@@ -386,16 +385,14 @@ export function WelcomeGate() {
                                 ) : (
                                     <Cloud className="size-4" />
                                 )}
-                                {busy === "connect" ? "连接中…" : "连接并登录"}
+                                {busy === "connect" ? t("连接中…") : t("连接并登录")}
                             </Button>
                             <button
                                 type="button"
                                 onClick={useLocally}
                                 disabled={busy !== null}
                                 className="w-full py-1 text-[10px] font-medium text-muted transition hover:text-text disabled:opacity-50"
-                            >
-                                暂不连接，仅使用本地账本
-                            </button>
+                            >{t("暂不连接，仅使用本地账本")}</button>
                         </div>
                     )}
 
@@ -424,7 +421,7 @@ export function WelcomeGate() {
                                             {book.name}
                                         </span>
                                         <span className="mt-0.5 block text-[10px] text-muted">
-                                            {book.entryCount} 条流水 · {book.currency}
+                                            {book.entryCount}{` ${t("条流水 ·")} `}{book.currency}
                                         </span>
                                     </span>
                                     {busy === `open:${book.id}` ? (
@@ -444,17 +441,13 @@ export function WelcomeGate() {
                                 }}
                                 disabled={busy !== null}
                             >
-                                <ArrowLeft className="size-4" />
-                                返回修改连接
-                            </Button>
+                                <ArrowLeft className="size-4" />{` ${t("返回修改连接")}`}</Button>
                         </div>
                     )}
 
                     {step === "empty" && (
                         <div className="mt-5 space-y-3">
-                            <div className="rounded-xl border border-dashed border-line bg-surface-2/40 px-3 py-4 text-center text-[11px] leading-relaxed text-muted">
-                                连接已经成功，但仓库里还没有共享账。可以把当前本地账本上传，创建第一本共享账。
-                            </div>
+                            <div className="rounded-xl border border-dashed border-line bg-surface-2/40 px-3 py-4 text-center text-[11px] leading-relaxed text-muted">{t("连接已经成功，但仓库里还没有共享账。可以把当前本地账本上传，创建第一本共享账。")}</div>
                             {error && <WelcomeError>{error}</WelcomeError>}
                             <Button
                                 className="w-full"
@@ -467,8 +460,8 @@ export function WelcomeGate() {
                                     <RefreshCw className="size-4" />
                                 )}
                                 {busy === "upload"
-                                    ? "正在创建…"
-                                    : "在这个仓库创建共享账本"}
+                                    ? t("正在创建…")
+                                    : t("在这个仓库创建共享账本")}
                             </Button>
                             <Button
                                 variant="secondary"
@@ -479,16 +472,11 @@ export function WelcomeGate() {
                                 }}
                                 disabled={busy !== null}
                             >
-                                <ArrowLeft className="size-4" />
-                                返回修改连接
-                            </Button>
+                                <ArrowLeft className="size-4" />{` ${t("返回修改连接")}`}</Button>
                         </div>
                     )}
 
-                    <p className="mt-5 text-center text-[9px] leading-relaxed text-muted">
-                        私钥和连接信息只保存在本机；成员密码以 PBKDF2
-                        哈希保存在共享仓库里。
-                    </p>
+                    <p className="mt-5 text-center text-[9px] leading-relaxed text-muted">{t("私钥和连接信息只保存在本机；成员密码以 PBKDF2\n                        哈希保存在共享仓库里。")}</p>
                 </div>
             </div>
         </div>

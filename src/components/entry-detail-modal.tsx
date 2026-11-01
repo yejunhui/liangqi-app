@@ -22,6 +22,8 @@ import { useCanModifyOwner } from "@/store/member-session";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 interface EntryDetailModalProps {
     entry: Entry | null;
     onClose: () => void;
@@ -61,12 +63,12 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
 
     const kindLabel =
         entry?.kind === "expense"
-            ? "支出"
+            ? t("支出")
             : entry?.kind === "income"
-              ? "收入"
+              ? t("收入")
               : entry?.kind === "transfer"
-                ? "转账"
-                : "还款";
+                ? t("转账")
+                : t("还款");
     const sign =
         entry?.kind === "income"
             ? "positive"
@@ -83,7 +85,7 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
             toast(result.error, "error");
             return;
         }
-        toast("流水已删除", "success");
+        toast(t("流水已删除"), "success");
         onClose();
     }
 
@@ -92,23 +94,19 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
             <Modal
                 open={entry !== null}
                 onClose={onClose}
-                title="流水详情"
+                title={t("流水详情")}
                 description={entry ? `${kindLabel} · ${formatDateFull(entry.date)}` : undefined}
                 size="sm"
                 footer={
                     <div className="flex gap-2">
-                        <Button variant="secondary" className="flex-1" onClick={onClose}>
-                            关闭
-                        </Button>
+                        <Button variant="secondary" className="flex-1" onClick={onClose}>{t("关闭")}</Button>
                         {canEdit && (
                             <Button
                                 variant="danger"
                                 className="flex-1"
                                 onClick={() => setConfirmOpen(true)}
                             >
-                                <Trash2 className="size-3.5" />
-                                删除
-                            </Button>
+                                <Trash2 className="size-3.5" />{` ${t("删除")}`}</Button>
                         )}
                     </div>
                 }
@@ -118,9 +116,9 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                         <div className="rounded-2xl border border-line bg-surface-2/55 px-4 py-5 text-center">
                             <p className="text-[11px] font-medium text-muted">
                                 {entry.kind === "repayment"
-                                    ? "还款金额"
+                                    ? t("还款金额")
                                     : entry.kind === "transfer"
-                                      ? "转账金额"
+                                      ? t("转账金额")
                                       : kindLabel}
                             </p>
                             <p
@@ -139,15 +137,13 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                                 <Money value={entry.amount} currency={currency} sign={sign} />
                             </p>
                             {entry.kind === "repayment" && (
-                                <span className="mt-2 inline-flex chip bg-accent-soft text-accent">
-                                    计入支出
-                                </span>
+                                <span className="mt-2 inline-flex chip bg-accent-soft text-accent">{t("计入支出")}</span>
                             )}
                         </div>
 
                         <dl className="space-y-2.5 text-xs">
                             {category && (
-                                <DetailRow label="分类">
+                                <DetailRow label={t("分类")}>
                                     <span className="inline-flex items-center gap-1.5">
                                         <span>{category.emoji}</span>
                                         {category.name}
@@ -155,7 +151,7 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                                 </DetailRow>
                             )}
                             {member && (
-                                <DetailRow label="成员">
+                                <DetailRow label={t("成员")}>
                                     <span
                                         className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
                                         style={{
@@ -169,35 +165,34 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                             )}
                             {entry.kind === "transfer" ? (
                                 <>
-                                    <DetailRow label="转出账户">
+                                    <DetailRow label={t("转出账户")}>
                                         <span className="inline-flex items-center gap-1.5">
                                             <Wallet className="size-3.5 text-muted" />
-                                            {asset ? `${asset.emoji} ${asset.name}` : "未指定"}
+                                            {asset ? `${asset.emoji} ${asset.name}` : t("未指定")}
                                         </span>
                                     </DetailRow>
-                                    <DetailRow label="转入账户">
+                                    <DetailRow label={t("转入账户")}>
                                         <span className="inline-flex items-center gap-1.5">
                                             <Wallet className="size-3.5 text-muted" />
                                             {toAccount
                                                 ? `${toAccount.emoji} ${toAccount.name}`
-                                                : "未指定"}
+                                                : t("未指定")}
                                         </span>
                                     </DetailRow>
                                 </>
                             ) : entry.kind === "expense" && entry.billId ? (
                                 <>
-                                    <DetailRow label="付款方式">
+                                    <DetailRow label={t("付款方式")}>
                                         <span className="inline-flex items-center gap-1.5 text-liability">
-                                            <CreditCard className="size-3.5" />
-                                            赊账 · {liability?.name ?? "负债账户"}
+                                            <CreditCard className="size-3.5" />{` ${t("赊账 ·")} `}{liability?.name ?? t("负债账户")}
                                         </span>
                                     </DetailRow>
                                     {bill && (
                                         <>
-                                            <DetailRow label="账单">
+                                            <DetailRow label={t("账单")}>
                                                 {bill.title}
                                             </DetailRow>
-                                            <DetailRow label="待还">
+                                            <DetailRow label={t("待还")}>
                                                 <span className="font-semibold text-liability">
                                                     {formatCents(
                                                         getBillRemaining(bill, entries),
@@ -205,14 +200,14 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                                                     )}
                                                 </span>
                                             </DetailRow>
-                                            <DetailRow label="状态">
+                                            <DetailRow label={t("状态")}>
                                                 {getBillStatus(bill, entries) === "paid"
-                                                    ? "已还清"
+                                                    ? t("已还清")
                                                     : getBillStatus(bill, entries) === "partial"
-                                                      ? "部分还款"
-                                                      : "待还"}
+                                                      ? t("部分还款")
+                                                      : t("待还")}
                                             </DetailRow>
-                                            <DetailRow label="到期">
+                                            <DetailRow label={t("到期")}>
                                                 {
                                                     getBillDueInfo(
                                                         bill,
@@ -224,31 +219,31 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                                     )}
                                 </>
                             ) : (
-                                <DetailRow label={entry.kind === "income" ? "收款账户" : "账户"}>
+                                <DetailRow label={entry.kind === "income" ? t("收款账户") : t("账户")}>
                                     <span className="inline-flex items-center gap-1.5">
                                         <Wallet className="size-3.5 text-muted" />
-                                        {asset ? `${asset.emoji} ${asset.name}` : "未指定账户"}
+                                        {asset ? `${asset.emoji} ${asset.name}` : t("未指定账户")}
                                     </span>
                                 </DetailRow>
                             )}
                             {entry.kind === "repayment" && (
                                 <>
-                                    <DetailRow label="还款账户">
+                                    <DetailRow label={t("还款账户")}>
                                         <span className="inline-flex items-center gap-1.5">
                                             <Wallet className="size-3.5 text-muted" />
-                                            {asset ? `${asset.emoji} ${asset.name}` : "未指定"}
+                                            {asset ? `${asset.emoji} ${asset.name}` : t("未指定")}
                                         </span>
                                     </DetailRow>
-                                    <DetailRow label="负债账户">
+                                    <DetailRow label={t("负债账户")}>
                                         <span className="inline-flex items-center gap-1.5 text-liability">
                                             <CreditCard className="size-3.5" />
-                                            {liability?.name ?? "未指定"}
+                                            {liability?.name ?? t("未指定")}
                                         </span>
                                     </DetailRow>
                                 </>
                             )}
                             {entryTags.length > 0 && (
-                                <DetailRow label="标签">
+                                <DetailRow label={t("标签")}>
                                     <span className="flex flex-wrap justify-end gap-1">
                                         {entryTags.map((tag) => (
                                             <span
@@ -266,7 +261,7 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                                 </DetailRow>
                             )}
                             {entry.originalAmount && (
-                                <DetailRow label="原始金额">
+                                <DetailRow label={t("原始金额")}>
                                     {formatCents(
                                         entry.originalAmount.amount,
                                         entry.originalAmount.currency,
@@ -277,7 +272,7 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                                 </DetailRow>
                             )}
                             {entry.location && (
-                                <DetailRow label="位置">
+                                <DetailRow label={t("位置")}>
                                     <a
                                         href={`https://www.openstreetmap.org/?mlat=${entry.location.lat}&mlon=${entry.location.lng}#map=16/${entry.location.lat}/${entry.location.lng}`}
                                         target="_blank"
@@ -291,19 +286,19 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                                 </DetailRow>
                             )}
                             {entry.ownerName && (
-                                <DetailRow label="记账人">
+                                <DetailRow label={t("记账人")}>
                                     <span className="inline-flex items-center gap-1.5">
                                         <span className="grid size-5 place-items-center rounded-full bg-surface-3 text-[9px] font-bold text-muted">
                                             {entry.ownerName.slice(0, 1)}
                                         </span>
                                         {entry.ownerName}
                                         {!canEdit && (
-                                            <span className="text-[9px] text-muted">只读</span>
+                                            <span className="text-[9px] text-muted">{t("只读")}</span>
                                         )}
                                     </span>
                                 </DetailRow>
                             )}
-                            {entry.note && <DetailRow label="备注">{entry.note}</DetailRow>}
+                            {entry.note && <DetailRow label={t("备注")}>{entry.note}</DetailRow>}
                         </dl>
 
                         <AttachmentList
@@ -312,9 +307,7 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                             readOnly={!canEdit}
                         />
 
-                        <p className="rounded-xl bg-surface-2/70 px-3 py-2.5 text-[10px] leading-relaxed text-muted">
-                            删除后账户余额和账单待还金额会自动重算；已有还款的赊账需要先删除还款记录。
-                        </p>
+                        <p className="rounded-xl bg-surface-2/70 px-3 py-2.5 text-[10px] leading-relaxed text-muted">{t("删除后账户余额和账单待还金额会自动重算；已有还款的赊账需要先删除还款记录。")}</p>
                     </div>
                 )}
             </Modal>
@@ -322,9 +315,9 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
             <ConfirmDialog
                 open={confirmOpen}
                 onClose={() => setConfirmOpen(false)}
-                title="删除这笔流水？"
-                description="删除后余额和账单进度会自动重算。"
-                confirmLabel="删除"
+                title={t("删除这笔流水？")}
+                description={t("删除后余额和账单进度会自动重算。")}
+                confirmLabel={t("删除")}
                 onConfirm={handleDelete}
             />
         </>

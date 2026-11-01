@@ -26,6 +26,8 @@ import {
     toDateInputValue,
 } from "@/utils/date";
 
+import { t } from "@/i18n";
+
 function monthStart(now: number, offset: number): number {
     const date = new Date(now);
     date.setDate(1);
@@ -57,72 +59,78 @@ export function buildLedgerContext(
         .reduce((sum, entry) => sum + entry.amount, 0);
 
     const lines: string[] = [];
-    lines.push(`账本：${data.name ?? "当前账本"}（本位币 ${currency}）`);
-    lines.push(`今天：${toDateInputValue(now)}`);
+    lines.push(t("账本：{0}（本位币 {1}）", [data.name ?? t("当前账本"), currency]));
+    lines.push(t("今天：{0}", [toDateInputValue(now)]));
     lines.push("");
-    lines.push("## 资产");
+    lines.push(t("## 资产"));
     lines.push(
-        `总资产 ${formatCents(totals.assets, currency)}；总负债 ${formatCents(
-            totals.liabilities,
-            currency,
-        )}；净资产 ${formatCents(totals.netWorth, currency)}；可支配 ${formatCents(
-            totals.disposable,
-            currency,
-        )}`,
+        t(
+            "总资产 {0}；总负债 {1}；净资产 {2}；可支配 {3}",
+            [formatCents(totals.assets, currency), formatCents(
+                totals.liabilities,
+                currency,
+            ), formatCents(totals.netWorth, currency), formatCents(
+                totals.disposable,
+                currency,
+            )]
+        ),
     );
     lines.push(
-        `账户：${data.accounts
+        t("账户：{0}", [data.accounts
             .map(
                 (account) =>
                     `${account.name}（${
-                        account.kind === "asset" ? "资产" : "负债"
+                        account.kind === "asset" ? t("资产") : t("负债")
                     } ${formatCents(getAccountBalance(account, data.entries), currency)}）`,
             )
-            .join("；")}`,
+            .join("；")]),
     );
     lines.push("");
-    lines.push("## 收支");
+    lines.push(t("## 收支"));
     lines.push(
-        `本月（${formatMonthLabel(month)}）支出 ${formatCents(
-            monthTotals.expense,
-            currency,
-        )}，收入 ${formatCents(monthTotals.income, currency)}，结余 ${formatCents(
-            monthTotals.net,
-            currency,
-        )}，还款 ${formatCents(monthTotals.repayment, currency)}（计入支出）`,
+        t(
+            "本月（{0}）支出 {1}，收入 {2}，结余 {3}，还款 {4}（计入支出）",
+            [formatMonthLabel(month), formatCents(
+                monthTotals.expense,
+                currency,
+            ), formatCents(monthTotals.income, currency), formatCents(
+                monthTotals.net,
+                currency,
+            ), formatCents(monthTotals.repayment, currency)]
+        ),
     );
     lines.push(
-        "口径：现金支出立即计入；赊账消费只记负债，还款时计入支出；转账不计收支。",
+        t("口径：现金支出立即计入；赊账消费只记负债，还款时计入支出；转账不计收支。"),
     );
     lines.push(
-        `上月（${formatMonthLabel(previous)}）支出 ${formatCents(
+        t("上月（{0}）支出 {1}，收入 {2}", [formatMonthLabel(previous), formatCents(
             previousTotals.expense,
             currency,
-        )}，收入 ${formatCents(previousTotals.income, currency)}`,
+        ), formatCents(previousTotals.income, currency)]),
     );
     lines.push(
-        `今年累计支出 ${formatCents(yearExpense, currency)}，收入 ${formatCents(
+        t("今年累计支出 {0}，收入 {1}", [formatCents(yearExpense, currency), formatCents(
             yearIncome,
             currency,
-        )}`,
+        )]),
     );
     lines.push("");
-    lines.push("## 近 12 个月趋势");
+    lines.push(t("## 近 12 个月趋势"));
     for (let index = 11; index >= 0; index -= 1) {
         const start = monthStart(now, -index);
         const totalsForMonth = getMonthTotals(data.entries, start);
         lines.push(
-            `${formatMonthLabel(start)}：支出 ${formatCents(
+            t("{0}：支出 {1}，收入 {2}", [formatMonthLabel(start), formatCents(
                 totalsForMonth.expense,
                 currency,
-            )}，收入 ${formatCents(totalsForMonth.income, currency)}`,
+            ), formatCents(totalsForMonth.income, currency)]),
         );
     }
     lines.push("");
-    lines.push("## 本月分类");
+    lines.push(t("## 本月分类"));
     const breakdown = getCategoryBreakdown(data.entries, data.categories, month);
     if (breakdown.length === 0) {
-        lines.push("本月还没有支出。");
+        lines.push(t("本月还没有支出。"));
     } else {
         const parentNames = new Map(
             data.categories.map((category) => [category.id, category.name]),
@@ -143,7 +151,7 @@ export function buildLedgerContext(
         }
     }
     lines.push("");
-    lines.push("## 本月标签与成员");
+    lines.push(t("## 本月标签与成员"));
     const tagTotals = new Map<string, number>();
     const memberTotals = new Map<string, number>();
     for (const entry of data.entries) {
@@ -161,38 +169,34 @@ export function buildLedgerContext(
         }
     }
     lines.push(
-        `标签：${
-            [...tagTotals.entries()]
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 8)
-                .map(
-                    ([tagId, amount]) =>
-                        `${data.tags.find((tag) => tag.id === tagId)?.name ?? "已删除标签"} ${formatCents(
-                            amount,
-                            currency,
-                        )}`,
-                )
-                .join("；") || "无"
-        }`,
+        t("标签：{0}", [[...tagTotals.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 8)
+            .map(
+                ([tagId, amount]) =>
+                    `${data.tags.find((tag) => tag.id === tagId)?.name ?? t("已删除标签")} ${formatCents(
+                        amount,
+                        currency,
+                    )}`,
+            )
+            .join("；") || t("无")]),
     );
     lines.push(
-        `成员：${
-            [...memberTotals.entries()]
-                .sort((a, b) => b[1] - a[1])
-                .map(
-                    ([memberId, amount]) =>
-                        `${data.members.find((member) => member.id === memberId)?.name ?? "未知成员"} ${formatCents(
-                            amount,
-                            currency,
-                        )}`,
-                )
-                .join("；") || "无"
-        }`,
+        t("成员：{0}", [[...memberTotals.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .map(
+                ([memberId, amount]) =>
+                    `${data.members.find((member) => member.id === memberId)?.name ?? t("未知成员")} ${formatCents(
+                        amount,
+                        currency,
+                    )}`,
+            )
+            .join("；") || t("无")]),
     );
     lines.push("");
-    lines.push("## 预算");
+    lines.push(t("## 预算"));
     if (data.budgets.length === 0) {
-        lines.push("还没有设置预算。");
+        lines.push(t("还没有设置预算。"));
     } else {
         for (const progress of getBudgetProgressList(
             data.budgets,
@@ -201,24 +205,27 @@ export function buildLedgerContext(
             now,
         )) {
             lines.push(
-                `${progress.budget.name}（${progress.periodLabel}）：已用 ${formatCents(
-                    progress.spent,
-                    currency,
-                )} / ${formatCents(progress.budget.amount, currency)}，剩余 ${formatCents(
-                    progress.remaining,
-                    currency,
-                )}${progress.spent > progress.budget.amount ? "（已超支）" : ""}`,
+                t(
+                    "{0}（{1}）：已用 {2} / {3}，剩余 {4}{5}",
+                    [progress.budget.name, progress.periodLabel, formatCents(
+                        progress.spent,
+                        currency,
+                    ), formatCents(progress.budget.amount, currency), formatCents(
+                        progress.remaining,
+                        currency,
+                    ), progress.spent > progress.budget.amount ? t("（已超支）") : ""]
+                ),
             );
         }
     }
     lines.push("");
-    lines.push("## 待还账单");
+    lines.push(t("## 待还账单"));
     const openBills = getOpenBills(data.bills, data.entries);
     lines.push(
-        `共 ${openBills.length} 笔，待还合计 ${formatCents(
+        t("共 {0} 笔，待还合计 {1}", [openBills.length, formatCents(
             getOutstandingTotal(data.bills, data.entries),
             currency,
-        )}`,
+        )]),
     );
     for (const bill of openBills.slice(0, 10)) {
         const remaining = Math.max(
@@ -232,13 +239,16 @@ export function buildLedgerContext(
                     .reduce((sum, entry) => sum + entry.amount, 0),
         );
         lines.push(
-            `${bill.title}：待还 ${formatCents(remaining, currency)}${
-                bill.dueDate ? `，到期 ${toDateInputValue(bill.dueDate)}` : ""
-            }${getBillStatus(bill, data.entries) === "partial" ? "，部分还款" : ""}`,
+            t("{0}：待还 {1}{2}{3}", [
+                bill.title,
+                formatCents(remaining, currency),
+                bill.dueDate ? `，到期 ${toDateInputValue(bill.dueDate)}` : "",
+                getBillStatus(bill, data.entries) === "partial" ? t("，部分还款") : ""
+            ]),
         );
     }
     lines.push("");
-    lines.push("## 最近流水（最多 25 条）");
+    lines.push(t("## 最近流水（最多 25 条）"));
     const recent = [...data.entries]
         .sort((a, b) => b.date - a.date || b.createdAt - a.createdAt)
         .slice(0, 25);
@@ -254,13 +264,13 @@ export function buildLedgerContext(
         const kind =
             entry.kind === "expense"
                 ? entry.billId
-                    ? "赊账"
-                    : "支出"
+                    ? t("赊账")
+                    : t("支出")
                 : entry.kind === "income"
-                  ? "收入"
+                  ? t("收入")
                   : entry.kind === "transfer"
-                    ? "转账"
-                    : "还款";
+                    ? t("转账")
+                    : t("还款");
         lines.push(
             `${toDateInputValue(entry.date)} ${kind} ${formatCents(
                 entry.amount,
@@ -268,7 +278,7 @@ export function buildLedgerContext(
             )}${category ? ` · ${category.name}` : ""}${
                 entry.note ? ` · ${entry.note}` : ""
             }${member ? ` · ${member.name}` : ""}${tags ? ` · #${tags}` : ""}${
-                entry.ownerName ? ` · 记账人 ${entry.ownerName}` : ""
+                entry.ownerName ? t(" · 记账人 {0}", [entry.ownerName]) : ""
             }`,
         );
     }

@@ -16,6 +16,8 @@ import { seedDefaultTags } from "@/domain/tags";
 import { ensureRepaymentCategories } from "@/domain/ledger";
 import { newId } from "@/utils/id";
 
+import { t } from "@/i18n";
+
 export const LIBRARY_STORAGE_KEY = "liangqi-library-v2";
 const LIBRARY_IDB_KEY = "liangqi-library-v2";
 const LEGACY_LEDGER_KEYS = ["liangqi-ledger-v1", "zhaibu-ledger-v1"] as const;
@@ -134,7 +136,7 @@ function migrateLegacyLedger(): LibraryData | null {
             const now = Date.now();
             const book: Book = {
                 id: newId("book"),
-                name: "我的账本",
+                name: t("我的账本"),
                 createdAt: now,
                 updatedAt: now,
                 accounts: ledger.accounts as Book["accounts"],
@@ -290,7 +292,7 @@ export const useLibraryStore = create<LibraryState>()((set, get) => ({
     ...initial,
 
     createBook(name) {
-        const trimmed = name.trim() || "未命名账本";
+        const trimmed = name.trim() || t("未命名账本");
         const book = createSeedBook(trimmed);
         set((state) => ({
             books: [...state.books, book],

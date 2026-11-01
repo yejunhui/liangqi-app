@@ -6,6 +6,8 @@ import type { CategoryBreakdownItem } from "@/domain/ledger";
 import { formatCents } from "@/domain/money";
 import { formatPercent } from "@/domain/money";
 
+import { t } from "@/i18n";
+
 interface CategoryBarsProps {
     items: CategoryBreakdownItem[];
     currency: string;
@@ -16,11 +18,7 @@ export function CategoryBars({ items, currency, limit }: CategoryBarsProps) {
     const visible = limit ? items.slice(0, limit) : items;
 
     if (visible.length === 0) {
-        return (
-            <p className="py-6 text-center text-xs text-muted">
-                这个月还没有支出，记一笔就能看到分类占比。
-            </p>
-        );
+        return (<p className="py-6 text-center text-xs text-muted">{t("这个月还没有支出，记一笔就能看到分类占比。")}</p>);
     }
 
     return (

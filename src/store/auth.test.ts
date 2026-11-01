@@ -70,7 +70,7 @@ describe("local password", () => {
     it("rejects short passwords", async () => {
         const { useAuthStore } = await import("@/store/auth");
         await expect(useAuthStore.getState().setPassword("123")).rejects.toThrow(
-            "至少",
+            /password|密码/i,
         );
     });
 });

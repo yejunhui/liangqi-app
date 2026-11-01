@@ -18,6 +18,8 @@ import { useCurrency, useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 export function Budgets() {
     const budgets = useLedgerStore((state) => state.budgets);
     const entries = useLedgerStore((state) => state.entries);
@@ -64,29 +66,25 @@ export function Budgets() {
             toast(result.error, "error");
             return;
         }
-        toast("预算已删除", "success");
+        toast(t("预算已删除"), "success");
         setDeletingBudget(null);
     }
 
     return (
         <div>
             <PageHeader
-                eyebrow="通用记账"
-                title="预算"
-                description="按分类、标签或成员设置月度 / 年度预算，超支会在首页提醒。"
+                eyebrow={t("通用记账")}
+                title={t("预算")}
+                description={t("按分类、标签或成员设置月度 / 年度预算，超支会在首页提醒。")}
                 action={
                     <div className="flex gap-2">
                         <Button
                             variant="secondary"
                             onClick={() => setSuggestionsOpen(true)}
                         >
-                            <Sparkles className="size-4" />
-                            智能建议
-                        </Button>
+                            <Sparkles className="size-4" />{` ${t("智能建议")}`}</Button>
                         <Button onClick={openCreate}>
-                            <Plus className="size-4" />
-                            添加预算
-                        </Button>
+                            <Plus className="size-4" />{` ${t("添加预算")}`}</Button>
                     </div>
                 }
             />
@@ -94,40 +92,37 @@ export function Budgets() {
             {budgets.length === 0 ? (
                 <EmptyState
                     icon={Target}
-                    title="还没有预算"
-                    description="给餐饮、交通或某次旅行设一个预算，花钱时心里更有数。"
+                    title={t("还没有预算")}
+                    description={t("给餐饮、交通或某次旅行设一个预算，花钱时心里更有数。")}
                     action={
                         <Button size="sm" onClick={openCreate}>
-                            <Plus className="size-3.5" />
-                            添加第一个预算
-                        </Button>
+                            <Plus className="size-3.5" />{` ${t("添加第一个预算")}`}</Button>
                     }
                 />
             ) : (
                 <>
                     <section className="card mb-4 grid grid-cols-3 gap-3 p-5">
                         <div>
-                            <p className="text-[10px] text-muted">预算总额</p>
+                            <p className="text-[10px] text-muted">{t("预算总额")}</p>
                             <p className="mt-1 text-base font-bold tabular-nums text-text">
                                 {formatCents(totalAmount, currency)}
                             </p>
                         </div>
                         <div>
-                            <p className="text-[10px] text-muted">已使用</p>
+                            <p className="text-[10px] text-muted">{t("已使用")}</p>
                             <p className="mt-1 text-base font-bold tabular-nums text-text">
                                 {formatCents(totalSpent, currency)}
                             </p>
                         </div>
                         <div>
-                            <p className="text-[10px] text-muted">超支预算</p>
+                            <p className="text-[10px] text-muted">{t("超支预算")}</p>
                             <p
                                 className={cn(
                                     "mt-1 text-base font-bold tabular-nums",
                                     overCount > 0 ? "text-danger" : "text-success",
                                 )}
                             >
-                                {overCount} 个
-                            </p>
+                                {overCount}{` ${t("个")}`}</p>
                         </div>
                     </section>
 
@@ -163,13 +158,10 @@ export function Budgets() {
                                                         {periodLabel}
                                                     </span>
                                                     {over && (
-                                                        <span className="chip bg-danger-soft text-danger">
-                                                            已超支
-                                                        </span>
+                                                        <span className="chip bg-danger-soft text-danger">{t("已超支")}</span>
                                                     )}
                                                 </div>
-                                                <p className="mt-0.5 text-[11px] text-muted">
-                                                    已用 {formatCents(spent, currency)} /{" "}
+                                                <p className="mt-0.5 text-[11px] text-muted">{`${t("已用")} `}{formatCents(spent, currency)} /{" "}
                                                     {formatCents(budget.amount, currency)}
                                                 </p>
                                             </div>
@@ -178,7 +170,7 @@ export function Budgets() {
                                                     type="button"
                                                     onClick={() => openEdit(budget)}
                                                     className="grid size-7 place-items-center rounded-lg text-muted transition hover:bg-surface-2 hover:text-text"
-                                                    aria-label="编辑预算"
+                                                    aria-label={t("编辑预算")}
                                                 >
                                                     <Pencil className="size-3.5" />
                                                 </button>
@@ -186,7 +178,7 @@ export function Budgets() {
                                                     type="button"
                                                     onClick={() => setDeletingBudget(budget)}
                                                     className="grid size-7 place-items-center rounded-lg text-muted transition hover:bg-danger-soft hover:text-danger"
-                                                    aria-label="删除预算"
+                                                    aria-label={t("删除预算")}
                                                 >
                                                     <Trash2 className="size-3.5" />
                                                 </button>
@@ -215,8 +207,8 @@ export function Budgets() {
                                                     )}
                                                 >
                                                     {over
-                                                        ? `超出 ${formatCents(-remaining, currency)}`
-                                                        : `剩余 ${formatCents(remaining, currency)}`}
+                                                        ? t("超出 {0}", [formatCents(-remaining, currency)])
+                                                        : t("剩余 {0}", [formatCents(remaining, currency)])}
                                                 </span>
                                                 <span
                                                     className={cn(
@@ -294,13 +286,13 @@ export function Budgets() {
             <ConfirmDialog
                 open={deletingBudget !== null}
                 onClose={() => setDeletingBudget(null)}
-                title="删除这个预算？"
+                title={t("删除这个预算？")}
                 description={
                     deletingBudget
-                        ? `“${deletingBudget.name}”的进度会被移除，历史流水不受影响。`
+                        ? t("“{0}”的进度会被移除，历史流水不受影响。", [deletingBudget.name])
                         : ""
                 }
-                confirmLabel="删除预算"
+                confirmLabel={t("删除预算")}
                 onConfirm={handleDelete}
             />
         </div>

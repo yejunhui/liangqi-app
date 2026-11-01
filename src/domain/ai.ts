@@ -6,6 +6,7 @@ import type { Account, Category } from "@/types";
 import type { QuickEntrySuggestion } from "@/domain/quick-entry";
 import { fromDateInputValue, toDateInputValue } from "@/utils/date";
 import type { AiConfig } from "@/store/ai";
+import { t } from "@/i18n";
 
 function chatEndpoint(endpoint: string): string {
     const trimmed = endpoint.trim().replace(/\/+$/, "");
@@ -70,7 +71,7 @@ export async function requestAiChat(
             typeof data === "object" && data !== null
                 ? (data as { error?: { message?: string } }).error?.message
                 : undefined;
-        throw new Error(message ?? `AI 请求失败（${response.status}）`);
+        throw new Error(message ?? t("AI 请求失败（{0}）", [response.status]));
     }
     const choices =
         typeof data === "object" && data !== null
@@ -102,7 +103,7 @@ export async function requestAiChat(
             return text;
         }
     }
-    throw new Error("AI 返回内容为空");
+    throw new Error(t("AI 返回内容为空"));
 }
 
 export async function parseQuickEntryWithAi(input: {
@@ -155,7 +156,7 @@ export async function parseQuickEntryWithAi(input: {
     };
     const amount = Number(parsed.amount);
     if (!Number.isFinite(amount) || amount <= 0) {
-        throw new Error("AI 没有识别到有效金额");
+        throw new Error(t("AI 没有识别到有效金额"));
     }
     const kind = parsed.kind === "income" ? "income" : "expense";
     const categoryName =

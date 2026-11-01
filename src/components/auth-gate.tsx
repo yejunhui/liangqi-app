@@ -8,6 +8,8 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/button";
 import { useAuthStore } from "@/store/auth";
 
+import { t } from "@/i18n";
+
 export function AuthGate({ children }: { children: ReactNode }) {
     const enabled = useAuthStore((state) => state.enabled);
     const unlocked = useAuthStore((state) => state.unlocked);
@@ -32,11 +34,11 @@ function LockScreen() {
         try {
             const ok = await unlock(password);
             if (!ok) {
-                setError("密码不正确");
+                setError(t("密码不正确"));
                 setPassword("");
             }
         } catch (cause) {
-            setError(cause instanceof Error ? cause.message : "解锁失败");
+            setError(cause instanceof Error ? cause.message : t("解锁失败"));
         } finally {
             setBusy(false);
         }
@@ -53,18 +55,12 @@ function LockScreen() {
                         <span className="grid size-12 place-items-center rounded-2xl bg-accent-soft text-accent">
                             <LockKeyhole className="size-5" />
                         </span>
-                        <h1 className="mt-4 text-xl font-bold tracking-tight text-text">
-                            两讫已锁定
-                        </h1>
-                        <p className="mt-1.5 text-xs leading-relaxed text-muted">
-                            输入本地密码继续。密码只保存在这台设备上。
-                        </p>
+                        <h1 className="mt-4 text-xl font-bold tracking-tight text-text">{t("两讫已锁定")}</h1>
+                        <p className="mt-1.5 text-xs leading-relaxed text-muted">{t("输入本地密码继续。密码只保存在这台设备上。")}</p>
                     </div>
 
                     <label className="mt-6 block">
-                        <span className="mb-1.5 block text-xs font-semibold text-muted">
-                            本地密码
-                        </span>
+                        <span className="mb-1.5 block text-xs font-semibold text-muted">{t("本地密码")}</span>
                         <div className="relative">
                             <input
                                 type={showPassword ? "text" : "password"}
@@ -73,13 +69,13 @@ function LockScreen() {
                                 onChange={(event) => setPassword(event.target.value)}
                                 autoFocus
                                 autoComplete="current-password"
-                                placeholder="输入密码"
+                                placeholder={t("输入密码")}
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword((value) => !value)}
                                 className="absolute right-2.5 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-lg text-muted transition hover:bg-surface-2 hover:text-text"
-                                aria-label={showPassword ? "隐藏密码" : "显示密码"}
+                                aria-label={showPassword ? t("隐藏密码") : t("显示密码")}
                             >
                                 {showPassword ? (
                                     <EyeOff className="size-3.5" />
@@ -101,12 +97,10 @@ function LockScreen() {
                         className="mt-4 w-full"
                         disabled={busy || password.length === 0}
                     >
-                        {busy ? "验证中…" : "解锁"}
+                        {busy ? t("验证中…") : t("解锁")}
                     </Button>
 
-                    <p className="mt-4 text-center text-[10px] leading-relaxed text-muted">
-                        这只保护界面访问，不会加密本机 localStorage 数据。忘记密码只能清除浏览器数据。
-                    </p>
+                    <p className="mt-4 text-center text-[10px] leading-relaxed text-muted">{t("这只保护界面访问，不会加密本机 localStorage 数据。忘记密码只能清除浏览器数据。")}</p>
                 </form>
             </div>
         </div>

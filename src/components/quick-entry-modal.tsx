@@ -17,6 +17,8 @@ import { useUIStore } from "@/store/ui";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { getLanguage, t } from "@/i18n";
+
 interface SpeechRecognitionLike {
     lang: string;
     continuous: boolean;
@@ -41,7 +43,7 @@ function getRecognition(): SpeechRecognitionLike | null {
         return null;
     }
     const recognition = new Ctor();
-    recognition.lang = "zh-CN";
+    recognition.lang = getLanguage();
     recognition.continuous = false;
     recognition.interimResults = true;
     return recognition;
@@ -103,7 +105,7 @@ export function QuickEntryModal() {
             });
             setAiSuggestion(result);
         } catch (error) {
-            setAiError(error instanceof Error ? error.message : "AI 识别失败");
+            setAiError(error instanceof Error ? error.message : t("AI 识别失败"));
         } finally {
             setAiLoading(false);
         }
@@ -112,7 +114,7 @@ export function QuickEntryModal() {
     function startVoice() {
         const recognition = getRecognition();
         if (!recognition) {
-            toast("这个浏览器不支持语音识别，可以直接输入文字", "info");
+            toast(t("这个浏览器不支持语音识别，可以直接输入文字"), "info");
             return;
         }
         setListening(true);
@@ -129,7 +131,7 @@ export function QuickEntryModal() {
         };
         recognition.onerror = () => {
             setListening(false);
-            toast("没有听清，再试一次或者输入文字", "info");
+            toast(t("没有听清，再试一次或者输入文字"), "info");
         };
         recognition.onend = () => setListening(false);
         try {
@@ -162,22 +164,18 @@ export function QuickEntryModal() {
         <Modal
             open={open}
             onClose={close}
-            title="一句话记账"
-            description="说一句或打一句，自动识别金额、分类、账户和日期。"
+            title={t("一句话记账")}
+            description={t("说一句或打一句，自动识别金额、分类、账户和日期。")}
             size="sm"
             footer={
                 <div className="flex gap-2">
-                    <Button variant="secondary" className="flex-1" onClick={close}>
-                        取消
-                    </Button>
+                    <Button variant="secondary" className="flex-1" onClick={close}>{t("取消")}</Button>
                     <Button
                         className="flex-1"
                         onClick={handleContinue}
                         disabled={!suggestion}
                     >
-                        <Sparkles className="size-3.5" />
-                        继续记账
-                    </Button>
+                        <Sparkles className="size-3.5" />{` ${t("继续记账")}`}</Button>
                 </div>
             }
         >
@@ -187,7 +185,7 @@ export function QuickEntryModal() {
                         className="field min-h-28 resize-none pr-12 text-sm"
                         value={text}
                         onChange={(event) => updateText(event.target.value)}
-                        placeholder="例如：信用卡 打车 28.5，或 借呗 午饭 35"
+                        placeholder={t("例如：信用卡 打车 28.5，或 借呗 午饭 35")}
                         autoFocus
                     />
                     <button
@@ -199,7 +197,7 @@ export function QuickEntryModal() {
                                 ? "border-danger/30 bg-danger-soft text-danger"
                                 : "border-line bg-surface text-muted hover:text-text",
                         )}
-                        aria-label={listening ? "正在听" : "语音输入"}
+                        aria-label={listening ? t("正在听") : t("语音输入")}
                     >
                         {listening ? (
                             <MicOff className="size-4" />
@@ -211,9 +209,9 @@ export function QuickEntryModal() {
 
                 <div className="flex flex-wrap gap-1.5">
                     {[
-                        "昨天午饭 35 现金",
-                        "工资 8000 银行卡",
-                        "信用卡 打车 28.5",
+                        t("昨天午饭 35 现金"),
+                        t("工资 8000 银行卡"),
+                        t("信用卡 打车 28.5"),
                     ].map((example) => (
                         <button
                             key={example}
@@ -232,14 +230,14 @@ export function QuickEntryModal() {
                             className="inline-flex items-center gap-1 rounded-lg border border-accent/30 bg-accent-soft/60 px-2 py-1 text-[10px] font-semibold text-accent transition hover:bg-accent-soft disabled:opacity-50"
                         >
                             <Sparkles className="size-3" />
-                            {aiLoading ? "AI 识别中…" : "AI 识别"}
+                            {aiLoading ? t("AI 识别中…") : t("AI 识别")}
                         </button>
                     )}
                     <button
                         type="button"
                         onClick={() => {
                             if (!navigator.clipboard?.readText) {
-                                toast("这个浏览器不支持读取剪贴板", "info");
+                                toast(t("这个浏览器不支持读取剪贴板"), "info");
                                 return;
                             }
                             void navigator.clipboard
@@ -250,14 +248,12 @@ export function QuickEntryModal() {
                                     }
                                 })
                                 .catch(() =>
-                                    toast("没有读取到剪贴板内容", "info"),
+                                    toast(t("没有读取到剪贴板内容"), "info"),
                                 );
                         }}
                         className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface-2/50 px-2 py-1 text-[10px] text-muted transition hover:text-text"
                     >
-                        <ClipboardPaste className="size-3" />
-                        粘贴
-                    </button>
+                        <ClipboardPaste className="size-3" />{` ${t("粘贴")}`}</button>
                 </div>
 
                 {aiError && (
@@ -272,10 +268,10 @@ export function QuickEntryModal() {
                             <div>
                                 <p className="text-[10px] font-medium text-muted">
                                     {suggestion.kind === "income"
-                                        ? "收入"
+                                        ? t("收入")
                                         : suggestion.paymentMode === "liability"
-                                          ? "赊账（只记负债）"
-                                          : "现金支出"}
+                                          ? t("赊账（只记负债）")
+                                          : t("现金支出")}
                                 </p>
                                 <p className="mt-0.5 text-2xl font-bold tabular-nums text-text">
                                     {formatCents(suggestion.amount, currency)}
@@ -294,13 +290,12 @@ export function QuickEntryModal() {
                     <p className="rounded-xl border border-dashed border-line bg-surface-2/40 px-3 py-3 text-[11px] leading-relaxed text-muted">
                         {text.trim()
                             ? parsed.error
-                            : "支持：金额、分类名、账户名、昨天 / 前天、收入 / 工资、信用卡 / 花呗 / 借呗等负债账户。"}                    </p>
+                            : t("支持：金额、分类名、账户名、昨天 / 前天、收入 / 工资、信用卡 / 花呗 / 借呗等负债账户。")}                    </p>
                 )}
 
-                <p className="text-[10px] leading-relaxed text-muted">
-                    语音使用浏览器自带的 Web Speech
-                    识别，不会上传到两讫的服务器；识别后仍会打开记账表单让你确认。
-                </p>
+                <p className="text-[10px] leading-relaxed text-muted">{t(
+                    "语音使用浏览器自带的 Web Speech\n                    识别，不会上传到两讫的服务器；识别后仍会打开记账表单让你确认。"
+                )}</p>
             </div>
         </Modal>
     );

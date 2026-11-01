@@ -48,6 +48,8 @@ import { useCurrency, useLedgerStore } from "@/store/ledger";
 import { useUIStore } from "@/store/ui";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 const dueToneClass = {
     neutral: "text-muted",
     warning: "text-liability",
@@ -111,16 +113,14 @@ export function Dashboard() {
     return (
         <div>
             <PageHeader
-                eyebrow="总览"
-                title="把两边的账，记清楚。"
-                description="现金支出直接扣存款；赊账先记负债，之后还款。左边右边都算清楚。"
+                eyebrow={t("总览")}
+                title={t("把两边的账，记清楚。")}
+                description={t("现金支出直接扣存款；赊账先记负债，之后还款。左边右边都算清楚。")}
                 action={
                     <>
                         <SyncStatusBadge />
                         <Button onClick={() => openEntryModal()}>
-                            <Plus className="size-4" />
-                            记一笔
-                        </Button>
+                            <Plus className="size-4" />{` ${t("记一笔")}`}</Button>
                     </>
                 }
             />
@@ -130,41 +130,29 @@ export function Dashboard() {
                 <div className="pointer-events-none absolute -bottom-24 -left-16 size-64 rounded-full bg-[#fbbf24]/10 blur-3xl" />
                 <div className="relative">
                     <div className="flex items-center justify-between gap-3">
-                        <p className="text-xs font-semibold tracking-[0.14em] text-[#f7f2e8]/65">
-                            净资产
-                        </p>
-                        <span className="rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-[10px] font-medium text-white/70">
-                            实时资产
-                        </span>
+                        <p className="text-xs font-semibold tracking-[0.14em] text-[#f7f2e8]/65">{t("净资产")}</p>
+                        <span className="rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-[10px] font-medium text-white/70">{t("实时资产")}</span>
                     </div>
                     <p className="mt-2 text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
                         {formatCents(totals.netWorth, currency)}
                     </p>
-                    <p className="mt-1.5 text-[11px] text-white/55">
-                        资产减去负债，才是真正属于你的钱
-                    </p>
+                    <p className="mt-1.5 text-[11px] text-white/55">{t("资产减去负债，才是真正属于你的钱")}</p>
 
                     <div className="mt-6 grid max-w-lg grid-cols-3 gap-3">
                         <div>
-                            <p className="text-[10px] font-medium tracking-wide text-white/50">
-                                总资产
-                            </p>
+                            <p className="text-[10px] font-medium tracking-wide text-white/50">{t("总资产")}</p>
                             <p className="mt-1 text-base font-semibold tabular-nums text-white/95 sm:text-lg">
                                 {formatCents(totals.assets, currency)}
                             </p>
                         </div>
                         <div>
-                            <p className="text-[10px] font-medium tracking-wide text-white/50">
-                                总负债
-                            </p>
+                            <p className="text-[10px] font-medium tracking-wide text-white/50">{t("总负债")}</p>
                             <p className="mt-1 text-base font-semibold tabular-nums text-[#fbbf24] sm:text-lg">
                                 {formatCents(totals.liabilities, currency)}
                             </p>
                         </div>
                         <div>
-                            <p className="text-[10px] font-medium tracking-wide text-white/50">
-                                可支配
-                            </p>
+                            <p className="text-[10px] font-medium tracking-wide text-white/50">{t("可支配")}</p>
                             <p
                                 className={cn(
                                     "mt-1 text-base font-semibold tabular-nums sm:text-lg",
@@ -175,37 +163,35 @@ export function Dashboard() {
                             >
                                 {formatCents(totals.disposable, currency)}
                             </p>
-                            <p className="mt-0.5 text-[9px] text-white/40">
-                                流动资产
-                            </p>
+                            <p className="mt-0.5 text-[9px] text-white/40">{t("流动资产")}</p>
                         </div>
                     </div>
 
                     <div className="mt-6 flex flex-wrap gap-2">
                         <QuickAction
                             icon={ReceiptText}
-                            label="记支出"
-                            hint="现在扣存款"
+                            label={t("记支出")}
+                            hint={t("现在扣存款")}
                             onClick={() => openEntryModal({ kind: "expense", paymentMode: "asset" })}
                         />
                         <QuickAction
                             icon={CreditCard}
-                            label="记赊账"
-                            hint="先记负债"
+                            label={t("记赊账")}
+                            hint={t("先记负债")}
                             onClick={() =>
                                 openEntryModal({ kind: "expense", paymentMode: "liability" })
                             }
                         />
                         <QuickAction
                             icon={ArrowDownUp}
-                            label="记收入"
-                            hint="存款增加"
+                            label={t("记收入")}
+                            hint={t("存款增加")}
                             onClick={() => openEntryModal({ kind: "income" })}
                         />
                         <QuickAction
                             icon={Mic}
-                            label="智能记账"
-                            hint="说一句就记"
+                            label={t("智能记账")}
+                            hint={t("说一句就记")}
                             onClick={() => openQuickEntry()}
                         />
                     </div>
@@ -214,34 +200,34 @@ export function Dashboard() {
 
             <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <StatCard
-                    label="本月支出"
+                    label={t("本月支出")}
                     value={monthTotals.expense}
                     currency={currency}
-                    hint="含还款，赊账不计"
+                    hint={t("含还款，赊账不计")}
                     tone="liability"
                     icon={ReceiptText}
                 />
                 <StatCard
-                    label="本月收入"
+                    label={t("本月收入")}
                     value={monthTotals.income}
                     currency={currency}
-                    hint={`结余 ${formatCents(monthTotals.net, currency)}`}
+                    hint={t("结余 {0}", [formatCents(monthTotals.net, currency)])}
                     tone="success"
                     icon={TrendingUp}
                 />
                 <StatCard
-                    label="待还账单"
+                    label={t("待还账单")}
                     value={outstanding}
                     currency={currency}
-                    hint={openBills.length > 0 ? `${openBills.length} 笔未结清` : "没有待还账单"}
+                    hint={openBills.length > 0 ? t("{0} 笔未结清", [openBills.length]) : t("没有待还账单")}
                     tone="liability"
                     icon={CreditCard}
                 />
                 <StatCard
-                    label="逾期未还"
+                    label={t("逾期未还")}
                     value={overdueTotal}
                     currency={currency}
-                    hint={overdueBills.length > 0 ? `${overdueBills.length} 笔已逾期` : "没有逾期"}
+                    hint={overdueBills.length > 0 ? t("{0} 笔已逾期", [overdueBills.length]) : t("没有逾期")}
                     tone={overdueBills.length > 0 ? "danger" : "muted"}
                     icon={AlertTriangle}
                 />
@@ -251,17 +237,13 @@ export function Dashboard() {
                 <section className="card mt-4 p-5">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-sm font-bold text-text">预算进度</h2>
-                            <p className="mt-0.5 text-[11px] text-muted">
-                                按当前月度 / 年度统计
-                            </p>
+                            <h2 className="text-sm font-bold text-text">{t("预算进度")}</h2>
+                            <p className="mt-0.5 text-[11px] text-muted">{t("按当前月度 / 年度统计")}</p>
                         </div>
                         <Link
                             to="/budgets"
                             className="flex items-center gap-0.5 text-[11px] font-semibold text-accent hover:underline"
-                        >
-                            全部预算
-                            <ArrowUpRight className="size-3" />
+                        >{`${t("全部预算")} `}<ArrowUpRight className="size-3" />
                         </Link>
                     </div>
                     <div className="mt-4 grid gap-4 sm:grid-cols-3">
@@ -304,7 +286,7 @@ export function Dashboard() {
                                         </span>{" "}
                                         / {formatCents(budget.amount, currency)}
                                         {over
-                                            ? ` · 超 ${formatCents(-remaining, currency)}`
+                                            ? t(" · 超 {0}", [formatCents(-remaining, currency)])
                                             : ""}
                                     </p>
                                 </Link>
@@ -318,17 +300,15 @@ export function Dashboard() {
                 <section className="card p-5 lg:col-span-2">
                     <div className="flex items-start justify-between gap-3">
                         <div>
-                            <h2 className="text-sm font-bold text-text">本月支出</h2>
-                            <p className="mt-0.5 text-[11px] text-muted">
-                                赊账只记负债，还款时计入支出
-                            </p>
+                            <h2 className="text-sm font-bold text-text">{t("本月支出")}</h2>
+                            <p className="mt-0.5 text-[11px] text-muted">{t("赊账只记负债，还款时计入支出")}</p>
                         </div>
                         <div className="flex items-center gap-1 rounded-lg border border-line bg-surface-2/70 p-0.5">
                             <button
                                 type="button"
                                 onClick={() => shiftMonth(-1)}
                                 className="grid size-7 place-items-center rounded-md text-muted transition hover:bg-surface hover:text-text"
-                                aria-label="上个月"
+                                aria-label={t("上个月")}
                             >
                                 <ChevronLeft className="size-3.5" />
                             </button>
@@ -340,7 +320,7 @@ export function Dashboard() {
                                 onClick={() => shiftMonth(1)}
                                 disabled={!canGoNext}
                                 className="grid size-7 place-items-center rounded-md text-muted transition hover:bg-surface hover:text-text disabled:cursor-not-allowed disabled:opacity-30"
-                                aria-label="下个月"
+                                aria-label={t("下个月")}
                             >
                                 <ChevronRight className="size-3.5" />
                             </button>
@@ -352,8 +332,7 @@ export function Dashboard() {
                             <p className="text-3xl font-bold tracking-tight tabular-nums text-text">
                                 {formatCents(monthTotals.expense, currency)}
                             </p>
-                            <p className="mt-1 text-[11px] text-muted">
-                                收入 {formatCents(monthTotals.income, currency)} · 结余{" "}
+                            <p className="mt-1 text-[11px] text-muted">{`${t("收入")} `}{formatCents(monthTotals.income, currency)}{` ${t("· 结余")}`}{" "}
                                 <span
                                     className={cn(
                                         "font-semibold",
@@ -364,19 +343,16 @@ export function Dashboard() {
                                 </span>
                             </p>
                         </div>
-                        <div className="rounded-lg bg-surface-2 px-2.5 py-1.5 text-[10px] text-muted">
-                            还款 {formatCents(monthTotals.repayment, currency)}（计入支出）
-                        </div>
+                        <div className="rounded-lg bg-surface-2 px-2.5 py-1.5 text-[10px] text-muted">{`${t("还款")} `}{formatCents(monthTotals.repayment, currency)}{t("（计入支出）")}</div>
                     </div>
 
                     <div className="mt-5 grid gap-6 sm:grid-cols-2">
                         <MiniBarChart data={daily} currency={currency} />
                         <div>
                             <div className="mb-3 flex items-center justify-between">
-                                <h3 className="text-xs font-bold text-text">分类占比</h3>
+                                <h3 className="text-xs font-bold text-text">{t("分类占比")}</h3>
                                 <span className="text-[10px] text-muted">
-                                    {breakdown.length} 个分类
-                                </span>
+                                    {breakdown.length}{` ${t("个分类")}`}</span>
                             </div>
                             <CategoryBars items={breakdown} currency={currency} limit={5} />
                         </div>
@@ -386,17 +362,13 @@ export function Dashboard() {
                 <section className="card flex flex-col p-5">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-sm font-bold text-text">待还账单</h2>
-                            <p className="mt-0.5 text-[11px] text-muted">
-                                按到期日排序
-                            </p>
+                            <h2 className="text-sm font-bold text-text">{t("待还账单")}</h2>
+                            <p className="mt-0.5 text-[11px] text-muted">{t("按到期日排序")}</p>
                         </div>
                         <Link
                             to="/bills"
                             className="flex items-center gap-0.5 text-[11px] font-semibold text-accent hover:underline"
-                        >
-                            全部
-                            <ArrowUpRight className="size-3" />
+                        >{`${t("全部")} `}<ArrowUpRight className="size-3" />
                         </Link>
                     </div>
 
@@ -405,8 +377,8 @@ export function Dashboard() {
                             <span className="grid size-11 place-items-center rounded-2xl bg-success-soft text-success">
                                 <CreditCard className="size-5" />
                             </span>
-                            <p className="mt-3 text-sm font-semibold text-text">没有待还账单</p>
-                            <p className="mt-1 text-xs text-muted">赊账消费会自动生成账单</p>
+                            <p className="mt-3 text-sm font-semibold text-text">{t("没有待还账单")}</p>
+                            <p className="mt-1 text-xs text-muted">{t("赊账消费会自动生成账单")}</p>
                             <Button
                                 size="sm"
                                 variant="secondary"
@@ -415,9 +387,7 @@ export function Dashboard() {
                                     openEntryModal({ kind: "expense", paymentMode: "liability" })
                                 }
                             >
-                                <Plus className="size-3.5" />
-                                记一笔赊账
-                            </Button>
+                                <Plus className="size-3.5" />{` ${t("记一笔赊账")}`}</Button>
                         </div>
                     ) : (
                         <div className="mt-3 flex-1 space-y-2">
@@ -468,28 +438,22 @@ export function Dashboard() {
             <section className="card mt-4 p-5">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h2 className="text-sm font-bold text-text">最近流水</h2>
-                        <p className="mt-0.5 text-[11px] text-muted">收入、支出和还款都在这里</p>
+                        <h2 className="text-sm font-bold text-text">{t("最近流水")}</h2>
+                        <p className="mt-0.5 text-[11px] text-muted">{t("收入、支出和还款都在这里")}</p>
                     </div>
                     <Link
                         to="/entries"
                         className="flex items-center gap-0.5 text-[11px] font-semibold text-accent hover:underline"
-                    >
-                        全部流水
-                        <ArrowUpRight className="size-3" />
+                    >{`${t("全部流水")} `}<ArrowUpRight className="size-3" />
                     </Link>
                 </div>
 
                 {recent.length === 0 ? (
                     <div className="mt-4 rounded-2xl border border-dashed border-line bg-surface-2/40 px-5 py-8 text-center">
-                        <p className="text-sm font-semibold text-text">账本还是空的</p>
-                        <p className="mt-1 text-xs leading-relaxed text-muted">
-                            先记一笔支出：现在扣存款，或者先记负债之后还。
-                        </p>
+                        <p className="text-sm font-semibold text-text">{t("账本还是空的")}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-muted">{t("先记一笔支出：现在扣存款，或者先记负债之后还。")}</p>
                         <Button size="sm" className="mt-4" onClick={() => openEntryModal()}>
-                            <Plus className="size-3.5" />
-                            记第一笔
-                        </Button>
+                            <Plus className="size-3.5" />{` ${t("记第一笔")}`}</Button>
                     </div>
                 ) : (
                     <div className="mt-2 -mx-2 divide-y divide-line/60">
@@ -512,9 +476,7 @@ export function Dashboard() {
             <div className="mt-4 flex gap-3 rounded-2xl border border-line bg-surface/60 p-4">
                 <Info className="mt-0.5 size-4 shrink-0 text-accent" />
                 <p className="text-[11px] leading-relaxed text-muted">
-                    <strong className="font-semibold text-text">账务规则：</strong>
-                    赊账消费只增加负债，不动存款，也不计入支出；还款时减少存款和负债，并计入还款当月的支出。
-                </p>
+                    <strong className="font-semibold text-text">{t("账务规则：")}</strong>{` ${t("赊账消费只增加负债，不动存款，也不计入支出；还款时减少存款和负债，并计入还款当月的支出。")}`}</p>
             </div>
         </div>
     );

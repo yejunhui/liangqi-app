@@ -5,6 +5,8 @@
 import type { LedgerData, Member } from "@/types";
 import { seedDefaultTags } from "@/domain/tags";
 
+import { t } from "@/i18n";
+
 export const DEFAULT_MEMBER_ID = "member_me";
 
 export const MEMBER_COLORS = [
@@ -22,7 +24,7 @@ export const MEMBER_COLORS = [
 export function createDefaultMember(now = Date.now()): Member {
     return {
         id: DEFAULT_MEMBER_ID,
-        name: "我",
+        name: t("我"),
         color: MEMBER_COLORS[0],
         createdAt: now,
     };

@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import { Button } from "@/components/button";
 
+import { t } from "@/i18n";
+
 interface InstallPromptEvent extends Event {
     prompt: () => Promise<void>;
     userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
@@ -62,7 +64,7 @@ export function InstallPrompt() {
                 type="button"
                 onClick={dismiss}
                 className="absolute right-2 top-2 grid size-6 place-items-center rounded-md text-muted transition hover:bg-surface-2 hover:text-text"
-                aria-label="关闭安装提示"
+                aria-label={t("关闭安装提示")}
             >
                 <X className="size-3.5" />
             </button>
@@ -71,19 +73,13 @@ export function InstallPrompt() {
                     <Download className="size-4" />
                 </span>
                 <div>
-                    <p className="text-xs font-bold text-text">安装两讫到桌面</p>
-                    <p className="mt-0.5 text-[10px] leading-relaxed text-muted">
-                        像 App 一样打开，离线也能记账和查看数据。
-                    </p>
+                    <p className="text-xs font-bold text-text">{t("安装两讫到桌面")}</p>
+                    <p className="mt-0.5 text-[10px] leading-relaxed text-muted">{t("像 App 一样打开，离线也能记账和查看数据。")}</p>
                 </div>
             </div>
             <div className="mt-3 flex gap-2">
-                <Button size="sm" className="flex-1" onClick={install}>
-                    安装
-                </Button>
-                <Button size="sm" variant="secondary" className="flex-1" onClick={dismiss}>
-                    稍后
-                </Button>
+                <Button size="sm" className="flex-1" onClick={install}>{t("安装")}</Button>
+                <Button size="sm" variant="secondary" className="flex-1" onClick={dismiss}>{t("稍后")}</Button>
             </div>
         </div>
     );

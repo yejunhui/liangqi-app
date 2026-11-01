@@ -11,6 +11,8 @@ import { useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 interface BudgetSuggestionsModalProps {
     open: boolean;
     suggestions: BudgetSuggestion[];
@@ -66,7 +68,7 @@ export function BudgetSuggestionsModal({
                 continue;
             }
             const result = addBudget({
-                name: `${suggestion.name}预算`,
+                name: t("{0}预算", [suggestion.name]),
                 period: "month",
                 amount: cents,
                 categoryIds: [suggestion.categoryId],
@@ -76,10 +78,10 @@ export function BudgetSuggestionsModal({
             }
         }
         if (created === 0) {
-            toast("没有创建预算，请检查金额", "error");
+            toast(t("没有创建预算，请检查金额"), "error");
             return;
         }
-        toast(`已创建 ${created} 个预算`, "success");
+        toast(t("已创建 {0} 个预算", [created]), "success");
         onClose();
     }
 
@@ -87,28 +89,22 @@ export function BudgetSuggestionsModal({
         <Modal
             open={open}
             onClose={onClose}
-            title="智能预算建议"
-            description="根据最近 3 个完整月份的分类平均支出，生成月度预算草案；创建前可以修改金额。"
+            title={t("智能预算建议")}
+            description={t("根据最近 3 个完整月份的分类平均支出，生成月度预算草案；创建前可以修改金额。")}
             size="md"
             footer={
                 <div className="flex gap-2">
-                    <Button variant="secondary" className="flex-1" onClick={onClose}>
-                        取消
-                    </Button>
+                    <Button variant="secondary" className="flex-1" onClick={onClose}>{t("取消")}</Button>
                     <Button
                         className="flex-1"
                         onClick={handleCreate}
                         disabled={selected.size === 0}
-                    >
-                        创建 {selected.size} 个预算
-                    </Button>
+                    >{`${t("创建")} `}{selected.size}{` ${t("个预算")}`}</Button>
                 </div>
             }
         >
             {suggestions.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-line bg-surface-2/40 px-4 py-8 text-center text-xs text-muted">
-                    最近 3 个完整月份没有足够的支出数据，先记几笔账再来。
-                </p>
+                <p className="rounded-xl border border-dashed border-line bg-surface-2/40 px-4 py-8 text-center text-xs text-muted">{t("最近 3 个完整月份没有足够的支出数据，先记几笔账再来。")}</p>
             ) : (
                 <div className="space-y-2">
                     {suggestions.map((suggestion) => {
@@ -133,7 +129,7 @@ export function BudgetSuggestionsModal({
                                             : "border-line-strong bg-surface text-transparent",
                                     )}
                                     aria-pressed={active}
-                                    aria-label={`选择 ${suggestion.name}`}
+                                    aria-label={t("选择 {0}", [suggestion.name])}
                                 >
                                     ✓
                                 </button>
@@ -149,8 +145,7 @@ export function BudgetSuggestionsModal({
                                     <p className="truncate text-xs font-semibold text-text">
                                         {suggestion.name}
                                     </p>
-                                    <p className="mt-0.5 text-[10px] text-muted">
-                                        月均 {formatCents(suggestion.average, currency)}
+                                    <p className="mt-0.5 text-[10px] text-muted">{`${t("月均")} `}{formatCents(suggestion.average, currency)}
                                     </p>
                                 </div>
                                 <label className="flex shrink-0 items-center gap-1 text-[10px] text-muted">
@@ -164,10 +159,8 @@ export function BudgetSuggestionsModal({
                                             }))
                                         }
                                         inputMode="decimal"
-                                        aria-label={`${suggestion.name}预算金额`}
-                                    />
-                                    元
-                                </label>
+                                        aria-label={t("{0}预算金额", [suggestion.name])}
+                                    />{` ${t("元")}`}</label>
                             </div>
                         );
                     })}

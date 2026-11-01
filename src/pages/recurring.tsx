@@ -22,6 +22,8 @@ import { useActiveMember } from "@/store/member-session";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 export function Recurring() {
     const rules = useLedgerStore((state) => state.recurringRules);
     const accounts = useLedgerStore((state) => state.accounts);
@@ -81,8 +83,8 @@ export function Recurring() {
         }
         toast(
             result.posted && result.posted > 0
-                ? `已自动入账 ${result.posted} 笔`
-                : "没有到期的周期记账",
+                ? t("已自动入账 {0} 笔", [result.posted])
+                : t("没有到期的周期记账"),
             "success",
         );
     }
@@ -96,26 +98,22 @@ export function Recurring() {
             toast(result.error, "error");
             return;
         }
-        toast("周期记账已删除，已生成的流水保留", "success");
+        toast(t("周期记账已删除，已生成的流水保留"), "success");
         setDeletingRule(null);
     }
 
     return (
         <div>
             <PageHeader
-                eyebrow="通用记账"
-                title="周期记账"
-                description="房租、工资、订阅等固定收支，到点自动生成流水。"
+                eyebrow={t("通用记账")}
+                title={t("周期记账")}
+                description={t("房租、工资、订阅等固定收支，到点自动生成流水。")}
                 action={
                     <div className="flex gap-2">
                         <Button variant="secondary" onClick={handlePostDue}>
-                            <Zap className="size-4" />
-                            立即入账
-                        </Button>
+                            <Zap className="size-4" />{` ${t("立即入账")}`}</Button>
                         <Button onClick={openCreate}>
-                            <Plus className="size-4" />
-                            添加周期记账
-                        </Button>
+                            <Plus className="size-4" />{` ${t("添加周期记账")}`}</Button>
                     </div>
                 }
             />
@@ -123,52 +121,44 @@ export function Recurring() {
             {rules.length === 0 ? (
                 <EmptyState
                     icon={Repeat}
-                    title="还没有周期记账"
-                    description="把每月房租、工资或订阅设成周期记账，到日期自动生成流水。"
+                    title={t("还没有周期记账")}
+                    description={t("把每月房租、工资或订阅设成周期记账，到日期自动生成流水。")}
                     action={
                         <Button size="sm" onClick={openCreate}>
-                            <Plus className="size-3.5" />
-                            添加第一条
-                        </Button>
+                            <Plus className="size-3.5" />{` ${t("添加第一条")}`}</Button>
                     }
                 />
             ) : (
                 <>
                     <section className="card mb-4 grid grid-cols-3 gap-3 p-5">
                         <div>
-                            <p className="text-[10px] text-muted">启用中</p>
+                            <p className="text-[10px] text-muted">{t("启用中")}</p>
                             <p className="mt-1 text-base font-bold tabular-nums text-text">
-                                {activeCount} 条
-                            </p>
+                                {activeCount}{` ${t("条")}`}</p>
                         </div>
                         <div>
-                            <p className="text-[10px] text-muted">待入账</p>
+                            <p className="text-[10px] text-muted">{t("待入账")}</p>
                             <p
                                 className={cn(
                                     "mt-1 text-base font-bold tabular-nums",
                                     dueCount > 0 ? "text-liability" : "text-text",
                                 )}
                             >
-                                {dueCount} 笔
-                            </p>
+                                {dueCount}{` ${t("笔")}`}</p>
                         </div>
                         <div>
-                            <p className="text-[10px] text-muted">下次入账</p>
+                            <p className="text-[10px] text-muted">{t("下次入账")}</p>
                             <p className="mt-1 text-base font-bold text-text">
-                                {nextUpcoming ? formatDateFull(nextUpcoming) : "无"}
+                                {nextUpcoming ? formatDateFull(nextUpcoming) : t("无")}
                             </p>
                         </div>
                     </section>
 
                     {dueCount > 0 && (
                         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-liability/20 bg-liability-soft/50 px-4 py-3">
-                            <p className="text-xs font-medium text-liability">
-                                有 {dueCount} 笔周期记账已到日期，立即入账会按日期补记流水。
-                            </p>
+                            <p className="text-xs font-medium text-liability">{`${t("有")} `}{dueCount}{` ${t("笔周期记账已到日期，立即入账会按日期补记流水。")}`}</p>
                             <Button size="sm" onClick={handlePostDue}>
-                                <Zap className="size-3.5" />
-                                立即入账
-                            </Button>
+                                <Zap className="size-3.5" />{` ${t("立即入账")}`}</Button>
                         </div>
                     )}
 
@@ -225,29 +215,25 @@ export function Recurring() {
                                                     )}
                                                 >
                                                     {rule.kind === "income"
-                                                        ? "收入"
+                                                        ? t("收入")
                                                         : rule.liabilityAccountId
-                                                          ? "赊账（只记负债）"
-                                                          : "支出"}
+                                                          ? t("赊账（只记负债）")
+                                                          : t("支出")}
                                                 </span>
                                                 {due > 0 && (
-                                                    <span className="chip bg-liability-soft text-liability">
-                                                        待入账 {due}
+                                                    <span className="chip bg-liability-soft text-liability">{`${t("待入账")} `}{due}
                                                     </span>
                                                 )}
                                                 {!rule.enabled && (
-                                                    <span className="chip bg-surface-3 text-muted">
-                                                        已暂停
-                                                    </span>
+                                                    <span className="chip bg-surface-3 text-muted">{t("已暂停")}</span>
                                                 )}
                                                 {rule.ownerName && (
-                                                    <span className="chip bg-surface-3 text-muted">
-                                                        记 · {rule.ownerName}
+                                                    <span className="chip bg-surface-3 text-muted">{`${t("记 ·")} `}{rule.ownerName}
                                                     </span>
                                                 )}
                                             </div>
                                             <p className="mt-0.5 truncate text-[11px] text-muted">
-                                                {category?.name ?? "分类"}
+                                                {category?.name ?? t("分类")}
                                                 {account ? ` · ${account.name}` : ""}
                                                 {member ? ` · ${member.name}` : ""}
                                             </p>
@@ -266,7 +252,7 @@ export function Recurring() {
                                                 {formatCents(rule.amount, currency)}
                                             </p>
                                             <p className="text-[10px] text-muted">
-                                                {next ? formatDateFull(next) : "已结束"}
+                                                {next ? formatDateFull(next) : t("已结束")}
                                             </p>
                                         </div>
                                     </div>
@@ -288,13 +274,13 @@ export function Recurring() {
                                                     ) : (
                                                         <Play className="size-3" />
                                                     )}
-                                                    {rule.enabled ? "暂停" : "启用"}
+                                                    {rule.enabled ? t("暂停") : t("启用")}
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => openEdit(rule)}
                                                     className="grid size-7 place-items-center rounded-lg border border-line text-muted transition hover:text-text"
-                                                    aria-label="编辑周期记账"
+                                                    aria-label={t("编辑周期记账")}
                                                 >
                                                     <Pencil className="size-3.5" />
                                                 </button>
@@ -302,20 +288,17 @@ export function Recurring() {
                                                     type="button"
                                                     onClick={() => setDeletingRule(rule)}
                                                     className="grid size-7 place-items-center rounded-lg border border-line text-muted transition hover:border-danger/30 hover:bg-danger-soft hover:text-danger"
-                                                    aria-label="删除周期记账"
+                                                    aria-label={t("删除周期记账")}
                                                 >
                                                     <Trash2 className="size-3.5" />
                                                 </button>
                                             </>
                                         )}
                                         {!canEdit && (
-                                            <span className="text-[10px] text-muted">
-                                                只能查看其他成员创建的周期记账
-                                            </span>
+                                            <span className="text-[10px] text-muted">{t("只能查看其他成员创建的周期记账")}</span>
                                         )}
                                         {rule.lastPostedAt && (
-                                            <span className="ml-auto text-[10px] text-muted">
-                                                上次 {formatDateFull(rule.lastPostedAt)}
+                                            <span className="ml-auto text-[10px] text-muted">{`${t("上次")} `}{formatDateFull(rule.lastPostedAt)}
                                             </span>
                                         )}
                                     </div>
@@ -338,13 +321,13 @@ export function Recurring() {
             <ConfirmDialog
                 open={deletingRule !== null}
                 onClose={() => setDeletingRule(null)}
-                title="删除这条周期记账？"
+                title={t("删除这条周期记账？")}
                 description={
                     deletingRule
-                        ? `“${deletingRule.name}”以后不再自动入账，已经生成的流水会保留。`
+                        ? t("“{0}”以后不再自动入账，已经生成的流水会保留。", [deletingRule.name])
                         : ""
                 }
-                confirmLabel="删除"
+                confirmLabel={t("删除")}
                 onConfirm={handleDelete}
             />
         </div>

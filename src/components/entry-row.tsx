@@ -7,6 +7,8 @@ import { Money } from "@/components/money";
 import { formatCents } from "@/domain/money";
 import { cn } from "@/utils/cn";
 
+import { t } from "@/i18n";
+
 interface EntryRowProps {
     entry: Entry;
     accounts: Account[];
@@ -48,8 +50,8 @@ export function EntryRow({
         .filter((tag): tag is Tag => tag !== undefined);
 
     let emoji = category?.emoji ?? "📦";
-    let title = category ? `${parentCategory ? `${parentCategory.name} / ` : ""}${category.name}` : "未分类";
-    let subtitle = asset?.name ?? "未指定账户";
+    let title = category ? `${parentCategory ? `${parentCategory.name} / ` : ""}${category.name}` : t("未分类");
+    let subtitle = asset?.name ?? t("未指定账户");
     let sign: "positive" | "negative" | "none" = "negative";
     let amountClass = "text-text";
     let badge: { label: string; className: string } | undefined;
@@ -59,29 +61,29 @@ export function EntryRow({
         amountClass = "text-success";
     } else if (entry.kind === "repayment") {
         emoji = "🔁";
-        title = bill ? `还款 · ${bill.title}` : "还款";
-        subtitle = `${asset?.name ?? "账户"} → ${liability?.name ?? "负债"}`;
+        title = bill ? t("还款 · {0}", [bill.title]) : t("还款");
+        subtitle = `${asset?.name ?? t("账户")} → ${liability?.name ?? t("负债")}`;
         amountClass = "text-muted";
         badge = {
-            label: "计入支出",
+            label: t("计入支出"),
             className: "bg-accent-soft text-accent",
         };
     } else if (entry.kind === "transfer") {
         emoji = "🔀";
-        title = "转账";
-        subtitle = `${asset?.name ?? "账户"} → ${toAccount?.name ?? "账户"}`;
+        title = t("转账");
+        subtitle = `${asset?.name ?? t("账户")} → ${toAccount?.name ?? t("账户")}`;
         sign = "none";
         amountClass = "text-muted";
         badge = {
-            label: "不计收支",
+            label: t("不计收支"),
             className: "bg-surface-3 text-muted",
         };
     } else if (entry.billId) {
-        title = bill?.title ?? category?.name ?? "赊账";
-        subtitle = `${liability?.name ?? "负债"} · 赊账`;
+        title = bill?.title ?? category?.name ?? t("赊账");
+        subtitle = t("{0} · 赊账", [liability?.name ?? t("负债")]);
         amountClass = "text-liability";
         badge = {
-            label: "负债",
+            label: t("负债"),
             className: "bg-liability-soft text-liability",
         };
     }
@@ -141,8 +143,7 @@ export function EntryRow({
                         </span>
                     )}
                     {entry.ownerName && (
-                        <span className="chip bg-surface-3 text-muted">
-                            记 · {entry.ownerName}
+                        <span className="chip bg-surface-3 text-muted">{`${t("记 ·")} `}{entry.ownerName}
                         </span>
                     )}
                     {badge && <span className={cn("chip", badge.className)}>{badge.label}</span>}

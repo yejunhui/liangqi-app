@@ -5,6 +5,8 @@
  * The public feeds are keyless and CORS-friendly.
  */
 
+import { t } from "@/i18n";
+
 export interface ExchangeRateQuote {
     base: string;
     quote: string;
@@ -158,7 +160,7 @@ async function fetchLiveRates(base: string): Promise<CachedRates | null> {
         const payload = await fetchJson(url);
         const rates = ratesFromPayload(payload);
         if (!rates) {
-            throw new Error("汇率源没有返回数据");
+            throw new Error(t("汇率源没有返回数据"));
         }
         return rates;
     };
