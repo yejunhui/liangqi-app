@@ -73,6 +73,8 @@ const THEMES: Array<{ value: ThemeMode; label: string; icon: typeof Sun }> = [
     { value: "system", label: t("跟随系统"), icon: Monitor },
 ];
 
+const ONLINE_URL = "https://arksc.cn:8002/workbook/";
+
 export function Settings() {
     const accounts = useLedgerStore((state) => state.accounts);
     const categories = useLedgerStore((state) => state.categories);
@@ -802,28 +804,59 @@ export function Settings() {
                                 </a>{" "}{` ${t("发布。")}`}</p>
                         </div>
                     </div>
-                    <div className="mt-4 flex flex-col gap-4 rounded-xl border border-line bg-surface-2/55 p-4 sm:flex-row sm:items-center">
-                        <div className="min-w-0 flex-1">
-                            <p className="flex items-center gap-2 text-xs font-semibold text-text">
-                                <Heart className="size-3.5 text-danger" />
-                                {t("支持两讫")}
-                            </p>
-                            <p className="mt-1 text-[10px] leading-relaxed text-muted">
-                                {t("如果这个项目对你有帮助，欢迎用支付宝扫码支持。")}
-                            </p>
+                    <div className="mt-4 rounded-xl border border-line bg-surface-2/55 p-4">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                            <div className="min-w-0 flex-1">
+                                <p className="flex items-center gap-2 text-xs font-semibold text-text">
+                                    <Heart className="size-3.5 text-danger" />
+                                    {t("支持两讫")}
+                                </p>
+                                <p className="mt-1 text-[10px] leading-relaxed text-muted">
+                                    {t("如果这个项目对你有帮助，欢迎扫码支持。")}
+                                </p>
+                            </div>
+                            <div className="flex shrink-0 gap-3 self-center sm:self-start">
+                                <SupportQr
+                                    href={`${import.meta.env.BASE_URL}support/alipay.jpg`}
+                                    src={`${import.meta.env.BASE_URL}support/alipay-qr.jpg`}
+                                    alt={t("支付宝赞赏码")}
+                                    label={t("支付宝")}
+                                />
+                                <SupportQr
+                                    href={`${import.meta.env.BASE_URL}support/wechat.jpg`}
+                                    src={`${import.meta.env.BASE_URL}support/wechat-qr.jpg`}
+                                    alt={t("微信赞赏码")}
+                                    label={t("微信")}
+                                />
+                            </div>
                         </div>
-                        <a
-                            href={`${import.meta.env.BASE_URL}support/alipay.jpg`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="shrink-0 self-center rounded-xl border border-line bg-white p-1.5 transition hover:border-line-strong"
-                        >
-                            <img
-                                src={`${import.meta.env.BASE_URL}support/alipay-qr.jpg`}
-                                alt={t("支付宝赞赏码")}
-                                className="h-40 w-40 rounded-lg object-contain sm:h-48 sm:w-48"
-                            />
-                        </a>
+                        <div className="mt-4 flex flex-col items-center gap-3 border-t border-line pt-4 sm:flex-row">
+                            <a
+                                href={ONLINE_URL}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="shrink-0 rounded-lg border border-line bg-white p-1.5 transition hover:border-line-strong"
+                            >
+                                <img
+                                    src={`${import.meta.env.BASE_URL}support/online-url.png`}
+                                    alt={t("扫码打开在线版")}
+                                    className="h-24 w-24 rounded object-contain"
+                                />
+                            </a>
+                            <div className="text-center sm:text-left">
+                                <p className="text-xs font-semibold text-text">
+                                    {t("扫码打开在线版")}
+                                </p>
+                                <a
+                                    href={ONLINE_URL}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mt-1 block break-all text-[10px] text-accent hover:underline"
+                                >
+                                    {ONLINE_URL}
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -881,6 +914,34 @@ export function Settings() {
                 onClose={() => setPasswordMode(null)}
             />
         </div>
+    );
+}
+
+function SupportQr({
+    href,
+    src,
+    alt,
+    label,
+}: {
+    href: string;
+    src: string;
+    alt: string;
+    label: string;
+}) {
+    return (
+        <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="flex w-24 shrink-0 flex-col items-center gap-1 rounded-lg border border-line bg-white p-1.5 transition hover:border-line-strong sm:w-28"
+        >
+            <img
+                src={src}
+                alt={alt}
+                className="h-20 w-20 rounded object-contain sm:h-24 sm:w-24"
+            />
+            <span className="text-[9px] font-semibold text-text">{label}</span>
+        </a>
     );
 }
 

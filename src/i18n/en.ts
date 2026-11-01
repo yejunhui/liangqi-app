@@ -1418,6 +1418,10 @@ export const EN: Record<string, string> = {
     "WebDAV 认证失败，请检查账号和密码": "WebDAV authentication failed. Check the username and password.",
     "WebDAV 用户名": "WebDAV username",
     "支持两讫": "Support Liangqi",
-    "如果这个项目对你有帮助，欢迎用支付宝扫码支持。": "If this project helps you, you can support it by scanning the Alipay QR code.",
-    "支付宝赞赏码": "Alipay support QR code"
+    "支付宝赞赏码": "Alipay support QR code",
+    "支付宝": "Alipay",
+    "微信": "WeChat",
+    "微信赞赏码": "WeChat support QR code",
+    "扫码打开在线版": "Scan to open the online app",
+    "如果这个项目对你有帮助，欢迎扫码支持。": "If this project helps you, you can support it by scanning a QR code."
 };

@@ -418,11 +418,19 @@ server/
 - [ ] 原生 iOS / Android 壳（可选，Capacitor）
 - [ ] 更完整的组件测试与端到端测试
 
+## 扫码使用
+
+手机扫码打开在线版：
+
+<img src="public/support/online-url.png" alt="扫码使用两讫" width="180" />
+
 ## 支持项目
 
-如果两讫对你有帮助，欢迎用支付宝扫码支持后续开发。
+如果两讫对你有帮助，欢迎使用支付宝或微信扫码支持后续开发。
 
-<img src="public/support/alipay-qr.jpg" alt="支付宝赞赏码" width="260" />
+| 支付宝 | 微信 |
+| --- | --- |
+| <img src="public/support/alipay-qr.jpg" alt="支付宝赞赏码" width="220" /> | <img src="public/support/wechat-qr.jpg" alt="微信赞赏码" width="220" /> |
 
 ## 许可证
 
