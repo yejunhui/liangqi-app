@@ -2,6 +2,8 @@
 
 > 银货两讫，账目两清。
 
+**语言：** **简体中文** · [繁體中文](README.zh-TW.md) · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Português](README.pt.md) · [Русский](README.ru.md)
+
 **在线使用：** https://arksc.cn:8002/workbook/  
 **源码仓库：** [Gitee](https://gitee.com/PharaohMan/liangqi-app) · [GitHub](https://github.com/yejunhui/liangqi-app)  
 **开源协议：** AGPL-3.0-or-later
@@ -389,6 +391,7 @@ server/
 - UI 文案使用 `t("中文源文案", [参数])`，占位符写作 `{0}`、`{1}`；翻译包在 `src/i18n/<语言>.ts`，key 是中文源文案。缺少目标语言翻译时回退英文，再回退中文。
 - 语言包按需动态加载，不会让首屏加载所有翻译。
 - 日期、金额、报表和语音识别语言会跟随当前语言格式化。
+- README 提供 10 种语言版本，可从文档顶部的语言选择器切换。
 
 核心数据模型在 `src/types.ts`：
 
