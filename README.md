@@ -467,3 +467,8 @@ valid; this version and later releases use AGPL-3.0-or-later.
 ## 免责声明
 
 本项目是记账工具，不构成财务、税务或投资建议。使用前请先导出备份；作者不对因数据丢失、计算错误或使用本软件造成的损失负责。
+
+## 更多建议请给我们发邮件吧
+
+junhuiye@foxmail.com
+1589082159@qq.com
