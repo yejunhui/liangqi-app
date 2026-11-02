@@ -30,10 +30,7 @@ import {
 } from "@/domain/attachments";
 import {
     getAccountBalance,
-    getBillDueInfo,
     getBillRemaining,
-    getBillStatus,
-    getOpenBills,
 } from "@/domain/ledger";
 import { formatCents, parseAmountToCents, currencySymbol } from "@/domain/money";
 import { CURRENCIES } from "@/domain/currencies";
@@ -123,11 +120,8 @@ export function EntryModal() {
         () => categories.filter((category) => category.kind === "income"),
         [categories],
     );
-    const openBills = useMemo(() => getOpenBills(bills, entries), [bills, entries]);
-
-    const selectedBill = bills.find((bill) => bill.id === billId);
-    const selectedBillLiability = liabilityAccounts.find(
-        (account) => account.id === selectedBill?.liabilityAccountId,
+    const selectedLiability = liabilityAccounts.find(
+        (account) => account.id === liabilityAccountId,
     );
     const selectedCategory = categories.find((category) => category.id === categoryId);
     const selectedAsset = accounts.find((account) => account.id === assetAccountId);
@@ -142,8 +136,10 @@ export function EntryModal() {
                   ? Math.round(foreignCents * rateNumber)
                   : null
               : foreignCents;
-    const repaymentRemaining = selectedBill ? getBillRemaining(selectedBill, entries) : 0;
-    const repaymentProjected = Math.max(0, repaymentRemaining - (parsedAmount ?? 0));
+    const liabilityBalance = selectedLiability
+        ? getAccountBalance(selectedLiability, entries)
+        : 0;
+    const repaymentProjected = Math.max(0, liabilityBalance - (parsedAmount ?? 0));
     const assetBalance = selectedAsset ? getAccountBalance(selectedAsset, entries) : 0;
 
     useEffect(() => {
@@ -199,7 +195,10 @@ export function EntryModal() {
                 ?.id ?? assetList[1]?.id ?? assetList[0]?.id ?? "",
         );
         setLiabilityAccountId(
-            prefill?.liabilityAccountId ?? liabilityList[0]?.id ?? "",
+            initialBill?.liabilityAccountId ??
+                prefill?.liabilityAccountId ??
+                liabilityList[0]?.id ??
+                "",
         );
         setBillTitle("");
         setDueDate("");
@@ -295,6 +294,16 @@ export function EntryModal() {
     function switchKind(next: EntryKind) {
         setKind(next);
         setError("");
+    }
+
+    function changeLiabilityAccount(nextId: string) {
+        setLiabilityAccountId(nextId);
+        if (billId) {
+            const linkedBill = bills.find((bill) => bill.id === billId);
+            if (!linkedBill || linkedBill.liabilityAccountId !== nextId) {
+                setBillId("");
+            }
+        }
     }
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -460,19 +469,20 @@ export function EntryModal() {
             createdEntryId = result.entryId;
             toast(t("转账已记录，不计入支出和收入"), "success");
         } else {
-            if (!billId) {
-                setError(t("请选择要还款的账单"));
-                return;
-            }
             if (!assetAccountId) {
                 setError(t("请选择还款账户"));
+                return;
+            }
+            if (!liabilityAccountId) {
+                setError(t("请选择还款到的负债账户"));
                 return;
             }
             const result = addRepayment({
                 amount: cents,
                 date: timestamp,
-                billId,
                 accountId: assetAccountId,
+                liabilityAccountId,
+                billId: billId || undefined,
                 memberId,
                 tagIds,
                 location,
@@ -677,8 +687,8 @@ export function EntryModal() {
                         </p>
                     )}
 
-                    {kind === "repayment" && selectedBill && (
-                        <p className="mt-2 text-[11px] text-muted">{`${t("待还")} `}{formatCents(repaymentRemaining, currency)}
+                    {kind === "repayment" && selectedLiability && (
+                        <p className="mt-2 text-[11px] text-muted">{`${t("待还")} `}{formatCents(liabilityBalance, currency)}
                             {parsedAmount !== null && parsedAmount > 0 && (
                                 <>
                                     {" "}{` ${t("· 还款后剩")} `}{formatCents(repaymentProjected, currency)}
@@ -842,137 +852,49 @@ export function EntryModal() {
 
                 {kind === "repayment" && (
                     <div className="space-y-4">
-                        {openBills.length === 0 ? (
-                            <div className="rounded-2xl border border-dashed border-line bg-surface-2/50 px-4 py-6 text-center">
-                                <p className="text-sm font-semibold text-text">{t("当前没有待还账单")}</p>
-                                <p className="mt-1 text-xs text-muted">{t("赊账消费会自动生成账单，也可以先记一笔。")}</p>
-                                <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    className="mt-4"
-                                    onClick={() => {
-                                        setKind("expense");
-                                        setPaymentMode("liability");
-                                    }}
-                                >
-                                    <Plus className="size-3.5" />{` ${t("去记一笔赊账")}`}</Button>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <AccountPicker
+                                label={t("从哪个账户还款")}
+                                accounts={assetAccounts}
+                                value={assetAccountId}
+                                onChange={setAssetAccountId}
+                                emptyHint={t("还没有储蓄账户，请先到账户页添加")}
+                            />
+                            <AccountPicker
+                                label={t("还款到")}
+                                accounts={liabilityAccounts}
+                                value={liabilityAccountId}
+                                onChange={changeLiabilityAccount}
+                                emptyHint={t("还没有负债账户，请先到账户页添加")}
+                            />
+                        </div>
+                        <div className="rounded-xl border border-line bg-surface-2/60 p-3.5">
+                            <div className="flex items-center gap-2 text-[11px] font-semibold text-text">
+                                <Info className="size-3.5 text-accent" />{` ${t("还款会减少存款和负债，并计入支出")}`}</div>
+                            <div className="mt-2 space-y-1 text-[11px] text-muted">
+                                <div className="flex justify-between gap-3">
+                                    <span className="min-w-0 truncate">{selectedAsset?.name ?? t("存款")}</span>
+                                    <span className="shrink-0 tabular-nums">
+                                        {formatCents(assetBalance, currency)} →{" "}
+                                        {formatCents(assetBalance - (parsedAmount ?? 0), currency)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between gap-3">
+                                    <span className="min-w-0 truncate">
+                                        {selectedLiability?.name ?? t("负债")}
+                                    </span>
+                                    <span className="shrink-0 tabular-nums">
+                                        {formatCents(liabilityBalance, currency)} →{" "}
+                                        {formatCents(repaymentProjected, currency)}
+                                    </span>
+                                </div>
                             </div>
-                        ) : (
-                            <>
-                                <div>
-                                    <p className="mb-2 text-xs font-semibold text-muted">{t("选择账单")}</p>
-                                    <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
-                                        {openBills.map((bill) => {
-                                            const remaining = getBillRemaining(bill, entries);
-                                            const billCategory = categories.find(
-                                                (category) => category.id === bill.categoryId,
-                                            );
-                                            const billLiability = liabilityAccounts.find(
-                                                (account) => account.id === bill.liabilityAccountId,
-                                            );
-                                            const status = getBillStatus(bill, entries);
-                                            const due = getBillDueInfo(bill, status);
-                                            const active = billId === bill.id;
-                                            return (
-                                                <button
-                                                    key={bill.id}
-                                                    type="button"
-                                                    onClick={() => setBillId(bill.id)}
-                                                    className={cn(
-                                                        "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition",
-                                                        active
-                                                            ? "border-accent bg-accent-soft/60"
-                                                            : "border-line bg-surface hover:border-line-strong",
-                                                    )}
-                                                >
-                                                    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-base">
-                                                        {billCategory?.emoji ?? "🧾"}
-                                                    </span>
-                                                    <span className="min-w-0 flex-1">
-                                                        <span className="block truncate text-xs font-semibold text-text">
-                                                            {bill.title}
-                                                        </span>
-                                                        <span className="mt-0.5 block text-[10px] text-muted">
-                                                            {billLiability
-                                                                ? `${billLiability.emoji} ${billLiability.name} · `
-                                                                : `${t("负债账户")} · `}
-                                                            {due.label}
-                                                        </span>
-                                                    </span>
-                                                    <span className="shrink-0 text-right">
-                                                        <span className="block text-xs font-bold tabular-nums text-liability">
-                                                            {formatCents(remaining, currency)}
-                                                        </span>
-                                                        <span className="text-[10px] text-muted">{t("待还")}</span>
-                                                    </span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    <AccountPicker
-                                        label={t("从哪个账户还款")}
-                                        accounts={assetAccounts}
-                                        value={assetAccountId}
-                                        onChange={setAssetAccountId}
-                                        emptyHint={t("还没有储蓄账户，请先到账户页添加")}
-                                    />
-                                    <div>
-                                        <p className="mb-2 text-xs font-semibold text-muted">{t("还款到")}</p>
-                                        <div className="rounded-xl border border-line bg-surface-2/55 px-3 py-2.5">
-                                            {selectedBillLiability ? (
-                                                <p className="flex items-center gap-2 text-xs font-semibold text-text">
-                                                    <span>{selectedBillLiability.emoji}</span>
-                                                    <span className="min-w-0 flex-1 truncate">
-                                                        {selectedBillLiability.name}
-                                                    </span>
-                                                </p>
-                                            ) : (
-                                                <p className="text-[11px] text-muted">{t("请先选择账单")}</p>
-                                            )}
-                                            <p className="mt-1 text-[10px] leading-relaxed text-muted">
-                                                {t("还款会减少这个负债账户的余额。")}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {selectedBill && (
-                                    <div className="rounded-xl border border-line bg-surface-2/60 p-3.5">
-                                        <div className="flex items-center gap-2 text-[11px] font-semibold text-text">
-                                            <Info className="size-3.5 text-accent" />{` ${t("还款会减少存款和负债，并计入支出")}`}</div>
-                                        <div className="mt-2 space-y-1 text-[11px] text-muted">
-                                            <div className="flex justify-between">
-                                                <span>{t("存款")}</span>
-                                                <span className="tabular-nums">
-                                                    {formatCents(assetBalance, currency)} →{" "}
-                                                    {formatCents(
-                                                        assetBalance - (parsedAmount ?? 0),
-                                                        currency,
-                                                    )}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between gap-3">
-                                                <span className="min-w-0 truncate">
-                                                    {selectedBillLiability?.name ?? t("负债")}
-                                                </span>
-                                                <span className="shrink-0 tabular-nums">
-                                                    {formatCents(repaymentRemaining, currency)} →{" "}
-                                                    {formatCents(repaymentProjected, currency)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        {parsedAmount !== null &&
-                                            parsedAmount > 0 &&
-                                            parsedAmount > assetBalance && (
-                                                <p className="mt-2 text-[10px] leading-relaxed text-danger">{t("还款后该账户余额会变成负数，请确认余额。")}</p>
-                                            )}
-                                    </div>
+                            {parsedAmount !== null &&
+                                parsedAmount > 0 &&
+                                parsedAmount > assetBalance && (
+                                    <p className="mt-2 text-[10px] leading-relaxed text-danger">{t("还款后该账户余额会变成负数，请确认余额。")}</p>
                                 )}
-                            </>
-                        )}
+                        </div>
                     </div>
                 )}
 

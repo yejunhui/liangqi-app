@@ -376,3 +376,25 @@ export function validateRepayment(
     }
     return null;
 }
+
+export function validateRepaymentToAccount(
+    liabilityAccount: Account,
+    entries: Entry[],
+    amount: number,
+    assetAccount: Account | undefined,
+): string | null {
+    if (!assetAccount || assetAccount.kind !== "asset") {
+        return t("请选择一个储蓄账户");
+    }
+    if (!Number.isInteger(amount) || amount <= 0) {
+        return t("还款金额必须大于 0");
+    }
+    const balance = getAccountBalance(liabilityAccount, entries);
+    if (balance <= 0) {
+        return t("该负债账户没有待还余额");
+    }
+    if (amount > balance) {
+        return t("还款金额不能超过该负债账户余额 {0}", [formatCents(balance)]);
+    }
+    return null;
+}

@@ -1433,5 +1433,9 @@ export const PT: Record<string, string> = {
     "法律声明": "Avisos legais",
     "还款到": "Pagar para",
     "请先选择账单": "Selecione primeiro uma fatura",
-    "还款会减少这个负债账户的余额。": "O pagamento reduz o saldo desta conta de passivo."
+    "还款会减少这个负债账户的余额。": "O pagamento reduz o saldo desta conta de passivo.",
+    "请选择还款到的负债账户": "Selecione a conta de passivo para pagar",
+    "还没有负债账户，请先到账户页添加": "Ainda não há contas de passivo. Adicione uma na página de contas.",
+    "该负债账户没有待还余额": "Esta conta de passivo não tem saldo pendente.",
+    "还款金额不能超过该负债账户余额 {0}": "O pagamento não pode exceder o saldo da conta de passivo {0}."
 };

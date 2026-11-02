@@ -99,6 +99,7 @@ describe("ledger member defaults", () => {
             date: NOW,
             billId: result.billId!,
             accountId: "acc_bank",
+            liabilityAccountId: "acc_credit",
         });
         expect(repay.ok).toBe(true);
         if (!repay.ok) {
@@ -108,6 +109,39 @@ describe("ledger member defaults", () => {
             .getState()
             .entries.find((item) => item.id === repay.entryId);
         expect(repayment?.categoryId).toBe("cat_food");
+    });
+
+    it("records a direct repayment from an asset account to a liability account", () => {
+        const state = useLedgerStore.getState();
+        const purchase = state.addExpense({
+            amount: 10_000,
+            date: NOW,
+            categoryId: "cat_food",
+            source: { type: "liability", accountId: "acc_credit" },
+        });
+        expect(purchase.ok).toBe(true);
+        if (!purchase.ok) {
+            return;
+        }
+
+        const repay = state.addRepayment({
+            amount: 4_000,
+            date: NOW,
+            accountId: "acc_bank",
+            liabilityAccountId: "acc_credit",
+        });
+        expect(repay.ok).toBe(true);
+        if (!repay.ok) {
+            return;
+        }
+
+        const repayment = useLedgerStore
+            .getState()
+            .entries.find((item) => item.id === repay.entryId);
+        expect(repayment?.kind).toBe("repayment");
+        expect(repayment?.billId).toBeUndefined();
+        expect(repayment?.liabilityAccountId).toBe("acc_credit");
+        expect(repayment?.memberId).toBe("member_bob");
     });
 
     it("records member update timestamps for shared-ledger merge", () => {

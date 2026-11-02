@@ -16,6 +16,7 @@ import {
     getOutstandingTotal,
     getTotals,
     validateRepayment,
+    validateRepaymentToAccount,
 } from "@/domain/ledger";
 
 const NOW = new Date(2026, 9, 31, 12, 0, 0, 0).getTime();
@@ -180,6 +181,39 @@ describe("bill lifecycle", () => {
         expect(validateRepayment(bill, data.entries, 20_001, bank)).toContain("不能超过");
         expect(validateRepayment(bill, data.entries, 20_000, bank)).toBeNull();
         expect(validateRepayment(bill, data.entries, 0, bank)).toContain("大于 0");
+    });
+
+    it("validates a direct repayment against the liability account balance", () => {
+        const data = buildFixture();
+        const credit = data.accounts.find((account) => account.id === "acc_credit")!;
+        const bank = data.accounts.find((account) => account.id === "acc_bank");
+
+        expect(validateRepaymentToAccount(credit, data.entries, 20_000, bank)).toBeNull();
+        expect(validateRepaymentToAccount(credit, data.entries, 20_001, bank)).toContain(
+            "不能超过",
+        );
+        expect(validateRepaymentToAccount(credit, data.entries, 0, bank)).toContain(
+            "大于 0",
+        );
+    });
+
+    it("reduces the liability account for a repayment without a bill", () => {
+        const data = buildFixture();
+        const credit = data.accounts.find((account) => account.id === "acc_credit")!;
+        const bank = data.accounts.find((account) => account.id === "acc_bank")!;
+        data.entries.push({
+            id: "entry_direct_repay",
+            kind: "repayment",
+            amount: 5_000,
+            date: NOW,
+            accountId: "acc_bank",
+            liabilityAccountId: "acc_credit",
+            createdAt: NOW,
+        });
+
+        expect(getAccountBalance(bank, data.entries)).toBe(145_000);
+        expect(getAccountBalance(credit, data.entries)).toBe(15_000);
+        expect(getBillRemaining(data.bills[0], data.entries)).toBe(20_000);
     });
 
     it("recognizes a repayment as expense while the credit purchase stays liability-only", () => {

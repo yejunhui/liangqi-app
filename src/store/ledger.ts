@@ -34,6 +34,7 @@ import {
     getBillRemaining,
     getLinkedExpense,
     validateRepayment,
+    validateRepaymentToAccount,
 } from "@/domain/ledger";
 import { getActiveBook, useLibraryStore } from "@/store/library";
 import { getActiveMember, canModifyOwner } from "@/store/member-session";
@@ -85,8 +86,12 @@ export interface IncomeInput {
 export interface RepaymentInput {
     amount: number;
     date: number;
-    billId: string;
+    /** Asset account the money leaves. */
     accountId: string;
+    /** Liability account the money is applied to. */
+    liabilityAccountId: string;
+    /** Optional link when the repayment was started from a bill. */
+    billId?: string;
     memberId?: string;
     tagIds?: string[];
     location?: EntryLocation;
@@ -486,18 +491,34 @@ const createActions = (
         }
 
         const state = get();
-        const bill = state.bills.find((item) => item.id === input.billId);
-        if (!bill) {
+        const account = state.accounts.find((item) => item.id === input.accountId);
+        if (!account || account.kind !== "asset") {
+            return fail(t("请选择还款账户"));
+        }
+        const liability = state.accounts.find(
+            (item) => item.id === input.liabilityAccountId,
+        );
+        if (!liability || liability.kind !== "liability") {
+            return fail(t("请选择还款到的负债账户"));
+        }
+        const bill = input.billId
+            ? state.bills.find((item) => item.id === input.billId)
+            : undefined;
+        if (input.billId && !bill) {
             return fail(t("账单不存在"));
         }
-        const account = state.accounts.find((item) => item.id === input.accountId);
-        const error = validateRepayment(bill, state.entries, input.amount, account);
+        if (bill && bill.liabilityAccountId !== liability.id) {
+            return fail(t("还款流水的负债账户与账单不一致"));
+        }
+        const error = bill
+            ? validateRepayment(bill, state.entries, input.amount, account)
+            : validateRepaymentToAccount(liability, state.entries, input.amount, account);
         if (error) {
             return fail(error);
         }
         const memberId =
             input.memberId ??
-            bill.memberId ??
+            bill?.memberId ??
             getActiveMember()?.id ??
             state.members[0]?.id;
         if (!memberId || !state.members.some((member) => member.id === memberId)) {
@@ -518,9 +539,9 @@ const createActions = (
             amount: input.amount,
             date: input.date,
             accountId: input.accountId,
-            liabilityAccountId: bill.liabilityAccountId,
-            billId: bill.id,
-            categoryId: bill.categoryId,
+            liabilityAccountId: liability.id,
+            billId: bill?.id,
+            categoryId: bill?.categoryId,
             memberId,
             tagIds: tagResult.tagIds,
             note: cleanNote(input.note),
