@@ -6,7 +6,7 @@
 
 **線上使用：** https://arksc.cn:8002/workbook/  
 **原始碼儲存庫：** [Gitee](https://gitee.com/PharaohMan/liangqi-app) · [GitHub](https://github.com/yejunhui/liangqi-app)  
-**開源協議：** AGPL-3.0-or-later
+**開源協議：** AGPL-3.0-or-later · **AI／開發脈絡：** [AGENTS.md](AGENTS.md)
 
 兩訖是一個**本機優先、可連線遠端儲存庫**的記帳 Web App，專門把兩類支出分開：
 

@@ -6,7 +6,7 @@
 
 **Live app:** https://arksc.cn:8002/workbook/  
 **Source:** [Gitee](https://gitee.com/PharaohMan/liangqi-app) · [GitHub](https://github.com/yejunhui/liangqi-app)  
-**License:** AGPL-3.0-or-later
+**License:** AGPL-3.0-or-later · **AI / developer context:** [AGENTS.md](AGENTS.md)
 
 Liangqi is a **local-first shared-ledger web app** that keeps cash spending and credit purchases separate:
 
