@@ -1437,5 +1437,6 @@ export const ES: Record<string, string> = {
     "请选择还款到的负债账户": "Selecciona la cuenta de pasivo a la que pagar",
     "还没有负债账户，请先到账户页添加": "Aún no hay cuentas de pasivo. Añade una en la página de cuentas.",
     "该负债账户没有待还余额": "Esta cuenta de pasivo no tiene saldo pendiente.",
-    "还款金额不能超过该负债账户余额 {0}": "El pago no puede superar el saldo de la cuenta de pasivo {0}."
+    "还款金额不能超过该负债账户余额 {0}": "El pago no puede superar el saldo de la cuenta de pasivo {0}.",
+    "还款流水关联的负债账户不存在": "La cuenta de pasivo asociada al movimiento de pago no existe"
 };

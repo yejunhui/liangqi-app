@@ -195,6 +195,10 @@ describe("bill lifecycle", () => {
         expect(validateRepaymentToAccount(credit, data.entries, 0, bank)).toContain(
             "大于 0",
         );
+        const emptyCredit = { ...credit, id: "acc_empty", openingBalance: 0 };
+        expect(validateRepaymentToAccount(emptyCredit, data.entries, 100, bank)).toContain(
+            "没有待还余额",
+        );
     });
 
     it("reduces the liability account for a repayment without a bill", () => {

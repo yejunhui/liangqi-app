@@ -120,6 +120,13 @@ export function EntryModal() {
         () => categories.filter((category) => category.kind === "income"),
         [categories],
     );
+    const liabilityBalances = useMemo(() => {
+        const balances: Record<string, number> = {};
+        for (const account of liabilityAccounts) {
+            balances[account.id] = getAccountBalance(account, entries);
+        }
+        return balances;
+    }, [liabilityAccounts, entries]);
     const selectedLiability = liabilityAccounts.find(
         (account) => account.id === liabilityAccountId,
     );
@@ -137,10 +144,18 @@ export function EntryModal() {
                   : null
               : foreignCents;
     const liabilityBalance = selectedLiability
-        ? getAccountBalance(selectedLiability, entries)
+        ? (liabilityBalances[selectedLiability.id] ?? 0)
         : 0;
     const repaymentProjected = Math.max(0, liabilityBalance - (parsedAmount ?? 0));
     const assetBalance = selectedAsset ? getAccountBalance(selectedAsset, entries) : 0;
+    const repaymentBlocked =
+        kind === "repayment" &&
+        (!assetAccountId ||
+            !selectedLiability ||
+            liabilityBalance <= 0 ||
+            parsedAmount === null ||
+            parsedAmount <= 0 ||
+            parsedAmount > liabilityBalance);
 
     useEffect(() => {
         if (!open) {
@@ -539,7 +554,12 @@ export function EntryModal() {
             footer={
                 <div className="flex gap-2">
                     <Button variant="secondary" className="flex-1" onClick={close}>{t("取消")}</Button>
-                    <Button type="submit" form="entry-form" className="flex-[1.5]">
+                    <Button
+                        type="submit"
+                        form="entry-form"
+                        className="flex-[1.5]"
+                        disabled={repaymentBlocked}
+                    >
                         {submitLabel}
                     </Button>
                 </div>
@@ -866,6 +886,15 @@ export function EntryModal() {
                                 value={liabilityAccountId}
                                 onChange={changeLiabilityAccount}
                                 emptyHint={t("还没有负债账户，请先到账户页添加")}
+                                hints={Object.fromEntries(
+                                    liabilityAccounts.map((account) => [
+                                        account.id,
+                                        formatCents(
+                                            liabilityBalances[account.id] ?? 0,
+                                            currency,
+                                        ),
+                                    ]),
+                                )}
                             />
                         </div>
                         <div className="rounded-xl border border-line bg-surface-2/60 p-3.5">
@@ -889,7 +918,21 @@ export function EntryModal() {
                                     </span>
                                 </div>
                             </div>
-                            {parsedAmount !== null &&
+                            {selectedLiability && liabilityBalance <= 0 && (
+                                <p className="mt-2 text-[10px] leading-relaxed text-danger">{t("该负债账户没有待还余额")}</p>
+                            )}
+                            {selectedLiability &&
+                                liabilityBalance > 0 &&
+                                parsedAmount !== null &&
+                                parsedAmount > liabilityBalance && (
+                                    <p className="mt-2 text-[10px] leading-relaxed text-danger">
+                                        {t("还款金额不能超过该负债账户余额 {0}", [
+                                            formatCents(liabilityBalance, currency),
+                                        ])}
+                                    </p>
+                                )}
+                            {liabilityBalance > 0 &&
+                                parsedAmount !== null &&
                                 parsedAmount > 0 &&
                                 parsedAmount > assetBalance && (
                                     <p className="mt-2 text-[10px] leading-relaxed text-danger">{t("还款后该账户余额会变成负数，请确认余额。")}</p>
@@ -1075,6 +1118,7 @@ function AccountPicker({
     value,
     onChange,
     emptyHint,
+    hints,
     onAdd,
     addLabel = t("添加账户"),
 }: {
@@ -1083,6 +1127,7 @@ function AccountPicker({
     value: string;
     onChange: (value: string) => void;
     emptyHint: string;
+    hints?: Record<string, string>;
     onAdd?: () => void;
     addLabel?: string;
 }) {
@@ -1109,6 +1154,11 @@ function AccountPicker({
                         >
                             <span>{account.emoji}</span>
                             {account.name}
+                            {hints?.[account.id] && (
+                                <span className="text-[10px] font-normal opacity-70">
+                                    {hints[account.id]}
+                                </span>
+                            )}
                         </button>
                     ))}
                     {onAdd && (

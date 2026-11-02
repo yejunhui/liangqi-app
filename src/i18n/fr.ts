@@ -1437,5 +1437,6 @@ export const FR: Record<string, string> = {
     "请选择还款到的负债账户": "Sélectionnez le compte de passif à rembourser",
     "还没有负债账户，请先到账户页添加": "Aucun compte de passif. Ajoutez-en un dans la page Comptes.",
     "该负债账户没有待还余额": "Ce compte de passif n’a aucun solde à rembourser.",
-    "还款金额不能超过该负债账户余额 {0}": "Le remboursement ne peut pas dépasser le solde du compte de passif {0}."
+    "还款金额不能超过该负债账户余额 {0}": "Le remboursement ne peut pas dépasser le solde du compte de passif {0}.",
+    "还款流水关联的负债账户不存在": "Le compte de passif associé à l’écriture de remboursement n’existe pas"
 };

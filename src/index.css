@@ -196,6 +196,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         transform: translateY(1px) scale(0.99);
     }
 
+    .btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+        transform: none;
+    }
+
     .btn-primary {
         background: var(--accent);
         color: var(--surface);

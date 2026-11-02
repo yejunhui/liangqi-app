@@ -138,6 +138,23 @@ describe("backup validation", () => {
         }
     });
 
+    it("accepts a direct repayment without a bill", () => {
+        const data = buildData();
+        data.entries = data.entries.filter((entry) => entry.id !== "entry_repay");
+        data.entries.push({
+            id: "entry_direct_repay",
+            kind: "repayment",
+            amount: 5_000,
+            date: NOW,
+            accountId: "acc_bank",
+            liabilityAccountId: "acc_credit",
+            createdAt: NOW,
+        });
+
+        const parsed = parseBackup(createExportPayload(data));
+        expect(parsed.ok).toBe(true);
+    });
+
     it("rejects a repayment larger than the bill principal", () => {
         const data = buildData();
         data.entries.push({

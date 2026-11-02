@@ -111,6 +111,20 @@ describe("ledger member defaults", () => {
         expect(repayment?.categoryId).toBe("cat_food");
     });
 
+    it("rejects a direct repayment when the liability has no outstanding balance", () => {
+        const result = useLedgerStore.getState().addRepayment({
+            amount: 1_000,
+            date: NOW,
+            accountId: "acc_bank",
+            liabilityAccountId: "acc_credit",
+        });
+
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.error).toContain("没有待还余额");
+        }
+    });
+
     it("records a direct repayment from an asset account to a liability account", () => {
         const state = useLedgerStore.getState();
         const purchase = state.addExpense({

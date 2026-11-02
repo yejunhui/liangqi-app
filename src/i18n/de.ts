@@ -1437,5 +1437,6 @@ export const DE: Record<string, string> = {
     "请选择还款到的负债账户": "Wähle das Passivkonto für die Rückzahlung",
     "还没有负债账户，请先到账户页添加": "Noch kein Passivkonto. Füge eines auf der Kontenseite hinzu.",
     "该负债账户没有待还余额": "Dieses Passivkonto hat keinen offenen Saldo.",
-    "还款金额不能超过该负债账户余额 {0}": "Die Rückzahlung darf den Saldo des Passivkontos {0} nicht überschreiten."
+    "还款金额不能超过该负债账户余额 {0}": "Die Rückzahlung darf den Saldo des Passivkontos {0} nicht überschreiten.",
+    "还款流水关联的负债账户不存在": "Das mit der Rückzahlungsbuchung verknüpfte Passivkonto existiert nicht"
 };

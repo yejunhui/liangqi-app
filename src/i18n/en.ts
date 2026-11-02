@@ -1437,5 +1437,6 @@ export const EN: Record<string, string> = {
     "请选择还款到的负债账户": "Select the liability account to repay",
     "还没有负债账户，请先到账户页添加": "No liability accounts yet. Add one on the Accounts page.",
     "该负债账户没有待还余额": "This liability account has no outstanding balance.",
-    "还款金额不能超过该负债账户余额 {0}": "The repayment cannot exceed the liability account balance {0}."
+    "还款金额不能超过该负债账户余额 {0}": "The repayment cannot exceed the liability account balance {0}.",
+    "还款流水关联的负债账户不存在": "The liability account associated with the repayment transaction does not exist"
 };

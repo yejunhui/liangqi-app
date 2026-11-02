@@ -791,15 +791,21 @@ function validateReferences(data: LedgerData): void {
             if (entry.toAccountId) {
                 throw new Error(t("非转账流水不应设置转入账户"));
             }
-            const bill = entry.billId ? bills.get(entry.billId) : undefined;
-            if (!bill) {
-                throw new Error(t("还款流水关联的账单不存在"));
-            }
             const account = entry.accountId ? accounts.get(entry.accountId) : undefined;
             if (!account || account.kind !== "asset") {
                 throw new Error(t("还款流水关联的储蓄账户不存在"));
             }
-            if (entry.liabilityAccountId !== bill.liabilityAccountId) {
+            const liability = entry.liabilityAccountId
+                ? accounts.get(entry.liabilityAccountId)
+                : undefined;
+            if (!liability || liability.kind !== "liability") {
+                throw new Error(t("还款流水关联的负债账户不存在"));
+            }
+            const bill = entry.billId ? bills.get(entry.billId) : undefined;
+            if (entry.billId && !bill) {
+                throw new Error(t("还款流水关联的账单不存在"));
+            }
+            if (bill && entry.liabilityAccountId !== bill.liabilityAccountId) {
                 throw new Error(t("还款流水的负债账户与账单不一致"));
             }
             if (entry.categoryId) {
@@ -807,7 +813,7 @@ function validateReferences(data: LedgerData): void {
                 if (!category || category.kind !== "expense") {
                     throw new Error(t("还款流水关联的支出分类不存在"));
                 }
-                if (bill.categoryId !== entry.categoryId) {
+                if (bill?.categoryId && bill.categoryId !== entry.categoryId) {
                     throw new Error(t("还款流水的分类与账单不一致"));
                 }
             }
