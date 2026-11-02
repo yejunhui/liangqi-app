@@ -12,7 +12,6 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { useLedgerStore } from "@/store/ledger";
 import { toast } from "@/store/toast";
-import { cn } from "@/utils/cn";
 
 import { t } from "@/i18n";
 
@@ -109,24 +108,21 @@ export function Members() {
                                         {count > 0 ? t("{0} 处关联记录", [count]) : t("还没有使用")}
                                     </p>
                                 </div>
-                                <div
-                                    className={cn(
-                                        "flex shrink-0 items-center gap-0.5 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100",
-                                    )}
-                                >
+                                <div className="flex shrink-0 items-center gap-1">
                                     <button
                                         type="button"
                                         onClick={() => openEdit(member)}
-                                        className="grid size-7 place-items-center rounded-lg text-muted transition hover:bg-surface-2 hover:text-text"
+                                        className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-[10px] font-medium text-muted transition hover:bg-surface-2 hover:text-text"
                                         aria-label={t("编辑成员")}
                                     >
                                         <Pencil className="size-3.5" />
+                                        <span className="hidden sm:inline">{t("编辑成员")}</span>
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setDeleting(member)}
                                         disabled={members.length <= 1}
-                                        className="grid size-7 place-items-center rounded-lg text-muted transition hover:bg-danger-soft hover:text-danger disabled:cursor-not-allowed disabled:opacity-30"
+                                        className="grid size-8 place-items-center rounded-lg text-muted transition hover:bg-danger-soft hover:text-danger disabled:cursor-not-allowed disabled:opacity-30"
                                         aria-label={t("删除成员")}
                                     >
                                         <Trash2 className="size-3.5" />
