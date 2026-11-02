@@ -13,6 +13,7 @@ import {
     validateMemberPin,
 } from "@/domain/member-pin";
 import { useLedgerStore } from "@/store/ledger";
+import { useActiveMember } from "@/store/member-session";
 import { toast } from "@/store/toast";
 import { cn } from "@/utils/cn";
 
@@ -29,6 +30,8 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
     const addMember = useLedgerStore((state) => state.addMember);
     const updateMember = useLedgerStore((state) => state.updateMember);
     const remote = useLedgerStore((state) => state.remote);
+    const members = useLedgerStore((state) => state.members);
+    const activeMember = useActiveMember();
     const [name, setName] = useState("");
     const [color, setColor] = useState<string>(MEMBER_COLORS[0]);
     const [pin, setPin] = useState("");
@@ -48,6 +51,12 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
 
     const editing = member !== null;
     const existingPin = member !== null && hasMemberPin(member);
+    const requiresPassword =
+        remote || (editing ? members.length > 1 : members.length >= 1);
+    const blockedByActiveMember =
+        !editing &&
+        members.length >= 1 &&
+        (!activeMember || !hasMemberPin(activeMember));
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -56,12 +65,16 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
             setError(t("成员名称不能为空"));
             return;
         }
-        if (remote && !pin.trim() && (!editing || !existingPin)) {
-            setError(t("共享账本的成员必须设置密码"));
+        if (blockedByActiveMember) {
+            setError(t("请先为当前成员设置密码，再添加其他成员"));
             return;
         }
-        if (remote && removePin) {
-            setError(t("共享账本的成员不能清除密码"));
+        if (requiresPassword && !pin.trim() && (!editing || !existingPin)) {
+            setError(t("多成员账本的成员必须设置密码"));
+            return;
+        }
+        if (requiresPassword && removePin) {
+            setError(t("多成员账本不能清除密码"));
             return;
         }
         const pinValue = pin.trim();
@@ -130,13 +143,23 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
             footer={
                 <div className="flex gap-2">
                     <Button variant="secondary" className="flex-1" onClick={onClose}>{t("取消")}</Button>
-                    <Button type="submit" form="member-form" className="flex-1">
+                    <Button
+                        type="submit"
+                        form="member-form"
+                        className="flex-1"
+                        disabled={blockedByActiveMember}
+                    >
                         {editing ? t("保存") : t("添加成员")}
                     </Button>
                 </div>
             }
         >
             <form id="member-form" className="space-y-4" onSubmit={handleSubmit}>
+                {blockedByActiveMember && (
+                    <p className="rounded-xl border border-danger/20 bg-danger-soft px-3 py-2 text-xs font-medium text-danger">
+                        {t("请先为当前成员设置密码，再添加其他成员")}
+                    </p>
+                )}
                 <label className="block">
                     <span className="mb-1.5 block text-xs font-semibold text-muted">{t("名称")}</span>
                     <input
@@ -174,12 +197,12 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
                         <div>
                             <p className="text-xs font-semibold text-text">{t("成员密码")}</p>
                             <p className="mt-0.5 text-[10px] text-muted">
-                                {remote
-                                    ? t("共享账本必须设置密码；4–32 位，可包含字母和数字")
+                                {requiresPassword
+                                    ? t("多成员账本必须设置密码；4–32 位，可包含字母和数字")
                                     : t("可选，4–32 位；切换成员时需要输入")}
                             </p>
                         </div>
-                        {existingPin && !removePin && (
+                        {existingPin && !removePin && !requiresPassword && (
                             <button
                                 type="button"
                                 onClick={() => {

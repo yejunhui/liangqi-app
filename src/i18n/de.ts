@@ -1443,5 +1443,18 @@ export const DE: Record<string, string> = {
     "还没有负债账户，请先到账户页添加": "Noch kein Passivkonto. Füge eines auf der Kontenseite hinzu.",
     "该负债账户没有待还余额": "Dieses Passivkonto hat keinen offenen Saldo.",
     "还款金额不能超过该负债账户余额 {0}": "Die Rückzahlung darf den Saldo des Passivkontos {0} nicht überschreiten.",
-    "还款流水关联的负债账户不存在": "Das mit der Rückzahlungsbuchung verknüpfte Passivkonto existiert nicht"
+    "还款流水关联的负债账户不存在": "Das mit der Rückzahlungsbuchung verknüpfte Passivkonto existiert nicht",
+    "未设置密码，不能登录": "Kein Passwort gesetzt; Anmeldung nicht möglich",
+    "该成员未设置密码，不能登录": "Dieses Mitglied hat kein Passwort und kann sich nicht anmelden",
+    "请让已登录的成员在成员页为其设置密码": "Bitte ein angemeldetes Mitglied, auf der Mitgliederseite ein Passwort zu setzen",
+    "多成员账本的成员必须设置密码": "Mitglieder eines Mehrbenutzerkontos müssen ein Passwort setzen",
+    "多成员账本不能清除密码": "In einem Mehrbenutzerkonto kann das Passwort nicht entfernt werden",
+    "多成员账本必须设置密码；4–32 位，可包含字母和数字": "Ein Mehrbenutzerkonto erfordert Passwörter; 4–32 Zeichen, Buchstaben und Zahlen erlaubt",
+    "请先为当前成员设置密码，再添加其他成员": "Setze zuerst ein Passwort für das aktuelle Mitglied, bevor du ein weiteres hinzufügst",
+    "单成员本地账本无需成员密码；添加第二个成员后会启用成员密码登录。": "Ein lokales Konto mit einem Mitglied benötigt kein Mitgliedspasswort; beim Hinzufügen eines zweiten Mitglieds wird die Anmeldung mit Passwort aktiviert.",
+    "共享账本的所有成员都必须先设置密码": "Alle Mitglieder eines gemeinsamen Kontos müssen zuerst ein Passwort setzen",
+    "多成员账本和共享账本的成员身份决定当前记账成员。": "In Mehrbenutzer- und gemeinsamen Konten ist das angemeldete Mitglied das aktuelle Buchungsmitglied.",
+    "成员登录": "Mitglieder-Anmeldung",
+    "成员身份由登录决定；锁定或新会话打开后需要重新登录。": "Die Mitgliedsidentität wird durch die Anmeldung bestimmt; nach Sperren oder einer neuen Sitzung ist eine erneute Anmeldung erforderlich.",
+    "密码哈希随成员信息保存在账本中": "Passwort-Hashes werden mit den Mitgliedsdaten im Konto gespeichert"
 };

@@ -18,12 +18,18 @@ function createTwoMemberBook(): Book {
             id: "member_alice",
             name: "Alice",
             color: "#0f766e",
+            pinHash: "test-hash-alice",
+            pinSalt: "test-salt-alice",
+            pinIterations: 1,
             createdAt: NOW,
         },
         {
             id: "member_bob",
             name: "Bob",
             color: "#c2410c",
+            pinHash: "test-hash-bob",
+            pinSalt: "test-salt-bob",
+            pinIterations: 1,
             createdAt: NOW + 1,
         },
     ];
@@ -44,7 +50,7 @@ describe("ledger member defaults", () => {
         useLedgerStore.setState(book);
         useMemberSessionStore.setState({
             byBook: { [book.id]: "member_bob" },
-            unlocked: {},
+            unlocked: { [`${book.id}:member_bob`]: true },
         });
     });
 

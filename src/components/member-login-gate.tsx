@@ -67,6 +67,15 @@ export function MemberLoginGate() {
             }),
         [members, selectedMember?.id],
     );
+    const bootstrapMemberId = useMemo(() => {
+        if (members.some((member) => hasMemberPin(member))) {
+            return undefined;
+        }
+        return [...members].sort((a, b) => a.createdAt - b.createdAt)[0]?.id;
+    }, [members]);
+    const targetBlocked = Boolean(
+        target && !hasMemberPin(target) && target.id !== bootstrapMemberId,
+    );
 
     useEffect(() => {
         if (activeMember) {
@@ -79,11 +88,14 @@ export function MemberLoginGate() {
         setError("");
     }, [activeMember, selectedMember?.id, bookId]);
 
-    if (!remote || activeMember) {
+    if ((!remote && members.length <= 1) || activeMember) {
         return null;
     }
 
     function startLogin(member: Member) {
+        if (!hasMemberPin(member) && member.id !== bootstrapMemberId) {
+            return;
+        }
         setTargetId(member.id);
         setView("login");
         setPin("");
@@ -96,6 +108,10 @@ export function MemberLoginGate() {
             return;
         }
         setError("");
+        if (!hasMemberPin(target) && target.id !== bootstrapMemberId) {
+            setError(t("该成员未设置密码，不能登录"));
+            return;
+        }
         if (!hasMemberPin(target)) {
             const invalid = validateMemberPin(pin);
             if (invalid) {
@@ -144,7 +160,7 @@ export function MemberLoginGate() {
                 <div className="w-full max-w-sm rounded-[1.75rem] border border-line bg-surface p-6 shadow-2xl">
                     <div className="flex flex-col items-center text-center">
                         <Logo />
-                        <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-accent">{t("共享账登录")}</p>
+                        <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-accent">{t("成员登录")}</p>
                         <h1 className="mt-1 text-xl font-bold text-text">{bookName}</h1>
                         <p className="mt-1 text-[11px] leading-relaxed text-muted">{t("请选择成员并输入密码；上次登录的成员排在第一位。")}</p>
                     </div>
@@ -154,38 +170,47 @@ export function MemberLoginGate() {
                             {members.length === 0 && (
                                 <p className="rounded-xl border border-dashed border-line bg-surface-2/40 px-3 py-4 text-center text-[11px] text-muted">{t("这个共享账还没有成员，先新建一个。")}</p>
                             )}
-                            {orderedMembers.map((member) => (
-                                <button
-                                    key={member.id}
-                                    type="button"
-                                    onClick={() => startLogin(member)}
-                                    className={cn(
-                                        "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition",
-                                        member.id === selectedMember?.id
-                                            ? "border-accent/40 bg-accent-soft/30"
-                                            : "border-line bg-surface-2/35 hover:border-line-strong",
-                                    )}
-                                >
-                                    <span
-                                        className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold text-white"
-                                        style={{ backgroundColor: member.color }}
+                            {orderedMembers.map((member) => {
+                                const canLogin =
+                                    hasMemberPin(member) ||
+                                    member.id === bootstrapMemberId;
+                                return (
+                                    <button
+                                        key={member.id}
+                                        type="button"
+                                        onClick={() => startLogin(member)}
+                                        disabled={!canLogin}
+                                        className={cn(
+                                            "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition",
+                                            member.id === selectedMember?.id
+                                                ? "border-accent/40 bg-accent-soft/30"
+                                                : "border-line bg-surface-2/35 hover:border-line-strong",
+                                            !canLogin && "cursor-not-allowed opacity-50",
+                                        )}
                                     >
-                                        {member.name.slice(0, 1)}
-                                    </span>
-                                    <span className="min-w-0 flex-1">
-                                        <span className="block truncate text-xs font-semibold text-text">
-                                            {member.name}
+                                        <span
+                                            className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold text-white"
+                                            style={{ backgroundColor: member.color }}
+                                        >
+                                            {member.name.slice(0, 1)}
                                         </span>
-                                        <span className="mt-0.5 block text-[10px] text-muted">
-                                            {member.id === selectedMember?.id &&
-                                                t("上次登录 · ")}
-                                            {hasMemberPin(member)
-                                                ? t("输入密码")
-                                                : t("首次登录，设置密码")}
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block truncate text-xs font-semibold text-text">
+                                                {member.name}
+                                            </span>
+                                            <span className="mt-0.5 block text-[10px] text-muted">
+                                                {member.id === selectedMember?.id &&
+                                                    t("上次登录 · ")}
+                                                {hasMemberPin(member)
+                                                    ? t("输入密码")
+                                                    : member.id === bootstrapMemberId
+                                                      ? t("首次登录，设置密码")
+                                                      : t("未设置密码，不能登录")}
+                                            </span>
                                         </span>
-                                    </span>
-                                </button>
-                            ))}
+                                    </button>
+                                );
+                            })}
                             <Button
                                 variant="secondary"
                                 className="w-full"
@@ -198,6 +223,28 @@ export function MemberLoginGate() {
                                     className="w-full py-1 text-[10px] font-medium text-muted hover:text-text"
                                 >{t("返回登录")}</button>
                             )}
+                        </div>
+                    ) : targetBlocked ? (
+                        <div className="mt-5 space-y-3">
+                            <p className="rounded-xl border border-danger/20 bg-danger-soft px-3 py-2 text-xs font-medium text-danger">
+                                {t("该成员未设置密码，不能登录")}
+                            </p>
+                            <p className="text-center text-[10px] leading-relaxed text-muted">
+                                {t("请让已登录的成员在成员页为其设置密码")}
+                            </p>
+                            <Button
+                                variant="secondary"
+                                className="w-full"
+                                onClick={() => {
+                                    setView("list");
+                                    setTargetId("");
+                                    setPin("");
+                                    setPinConfirm("");
+                                    setError("");
+                                }}
+                            >
+                                {t("选择成员")}
+                            </Button>
                         </div>
                     ) : target ? (
                         <form
@@ -300,7 +347,7 @@ export function MemberLoginGate() {
                                 </Button>
                             </div>
 
-                            <p className="text-center text-[9px] leading-relaxed text-muted">{t("密码哈希随成员信息保存在仓库")}</p>
+                            <p className="text-center text-[9px] leading-relaxed text-muted">{t("密码哈希随成员信息保存在账本中")}</p>
                         </form>
                     ) : (
                         <div className="mt-5">
@@ -311,7 +358,7 @@ export function MemberLoginGate() {
                         </div>
                     )}
 
-                    <p className="mt-5 text-center text-[9px] leading-relaxed text-muted">{t("同一个私钥可以由多人共用；成员身份由登录决定，而不是 token。锁定或新会话打开后需要重新登录。")}</p>
+                    <p className="mt-5 text-center text-[9px] leading-relaxed text-muted">{t("成员身份由登录决定；锁定或新会话打开后需要重新登录。")}</p>
                     <div className="mt-3 flex justify-center">
                         <LanguageSelect />
                     </div>

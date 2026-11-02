@@ -1443,5 +1443,18 @@ export const FR: Record<string, string> = {
     "还没有负债账户，请先到账户页添加": "Aucun compte de passif. Ajoutez-en un dans la page Comptes.",
     "该负债账户没有待还余额": "Ce compte de passif n’a aucun solde à rembourser.",
     "还款金额不能超过该负债账户余额 {0}": "Le remboursement ne peut pas dépasser le solde du compte de passif {0}.",
-    "还款流水关联的负债账户不存在": "Le compte de passif associé à l’écriture de remboursement n’existe pas"
+    "还款流水关联的负债账户不存在": "Le compte de passif associé à l’écriture de remboursement n’existe pas",
+    "未设置密码，不能登录": "Aucun mot de passe défini ; connexion impossible",
+    "该成员未设置密码，不能登录": "Ce membre n’a pas de mot de passe et ne peut pas se connecter",
+    "请让已登录的成员在成员页为其设置密码": "Demandez à un membre connecté de définir un mot de passe dans la page Membres",
+    "多成员账本的成员必须设置密码": "Les membres d’un registre multi-membres doivent définir un mot de passe",
+    "多成员账本不能清除密码": "Un registre multi-membres ne peut pas supprimer le mot de passe",
+    "多成员账本必须设置密码；4–32 位，可包含字母和数字": "Un registre multi-membres exige un mot de passe ; 4 à 32 caractères, lettres et chiffres autorisés",
+    "请先为当前成员设置密码，再添加其他成员": "Définissez d’abord un mot de passe pour le membre actuel avant d’en ajouter un autre",
+    "单成员本地账本无需成员密码；添加第二个成员后会启用成员密码登录。": "Un registre local à un seul membre ne nécessite pas de mot de passe ; l’ajout d’un second membre active la connexion par mot de passe.",
+    "共享账本的所有成员都必须先设置密码": "Tous les membres d’un registre partagé doivent d’abord définir un mot de passe",
+    "多成员账本和共享账本的成员身份决定当前记账成员。": "Dans les registres multi-membres et partagés, le membre connecté est le membre actuel.",
+    "成员登录": "Connexion du membre",
+    "成员身份由登录决定；锁定或新会话打开后需要重新登录。": "L’identité du membre est déterminée par la connexion ; reconnectez-vous après verrouillage ou ouverture d’une nouvelle session.",
+    "密码哈希随成员信息保存在账本中": "Les hachages de mots de passe sont stockés avec les données du membre dans le registre"
 };

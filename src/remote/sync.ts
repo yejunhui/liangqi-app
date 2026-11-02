@@ -26,6 +26,7 @@ import {
     mergeBooks,
 } from "@/domain/merge";
 import { RemoteError } from "@/remote/errors";
+import { hasMemberPin } from "@/domain/member-pin";
 import { getMemberForBook, useMemberSessionStore } from "@/store/member-session";
 import { uploadPendingAttachments } from "@/remote/attachments";
 
@@ -354,6 +355,9 @@ export async function uploadCurrentBook(connection: Connection): Promise<SyncRes
     const book = library.books.find((item) => item.id === library.activeBookId);
     if (!book) {
         throw new RemoteError(t("没有当前账本"));
+    }
+    if (!book.members.every((member) => hasMemberPin(member))) {
+        throw new RemoteError(t("共享账本的所有成员都必须先设置密码"));
     }
     const existingRemote = await pullRemoteBook(connection, book.id);
     if (existingRemote) {

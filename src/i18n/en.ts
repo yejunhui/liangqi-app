@@ -1443,5 +1443,18 @@ export const EN: Record<string, string> = {
     "还没有负债账户，请先到账户页添加": "No liability accounts yet. Add one on the Accounts page.",
     "该负债账户没有待还余额": "This liability account has no outstanding balance.",
     "还款金额不能超过该负债账户余额 {0}": "The repayment cannot exceed the liability account balance {0}.",
-    "还款流水关联的负债账户不存在": "The liability account associated with the repayment transaction does not exist"
+    "还款流水关联的负债账户不存在": "The liability account associated with the repayment transaction does not exist",
+    "未设置密码，不能登录": "No password set; sign-in is not allowed",
+    "该成员未设置密码，不能登录": "This member has no password and cannot sign in",
+    "请让已登录的成员在成员页为其设置密码": "Ask a signed-in member to set a password on the Members page",
+    "多成员账本的成员必须设置密码": "Members of a multi-member book must set a password",
+    "多成员账本不能清除密码": "A multi-member book cannot remove a member password",
+    "多成员账本必须设置密码；4–32 位，可包含字母和数字": "A multi-member book requires passwords; 4–32 characters, letters and numbers allowed",
+    "请先为当前成员设置密码，再添加其他成员": "Set a password for the current member before adding another member",
+    "单成员本地账本无需成员密码；添加第二个成员后会启用成员密码登录。": "A single-member local book needs no member password; adding a second member enables member-password sign-in.",
+    "共享账本的所有成员都必须先设置密码": "All members of a shared book must set a password first",
+    "多成员账本和共享账本的成员身份决定当前记账成员。": "In multi-member and shared books, the signed-in member is the current recording member.",
+    "成员登录": "Member sign-in",
+    "成员身份由登录决定；锁定或新会话打开后需要重新登录。": "Member identity is determined by sign-in; you must sign in again after locking or opening a new session.",
+    "密码哈希随成员信息保存在账本中": "Password hashes are stored with member data in the book"
 };

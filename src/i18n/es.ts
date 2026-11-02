@@ -1443,5 +1443,18 @@ export const ES: Record<string, string> = {
     "还没有负债账户，请先到账户页添加": "Aún no hay cuentas de pasivo. Añade una en la página de cuentas.",
     "该负债账户没有待还余额": "Esta cuenta de pasivo no tiene saldo pendiente.",
     "还款金额不能超过该负债账户余额 {0}": "El pago no puede superar el saldo de la cuenta de pasivo {0}.",
-    "还款流水关联的负债账户不存在": "La cuenta de pasivo asociada al movimiento de pago no existe"
+    "还款流水关联的负债账户不存在": "La cuenta de pasivo asociada al movimiento de pago no existe",
+    "未设置密码，不能登录": "Sin contraseña; no se permite iniciar sesión",
+    "该成员未设置密码，不能登录": "Este miembro no tiene contraseña y no puede iniciar sesión",
+    "请让已登录的成员在成员页为其设置密码": "Pide a un miembro con sesión iniciada que le asigne una contraseña en la página de miembros",
+    "多成员账本的成员必须设置密码": "Los miembros de un libro con varios miembros deben tener contraseña",
+    "多成员账本不能清除密码": "Un libro con varios miembros no puede eliminar la contraseña",
+    "多成员账本必须设置密码；4–32 位，可包含字母和数字": "Un libro con varios miembros requiere contraseña; de 4 a 32 caracteres, con letras y números",
+    "请先为当前成员设置密码，再添加其他成员": "Configura una contraseña para el miembro actual antes de añadir otro",
+    "单成员本地账本无需成员密码；添加第二个成员后会启用成员密码登录。": "Un libro local de un solo miembro no necesita contraseña; al añadir un segundo miembro se activa el inicio de sesión con contraseña.",
+    "共享账本的所有成员都必须先设置密码": "Todos los miembros de un libro compartido deben configurar una contraseña primero",
+    "多成员账本和共享账本的成员身份决定当前记账成员。": "En libros con varios miembros y compartidos, el miembro con sesión iniciada es el miembro actual.",
+    "成员登录": "Inicio de sesión de miembro",
+    "成员身份由登录决定；锁定或新会话打开后需要重新登录。": "La identidad del miembro se determina al iniciar sesión; deberás iniciar sesión de nuevo tras bloquear o abrir una nueva sesión.",
+    "密码哈希随成员信息保存在账本中": "Los hashes de contraseña se guardan con los datos del miembro en el libro"
 };

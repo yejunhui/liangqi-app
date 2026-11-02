@@ -21,8 +21,10 @@ export function MemberSessionModal() {
     const bookId = useLedgerStore((state) => state.id);
     const bookName = useLedgerStore((state) => state.name);
     const remote = useLedgerStore((state) => state.remote);
+    const members = useLedgerStore((state) => state.members);
     const activeMember = useActiveMember();
     const lockMember = useMemberSessionStore((state) => state.lockMember);
+    const requiresPassword = Boolean(remote) || members.length > 1;
 
     if (!open || !activeMember) {
         return null;
@@ -46,7 +48,7 @@ export function MemberSessionModal() {
             open={open}
             onClose={close}
             title={t("当前记账成员")}
-            description={t("共享账本的成员身份决定记账作者；同一个私钥可以由多人共用。")}
+            description={t("多成员账本和共享账本的成员身份决定当前记账成员。")}
             size="sm"
             footer={
                 <Button className="w-full" onClick={close}>{t("关闭")}</Button>
@@ -72,7 +74,7 @@ export function MemberSessionModal() {
                     </div>
                 </div>
 
-                {remote && (
+                {requiresPassword && (
                     <div className="grid grid-cols-2 gap-2">
                         <Button variant="secondary" onClick={switchUser}>
                             <ArrowLeftRight className="size-3.5" />{` ${t("切换用户")}`}</Button>
@@ -84,11 +86,11 @@ export function MemberSessionModal() {
                     </div>
                 )}
 
-                {remote && (
+                {requiresPassword && (
                     <p className="text-[10px] leading-relaxed text-muted">{t("「切换用户」和「锁定」都会退出当前成员并回到登录页的成员列表。上次登录的成员排在第一位，也可以选择其他成员，再输入密码登录。")}</p>
                 )}
-                {!remote && (
-                    <p className="text-[10px] leading-relaxed text-muted">{t("本地账本没有共享成员登录限制；连接远程仓库后会启用成员密码登录。")}</p>
+                {!requiresPassword && (
+                    <p className="text-[10px] leading-relaxed text-muted">{t("单成员本地账本无需成员密码；添加第二个成员后会启用成员密码登录。")}</p>
                 )}
             </div>
         </Modal>

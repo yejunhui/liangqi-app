@@ -117,6 +117,10 @@ export const useMemberSessionStore = create<MemberSessionState>()((set) => ({
     },
 }));
 
+function bookRequiresMemberPin(book: Book): boolean {
+    return Boolean(book.remote) || book.members.length > 1;
+}
+
 /** Returns the member selected for this book, even if its password is still locked. */
 export function getSelectedMemberForBook(book: Book | undefined): Member | undefined {
     if (!book || book.members.length === 0) {
@@ -134,7 +138,7 @@ export function getMemberForBook(book: Book | undefined): Member | undefined {
     if (!book || !selected) {
         return undefined;
     }
-    if (!book.remote) {
+    if (!bookRequiresMemberPin(book)) {
         return selected;
     }
     if (!hasMemberPin(selected)) {
@@ -188,7 +192,7 @@ export function useActiveMember(): Member | undefined {
     if (!selected) {
         return undefined;
     }
-    if (!book.remote) {
+    if (!bookRequiresMemberPin(book)) {
         return selected;
     }
     if (!hasMemberPin(selected)) {
