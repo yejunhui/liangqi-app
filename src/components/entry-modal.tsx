@@ -126,6 +126,9 @@ export function EntryModal() {
     const openBills = useMemo(() => getOpenBills(bills, entries), [bills, entries]);
 
     const selectedBill = bills.find((bill) => bill.id === billId);
+    const selectedBillLiability = liabilityAccounts.find(
+        (account) => account.id === selectedBill?.liabilityAccountId,
+    );
     const selectedCategory = categories.find((category) => category.id === categoryId);
     const selectedAsset = accounts.find((account) => account.id === assetAccountId);
     const foreignCents = parseAmountToCents(amount);
@@ -864,6 +867,9 @@ export function EntryModal() {
                                             const billCategory = categories.find(
                                                 (category) => category.id === bill.categoryId,
                                             );
+                                            const billLiability = liabilityAccounts.find(
+                                                (account) => account.id === bill.liabilityAccountId,
+                                            );
                                             const status = getBillStatus(bill, entries);
                                             const due = getBillDueInfo(bill, status);
                                             const active = billId === bill.id;
@@ -887,6 +893,9 @@ export function EntryModal() {
                                                             {bill.title}
                                                         </span>
                                                         <span className="mt-0.5 block text-[10px] text-muted">
+                                                            {billLiability
+                                                                ? `${billLiability.emoji} ${billLiability.name} · `
+                                                                : `${t("负债账户")} · `}
                                                             {due.label}
                                                         </span>
                                                     </span>
@@ -902,13 +911,33 @@ export function EntryModal() {
                                     </div>
                                 </div>
 
-                                <AccountPicker
-                                    label={t("从哪个账户还款")}
-                                    accounts={assetAccounts}
-                                    value={assetAccountId}
-                                    onChange={setAssetAccountId}
-                                    emptyHint={t("还没有储蓄账户，请先到账户页添加")}
-                                />
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <AccountPicker
+                                        label={t("从哪个账户还款")}
+                                        accounts={assetAccounts}
+                                        value={assetAccountId}
+                                        onChange={setAssetAccountId}
+                                        emptyHint={t("还没有储蓄账户，请先到账户页添加")}
+                                    />
+                                    <div>
+                                        <p className="mb-2 text-xs font-semibold text-muted">{t("还款到")}</p>
+                                        <div className="rounded-xl border border-line bg-surface-2/55 px-3 py-2.5">
+                                            {selectedBillLiability ? (
+                                                <p className="flex items-center gap-2 text-xs font-semibold text-text">
+                                                    <span>{selectedBillLiability.emoji}</span>
+                                                    <span className="min-w-0 flex-1 truncate">
+                                                        {selectedBillLiability.name}
+                                                    </span>
+                                                </p>
+                                            ) : (
+                                                <p className="text-[11px] text-muted">{t("请先选择账单")}</p>
+                                            )}
+                                            <p className="mt-1 text-[10px] leading-relaxed text-muted">
+                                                {t("还款会减少这个负债账户的余额。")}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
 
                                 {selectedBill && (
                                     <div className="rounded-xl border border-line bg-surface-2/60 p-3.5">
@@ -925,9 +954,11 @@ export function EntryModal() {
                                                     )}
                                                 </span>
                                             </div>
-                                            <div className="flex justify-between">
-                                                <span>{t("负债")}</span>
-                                                <span className="tabular-nums">
+                                            <div className="flex justify-between gap-3">
+                                                <span className="min-w-0 truncate">
+                                                    {selectedBillLiability?.name ?? t("负债")}
+                                                </span>
+                                                <span className="shrink-0 tabular-nums">
                                                     {formatCents(repaymentRemaining, currency)} →{" "}
                                                     {formatCents(repaymentProjected, currency)}
                                                 </span>

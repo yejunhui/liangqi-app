@@ -1430,5 +1430,8 @@ export const DE: Record<string, string> = {
     "源代码": "Quellcode",
     "许可证全文": "Vollständige Lizenz",
     "第三方许可": "Lizenzhinweise Dritter",
-    "法律声明": "Rechtliche Hinweise"
+    "法律声明": "Rechtliche Hinweise",
+    "还款到": "Rückzahlung an",
+    "请先选择账单": "Wähle zuerst eine Rechnung",
+    "还款会减少这个负债账户的余额。": "Die Rückzahlung reduziert den Saldo dieses Passivkontos."
 };

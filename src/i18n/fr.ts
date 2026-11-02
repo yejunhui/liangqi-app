@@ -1430,5 +1430,8 @@ export const FR: Record<string, string> = {
     "源代码": "Code source",
     "许可证全文": "Licence complète",
     "第三方许可": "Licences tierces",
-    "法律声明": "Mentions légales"
+    "法律声明": "Mentions légales",
+    "还款到": "Payer vers",
+    "请先选择账单": "Sélectionnez d’abord une facture",
+    "还款会减少这个负债账户的余额。": "Le remboursement réduit le solde de ce compte de passif."
 };
