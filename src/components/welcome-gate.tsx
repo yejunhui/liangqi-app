@@ -1,16 +1,18 @@
 /**
  * SPDX-License-Identifier: AGPL-3.0-or-later
  *
- * First-run gate. A fresh browser starts with an empty local book; the shared
- * ledger only becomes available after connecting the repository. The
- * connection and active book are stored locally, so later visits go straight
- * to the member login screen.
+ * First-run gate. A fresh browser starts with an empty local book, so the
+ * primary action is to start using it locally; connecting a shared repository
+ * is optional and lives behind a secondary disclosure. The connection and
+ * active book are stored locally, so later visits go straight to the member
+ * login screen.
  */
 
 import { useState } from "react";
 import {
     ArrowLeft,
     BookOpen,
+    ChevronDown,
     Cloud,
     LoaderCircle,
     LockKeyhole,
@@ -115,6 +117,7 @@ export function WelcomeGate() {
     );
     const [remoteBooks, setRemoteBooks] = useState<RemoteBookSummary[]>([]);
     const [step, setStep] = useState<"connect" | "books" | "empty">("connect");
+    const [showRemote, setShowRemote] = useState(Boolean(lastConnection));
     const [busy, setBusy] = useState<string | null>(null);
     const [error, setError] = useState("");
 
@@ -288,18 +291,18 @@ export function WelcomeGate() {
                     <div className="flex flex-col items-center text-center">
                         <Logo />
                         <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-accent">
-                            {step === "connect" ? t("连接共享账本") : t("共享账本")}
+                            {step === "connect" ? t("本地优先") : t("共享账本")}
                         </p>
                         <h1 className="mt-1 text-xl font-bold text-text">
                             {step === "connect"
-                                ? t("先登录你的账本")
+                                ? t("开始记账")
                                 : step === "books"
                                   ? t("选择要打开的账本")
                                   : t("仓库还是空的")}
                         </h1>
                         <p className="mt-1 text-[11px] leading-relaxed text-muted">
                             {step === "connect"
-                                ? t("第一次使用先连接仓库。连接信息会保存在这台设备，下次打开直接选择成员登录。")
+                                ? t("数据先保存在这台设备上。想和家人共享，再连接 GitHub、Gitee 或 WebDAV。")
                                 : step === "books"
                                   ? t("这个仓库里已经有共享账，选择一本打开后登录成员。")
                                   : t("这个仓库还没有账本，可以把当前的本地账本上传上去。")}
@@ -308,93 +311,150 @@ export function WelcomeGate() {
 
                     {step === "connect" && (
                         <div className="mt-5 space-y-4">
-                            <Tabs
-                                items={PROVIDERS}
-                                value={provider}
-                                onChange={(value) => {
-                                    setProvider(value);
-                                    setError("");
-                                }}
-                                className="w-full"
-                            />
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                {provider === "webdav" ? (
-                                    <>
-                                        <div className="sm:col-span-2">
-                                            <WelcomeField
-                                                label={t("WebDAV 地址")}
-                                                value={form.url}
-                                                onChange={(value) =>
-                                                    update("url", value)
-                                                }
-                                                placeholder="https://example.com/dav/"
-                                            />
+                            <div className="space-y-2">
+                                <Button
+                                    className="w-full"
+                                    size="lg"
+                                    onClick={useLocally}
+                                    disabled={busy !== null}
+                                >
+                                    <BookOpen className="size-4" />
+                                    {t("开始记账（本地）")}
+                                </Button>
+                                <p className="text-center text-[10px] leading-relaxed text-muted">
+                                    {t("不需要注册，也不用配置仓库。")}
+                                </p>
+                            </div>
+
+                            <div className="border-t border-line pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setShowRemote((value) => !value)
+                                    }
+                                    disabled={busy !== null}
+                                    aria-expanded={showRemote}
+                                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-line bg-surface-2/30 px-3 py-2.5 text-xs font-semibold text-muted transition hover:border-line-strong hover:text-text disabled:opacity-50"
+                                >
+                                    <Cloud className="size-4" />
+                                    {t("连接共享账本（可选）")}
+                                    <ChevronDown
+                                        className={cn(
+                                            "size-3.5 transition-transform",
+                                            showRemote && "rotate-180",
+                                        )}
+                                    />
+                                </button>
+
+                                {showRemote && (
+                                    <div className="mt-4 space-y-4">
+                                        <Tabs
+                                            items={PROVIDERS}
+                                            value={provider}
+                                            onChange={(value) => {
+                                                setProvider(value);
+                                                setError("");
+                                            }}
+                                            className="w-full"
+                                        />
+                                        <div className="grid gap-3 sm:grid-cols-2">
+                                            {provider === "webdav" ? (
+                                                <>
+                                                    <div className="sm:col-span-2">
+                                                        <WelcomeField
+                                                            label={t("WebDAV 地址")}
+                                                            value={form.url}
+                                                            onChange={(value) =>
+                                                                update("url", value)
+                                                            }
+                                                            placeholder="https://example.com/dav/"
+                                                        />
+                                                    </div>
+                                                    <WelcomeField
+                                                        label={t("用户名")}
+                                                        value={form.username}
+                                                        onChange={(value) =>
+                                                            update(
+                                                                "username",
+                                                                value,
+                                                            )
+                                                        }
+                                                        placeholder={t(
+                                                            "WebDAV 用户名",
+                                                        )}
+                                                    />
+                                                    <WelcomeField
+                                                        label={t("密码")}
+                                                        value={form.password}
+                                                        onChange={(value) =>
+                                                            update(
+                                                                "password",
+                                                                value,
+                                                            )
+                                                        }
+                                                        placeholder={t(
+                                                            "WebDAV 密码",
+                                                        )}
+                                                        type="password"
+                                                    />
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <WelcomeField
+                                                        label={t("仓库名")}
+                                                        value={form.repo}
+                                                        onChange={(value) =>
+                                                            update("repo", value)
+                                                        }
+                                                        placeholder="family-ledger"
+                                                    />
+                                                    <WelcomeField
+                                                        label={t(
+                                                            "私钥 / Access Token",
+                                                        )}
+                                                        value={form.token}
+                                                        onChange={(value) =>
+                                                            update(
+                                                                "token",
+                                                                value,
+                                                            )
+                                                        }
+                                                        placeholder={t(
+                                                            "repo / projects 权限",
+                                                        )}
+                                                        type="password"
+                                                    />
+                                                </>
+                                            )}
                                         </div>
-                                        <WelcomeField
-                                            label={t("用户名")}
-                                            value={form.username}
-                                            onChange={(value) =>
-                                                update("username", value)
+                                        <p className="text-[10px] leading-relaxed text-muted">{t("仓库名可以只写 repo（用私钥自动补全账号），也可以写")}{" "}
+                                            <code className="rounded bg-surface-2 px-1">
+                                                owner/repo
+                                            </code>{` ${t("。一个仓库只保存一本共享账，多个人可以共用同一个私钥。")}`}</p>
+
+                                        {error && (
+                                            <WelcomeError>{error}</WelcomeError>
+                                        )}
+
+                                        <Button
+                                            className="w-full"
+                                            onClick={() =>
+                                                void handleConnect()
                                             }
-                                            placeholder={t("WebDAV 用户名")}
-                                        />
-                                        <WelcomeField
-                                            label={t("密码")}
-                                            value={form.password}
-                                            onChange={(value) =>
-                                                update("password", value)
-                                            }
-                                            placeholder={t("WebDAV 密码")}
-                                            type="password"
-                                        />
-                                    </>
-                                ) : (
-                                    <>
-                                        <WelcomeField
-                                            label={t("仓库名")}
-                                            value={form.repo}
-                                            onChange={(value) =>
-                                                update("repo", value)
-                                            }
-                                            placeholder="family-ledger"
-                                        />
-                                        <WelcomeField
-                                            label={t("私钥 / Access Token")}
-                                            value={form.token}
-                                            onChange={(value) =>
-                                                update("token", value)
-                                            }
-                                            placeholder={t("repo / projects 权限")}
-                                            type="password"
-                                        />
-                                    </>
+                                            disabled={busy !== null}
+                                        >
+                                            {busy === "connect" ? (
+                                                <LoaderCircle className="size-4 animate-spin" />
+                                            ) : (
+                                                <Cloud className="size-4" />
+                                            )}
+                                            {busy === "connect"
+                                                ? t("连接中…")
+                                                : t("连接并登录")}
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
-                            <p className="text-[10px] leading-relaxed text-muted">{t("仓库名可以只写 repo（用私钥自动补全账号），也可以写")}{" "}
-                                <code className="rounded bg-surface-2 px-1">
-                                    owner/repo
-                                </code>{` ${t("。一个仓库只保存一本共享账，多个人可以共用同一个私钥。")}`}</p>
-
-                            {error && <WelcomeError>{error}</WelcomeError>}
-
-                            <Button
-                                className="w-full"
-                                onClick={() => void handleConnect()}
-                                disabled={busy !== null}
-                            >
-                                {busy === "connect" ? (
-                                    <LoaderCircle className="size-4 animate-spin" />
-                                ) : (
-                                    <Cloud className="size-4" />
-                                )}
-                                {busy === "connect" ? t("连接中…") : t("连接并登录")}
-                            </Button>
-                            <button
-                                type="button"
-                                onClick={useLocally}
-                                disabled={busy !== null}
-                                className="w-full py-1 text-[10px] font-medium text-muted transition hover:text-text disabled:opacity-50"
-                            >{t("暂不连接，仅使用本地账本")}</button>
                         </div>
                     )}
 
@@ -439,6 +499,7 @@ export function WelcomeGate() {
                                 className="w-full"
                                 onClick={() => {
                                     setStep("connect");
+                                    setShowRemote(true);
                                     setError("");
                                 }}
                                 disabled={busy !== null}
@@ -470,6 +531,7 @@ export function WelcomeGate() {
                                 className="w-full"
                                 onClick={() => {
                                     setStep("connect");
+                                    setShowRemote(true);
                                     setError("");
                                 }}
                                 disabled={busy !== null}
