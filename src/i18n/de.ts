@@ -1457,5 +1457,6 @@ export const DE: Record<string, string> = {
     "成员登录": "Mitglieder-Anmeldung",
     "成员身份由登录决定；锁定或新会话打开后需要重新登录。": "Die Mitgliedsidentität wird durch die Anmeldung bestimmt; nach Sperren oder einer neuen Sitzung ist eine erneute Anmeldung erforderlich.",
     "密码哈希随成员信息保存在账本中": "Passwort-Hashes werden mit den Mitgliedsdaten im Konto gespeichert",
-    "密码哈希会随成员信息同步到远程仓库": "Der Passwort-Hash wird mit den Mitgliedsdaten in das Remote-Repository synchronisiert"
+    "密码哈希会随成员信息同步到远程仓库": "Der Passwort-Hash wird mit den Mitgliedsdaten in das Remote-Repository synchronisiert",
+    "一个仓库只保存一本账。打开共享账本会先合并本地和远程数据，全部成功后才会切换；失败不会改动本地。": "Jedes Repository speichert ein Buch. Beim Öffnen eines gemeinsamen Buchs werden zuerst lokale und Remote-Daten zusammengeführt; erst nach vollständigem Erfolg wird gewechselt. Bei einem Fehler bleiben die lokalen Daten unverändert."
 };

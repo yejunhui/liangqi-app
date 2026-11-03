@@ -272,6 +272,7 @@ export interface LibraryActions {
     deleteBook: (bookId: string) => string | false;
     setActiveBookId: (bookId: string) => boolean;
     upsertBook: (book: Book) => void;
+    replaceBookAndActivate: (book: Book, replaceBookId?: string) => void;
     setBookRemote: (bookId: string, remote: RemoteBinding | undefined) => void;
     addConnection: (connection: Connection) => void;
     updateConnection: (connectionId: string, patch: Partial<Connection>) => void;
@@ -354,6 +355,22 @@ export const useLibraryStore = create<LibraryState>()((set, get) => ({
                 books: exists
                     ? state.books.map((item) => (item.id === book.id ? book : item))
                     : [...state.books, book],
+            };
+        });
+        persist(get);
+    },
+
+    replaceBookAndActivate(book, replaceBookId) {
+        set((state) => {
+            const remaining = replaceBookId
+                ? state.books.filter((item) => item.id !== replaceBookId)
+                : state.books;
+            const exists = remaining.some((item) => item.id === book.id);
+            return {
+                books: exists
+                    ? remaining.map((item) => (item.id === book.id ? book : item))
+                    : [...remaining, book],
+                activeBookId: book.id,
             };
         });
         persist(get);

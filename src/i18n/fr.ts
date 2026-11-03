@@ -1457,5 +1457,6 @@ export const FR: Record<string, string> = {
     "成员登录": "Connexion du membre",
     "成员身份由登录决定；锁定或新会话打开后需要重新登录。": "L’identité du membre est déterminée par la connexion ; reconnectez-vous après verrouillage ou ouverture d’une nouvelle session.",
     "密码哈希随成员信息保存在账本中": "Les hachages de mots de passe sont stockés avec les données du membre dans le registre",
-    "密码哈希会随成员信息同步到远程仓库": "Le hachage du mot de passe est synchronisé avec le dépôt distant avec les données du membre"
+    "密码哈希会随成员信息同步到远程仓库": "Le hachage du mot de passe est synchronisé avec le dépôt distant avec les données du membre",
+    "一个仓库只保存一本账。打开共享账本会先合并本地和远程数据，全部成功后才会切换；失败不会改动本地。": "Chaque dépôt contient un seul registre. L’ouverture d’un registre partagé fusionne d’abord les données locales et distantes et ne bascule qu’après réussite complète ; en cas d’échec, les données locales restent inchangées."
 };

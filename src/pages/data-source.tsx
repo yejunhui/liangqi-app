@@ -574,7 +574,7 @@ export function DataSource() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <h2 className="text-sm font-bold text-text">{t("共享账本")}</h2>
-                        <p className="mt-1 text-[11px] text-muted">{t("一个仓库只保存一本账。打开共享账本会把远程数据合并到本地，并切换到这本账。")}</p>
+                        <p className="mt-1 text-[11px] text-muted">{t("一个仓库只保存一本账。打开共享账本会先合并本地和远程数据，全部成功后才会切换；失败不会改动本地。")}</p>
                     </div>
                     {remoteBooks.length === 0 && (
                         <Button

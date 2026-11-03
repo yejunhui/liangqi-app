@@ -1457,5 +1457,6 @@ export const EN: Record<string, string> = {
     "成员登录": "Member sign-in",
     "成员身份由登录决定；锁定或新会话打开后需要重新登录。": "Member identity is determined by sign-in; you must sign in again after locking or opening a new session.",
     "密码哈希随成员信息保存在账本中": "Password hashes are stored with member data in the book",
-    "密码哈希会随成员信息同步到远程仓库": "The password hash syncs to the remote repository with member data"
+    "密码哈希会随成员信息同步到远程仓库": "The password hash syncs to the remote repository with member data",
+    "一个仓库只保存一本账。打开共享账本会先合并本地和远程数据，全部成功后才会切换；失败不会改动本地。": "Each repository stores one ledger. Opening a shared ledger first merges local and remote data and switches only after everything succeeds; a failure leaves local data unchanged."
 };

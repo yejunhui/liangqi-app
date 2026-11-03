@@ -250,6 +250,23 @@ describe("multi-user merge", () => {
         ).resolves.toBe(false);
     });
 
+    it("uses the remote book id when connecting a different local book", () => {
+        const local = createSeedBook("本地账本", NOW);
+        local.id = "local_book";
+        local.entries = [entry("local_entry", "member_shared", 100)];
+        const remote = createSeedBook("共享账本", NOW);
+        remote.id = "remote_book";
+        remote.entries = [entry("remote_entry", "member_shared", 100)];
+
+        const merged = mergeBooks(local, remote);
+        expect(merged.id).toBe("remote_book");
+        expect(merged.name).toBe("共享账本");
+        expect(merged.entries.map((item) => item.id).sort()).toEqual([
+            "local_entry",
+            "remote_entry",
+        ]);
+    });
+
     it("unions additions from two users and keeps the latest edit", () => {
         const local = createSeedBook("共享账", NOW);
         local.entries = [entry("shared", "alice", 100)];

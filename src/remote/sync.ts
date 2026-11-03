@@ -12,7 +12,7 @@ import {
     useLibraryStore,
 } from "@/store/library";
 import { useLedgerStore } from "@/store/ledger";
-import { activateBook, setActiveBookRemote } from "@/store/book-actions";
+
 import { saveConflictBackup } from "@/remote/conflicts";
 import {
     pullRemoteBook,
@@ -89,13 +89,17 @@ function mergeForUser(
     local: Book,
     remote: Book | undefined,
     _connection: Connection,
+    bookId = local.id,
 ): Book {
     const actor = getMemberForBook(local);
     const base = remote ? mergeBooks(local, remote) : local;
+    const adoptRemoteIdentity = remote !== undefined && bookId === remote.id;
     return {
         ...(actor ? claimUnownedRecords(base, actor) : base),
-        id: local.id,
-        name: local.name || base.name,
+        id: bookId,
+        name: adoptRemoteIdentity
+            ? remote.name || local.name
+            : local.name || base.name,
         createdAt: Math.min(local.createdAt, base.createdAt),
         remote: local.remote,
     };
@@ -312,10 +316,29 @@ export async function openRemoteBook(
     }
     const library = useLibraryStore.getState();
     const existing = library.books.find((book) => book.id === remote.book.id);
+    const active = library.books.find((book) => book.id === library.activeBookId);
+    const localCandidate =
+        existing ??
+        (active && !active.remote && active.id !== remote.book.id
+            ? active
+            : undefined);
+
     let localBook: Book;
-    if (existing && bookContentSignature(existing) !== bookContentSignature(remote.book)) {
-        saveConflictBackup(existing);
-        const merged = mergeForUser(existing, remote.book, connection);
+    let replaceBookId: string | undefined;
+    if (
+        localCandidate &&
+        bookContentSignature(localCandidate) !== bookContentSignature(remote.book)
+    ) {
+        saveConflictBackup(localCandidate);
+        const merged =
+            localCandidate.id === remote.book.id
+                ? mergeForUser(localCandidate, remote.book, connection)
+                : mergeForUser(
+                      localCandidate,
+                      remote.book,
+                      connection,
+                      remote.book.id,
+                  );
         const pushed =
             bookContentSignature(merged) === bookContentSignature(remote.book)
                 ? {
@@ -324,6 +347,8 @@ export async function openRemoteBook(
                       manifest: remote.manifest,
                   }
                 : await pushWithRetry(connection, merged, remote.book);
+        replaceBookId =
+            localCandidate.id === pushed.book.id ? undefined : localCandidate.id;
         localBook = withBinding(
             pushed.book,
             connection,
@@ -344,9 +369,11 @@ export async function openRemoteBook(
             remote.manifest,
         );
     }
-    useLibraryStore.getState().upsertBook(localBook);
-    activateBook(localBook.id);
-    setActiveBookRemote(localBook.id, localBook.remote);
+    // Commit both the merged book and the active-book switch as one local
+    // library update. Remote writes have already succeeded at this point; if
+    // merging or pushing failed above, the local library is left untouched.
+    library.replaceBookAndActivate(localBook, replaceBookId);
+    useLedgerStore.setState(localBook);
     return localBook;
 }
 

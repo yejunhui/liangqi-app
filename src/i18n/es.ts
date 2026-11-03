@@ -1457,5 +1457,6 @@ export const ES: Record<string, string> = {
     "成员登录": "Inicio de sesión de miembro",
     "成员身份由登录决定；锁定或新会话打开后需要重新登录。": "La identidad del miembro se determina al iniciar sesión; deberás iniciar sesión de nuevo tras bloquear o abrir una nueva sesión.",
     "密码哈希随成员信息保存在账本中": "Los hashes de contraseña se guardan con los datos del miembro en el libro",
-    "密码哈希会随成员信息同步到远程仓库": "El hash de la contraseña se sincroniza con el repositorio remoto junto con los datos del miembro"
+    "密码哈希会随成员信息同步到远程仓库": "El hash de la contraseña se sincroniza con el repositorio remoto junto con los datos del miembro",
+    "一个仓库只保存一本账。打开共享账本会先合并本地和远程数据，全部成功后才会切换；失败不会改动本地。": "Cada repositorio guarda un libro. Al abrir un libro compartido se combinan primero los datos locales y remotos y solo se cambia cuando todo ha terminado correctamente; si falla, los datos locales no se modifican."
 };
