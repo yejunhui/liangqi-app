@@ -67,6 +67,92 @@ describe("multi-user merge", () => {
         });
     });
 
+    it("does not let a later name change make an old password win", () => {
+        const local = createSeedBook("共享账", NOW);
+        local.members = [
+            member({
+                pinHash: "new-hash",
+                pinSalt: "new-salt",
+                pinIterations: 160_000,
+                updatedAt: 200,
+                fieldUpdatedAt: {
+                    pinHash: 200,
+                    pinSalt: 200,
+                    pinIterations: 200,
+                },
+            }),
+        ];
+        const remote = createSeedBook("共享账", NOW);
+        remote.members = [
+            member({
+                name: "Alice Renamed",
+                pinHash: "old-hash",
+                pinSalt: "old-salt",
+                pinIterations: 160_000,
+                // The name was changed after the password, but the PIN
+                // fields themselves are older.
+                updatedAt: 300,
+                fieldUpdatedAt: {
+                    name: 300,
+                    pinHash: 100,
+                    pinSalt: 100,
+                    pinIterations: 100,
+                },
+            }),
+        ];
+
+        const merged = mergeBooks(local, remote);
+        expect(merged.members[0]).toMatchObject({
+            name: "Alice Renamed",
+            pinHash: "new-hash",
+            pinSalt: "new-salt",
+            pinIterations: 160_000,
+        });
+    });
+
+    it("merges password hash, salt, and iterations as one unit", () => {
+        const local = createSeedBook("共享账", NOW);
+        local.members = [
+            member({
+                pinHash: "local-hash",
+                pinSalt: "local-salt",
+                pinIterations: 160_000,
+                updatedAt: 300,
+                fieldUpdatedAt: {
+                    pinHash: 300,
+                    pinSalt: 100,
+                    pinIterations: 100,
+                },
+            }),
+        ];
+        const remote = createSeedBook("共享账", NOW);
+        remote.members = [
+            member({
+                pinHash: "remote-hash",
+                pinSalt: "remote-salt",
+                pinIterations: 160_000,
+                updatedAt: 200,
+                fieldUpdatedAt: {
+                    pinHash: 100,
+                    pinSalt: 200,
+                    pinIterations: 200,
+                },
+            }),
+        ];
+
+        const merged = mergeBooks(local, remote);
+        expect(merged.members[0]).toMatchObject({
+            pinHash: "local-hash",
+            pinSalt: "local-salt",
+            pinIterations: 160_000,
+        });
+        expect(merged.members[0].fieldUpdatedAt).toMatchObject({
+            pinHash: 300,
+            pinSalt: 300,
+            pinIterations: 300,
+        });
+    });
+
     it("does not let a passwordless member overwrite a local password", () => {
         const local = createSeedBook("共享账", NOW);
         local.members = [
@@ -106,6 +192,45 @@ describe("multi-user merge", () => {
             pinHash: "remote-hash",
             pinSalt: "remote-salt",
         });
+    });
+
+    it("verifies the newer password after a later name change", async () => {
+        const newFields = await hashMemberPin("new-password");
+        const oldFields = await hashMemberPin("old-password");
+        const local = createSeedBook("共享账", NOW);
+        local.members = [
+            member({
+                ...newFields,
+                updatedAt: 200,
+                fieldUpdatedAt: {
+                    pinHash: 200,
+                    pinSalt: 200,
+                    pinIterations: 200,
+                },
+            }),
+        ];
+        const remote = createSeedBook("共享账", NOW);
+        remote.members = [
+            member({
+                ...oldFields,
+                name: "Alice Renamed",
+                updatedAt: 300,
+                fieldUpdatedAt: {
+                    name: 300,
+                    pinHash: 100,
+                    pinSalt: 100,
+                    pinIterations: 100,
+                },
+            }),
+        ];
+
+        const merged = mergeBooks(local, remote);
+        await expect(
+            verifyMemberPin("new-password", merged.members[0]),
+        ).resolves.toBe(true);
+        await expect(
+            verifyMemberPin("old-password", merged.members[0]),
+        ).resolves.toBe(false);
     });
 
     it("verifies the newer password after merging two devices", async () => {

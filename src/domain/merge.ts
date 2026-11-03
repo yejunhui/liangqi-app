@@ -132,25 +132,82 @@ function memberHasPin(member: Member): boolean {
     );
 }
 
+function memberPinTime(member: Member): number {
+    const fieldTimes = ["pinHash", "pinSalt", "pinIterations"]
+        .map((field) => member.fieldUpdatedAt?.[field] ?? 0)
+        .filter((time) => time > 0);
+    return fieldTimes.length > 0
+        ? Math.max(...fieldTimes)
+        : recordTime(member);
+}
+
+function memberPinFields(
+    member: Member,
+): Pick<Member, "pinHash" | "pinSalt" | "pinIterations"> {
+    return {
+        pinHash: member.pinHash,
+        pinSalt: member.pinSalt,
+        pinIterations: member.pinIterations,
+    };
+}
+
+function samePin(local: Member, remote: Member): boolean {
+    return (
+        local.pinHash === remote.pinHash &&
+        local.pinSalt === remote.pinSalt &&
+        local.pinIterations === remote.pinIterations
+    );
+}
+
+function withAtomicPin(
+    merged: Member,
+    source: Member,
+    pinTime: number,
+): Member {
+    return {
+        ...merged,
+        ...memberPinFields(source),
+        fieldUpdatedAt: {
+            ...merged.fieldUpdatedAt,
+            pinHash: pinTime,
+            pinSalt: pinTime,
+            pinIterations: pinTime,
+        },
+    };
+}
+
 function mergeMember(local: Member, remote: Member): Member {
     const merged = mergeRecord(local, remote, MEMBER_MERGE_FIELDS);
     const localHasPin = memberHasPin(local);
     const remoteHasPin = memberHasPin(remote);
+    if (!localHasPin && !remoteHasPin) {
+        return merged;
+    }
     if (localHasPin && !remoteHasPin) {
-        return {
-            ...merged,
-            pinHash: local.pinHash,
-            pinSalt: local.pinSalt,
-            pinIterations: local.pinIterations,
-        };
+        return withAtomicPin(merged, local, memberPinTime(local));
     }
     if (!localHasPin && remoteHasPin) {
-        return {
-            ...merged,
-            pinHash: remote.pinHash,
-            pinSalt: remote.pinSalt,
-            pinIterations: remote.pinIterations,
-        };
+        return withAtomicPin(merged, remote, memberPinTime(remote));
+    }
+
+    // Password hash, salt and iteration count must move as one unit. Merging
+    // them field-by-field can combine a new hash with an old salt, which makes
+    // every login fail even though the password was never changed by the user.
+    const localPinTime = memberPinTime(local);
+    const remotePinTime = memberPinTime(remote);
+    if (localPinTime > remotePinTime) {
+        return withAtomicPin(merged, local, localPinTime);
+    }
+    if (remotePinTime > localPinTime) {
+        return withAtomicPin(merged, remote, remotePinTime);
+    }
+    if (!samePin(local, remote)) {
+        const chooseLocal = recordTime(local) > recordTime(remote);
+        return withAtomicPin(
+            merged,
+            chooseLocal ? local : remote,
+            Math.max(localPinTime, remotePinTime),
+        );
     }
     return merged;
 }
