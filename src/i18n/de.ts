@@ -1456,5 +1456,6 @@ export const DE: Record<string, string> = {
     "多成员账本和共享账本的成员身份决定当前记账成员。": "In Mehrbenutzer- und gemeinsamen Konten ist das angemeldete Mitglied das aktuelle Buchungsmitglied.",
     "成员登录": "Mitglieder-Anmeldung",
     "成员身份由登录决定；锁定或新会话打开后需要重新登录。": "Die Mitgliedsidentität wird durch die Anmeldung bestimmt; nach Sperren oder einer neuen Sitzung ist eine erneute Anmeldung erforderlich.",
-    "密码哈希随成员信息保存在账本中": "Passwort-Hashes werden mit den Mitgliedsdaten im Konto gespeichert"
+    "密码哈希随成员信息保存在账本中": "Passwort-Hashes werden mit den Mitgliedsdaten im Konto gespeichert",
+    "密码哈希会随成员信息同步到远程仓库": "Der Passwort-Hash wird mit den Mitgliedsdaten in das Remote-Repository synchronisiert"
 };

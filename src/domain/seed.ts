@@ -18,11 +18,25 @@ const CATEGORY_COLORS = {
     health: "#fb7185",
     study: "#60a5fa",
     other: "#a8a29e",
+    repayment: "#64748b",
     salary: "#10b981",
     bonus: "#f59e0b",
     invest: "#14b8a6",
     otherIncome: "#94a3b8",
 } as const;
+
+export const REPAYMENT_CATEGORY_ID = "cat_repayment";
+
+export function createRepaymentCategory(now = Date.now()): Category {
+    return {
+        id: REPAYMENT_CATEGORY_ID,
+        name: t("还款"),
+        kind: "expense",
+        emoji: "💳",
+        color: CATEGORY_COLORS.repayment,
+        createdAt: now,
+    };
+}
 
 export function createSeedData(now = Date.now()): LedgerData {
     const accounts: Account[] = [
@@ -120,6 +134,7 @@ export function createSeedData(now = Date.now()): LedgerData {
             color: CATEGORY_COLORS.other,
             createdAt: now,
         },
+        createRepaymentCategory(now),
         {
             id: "cat_salary",
             name: t("工资"),

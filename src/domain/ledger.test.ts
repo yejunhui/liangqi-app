@@ -4,8 +4,9 @@
 
 import { describe, expect, it } from "vitest";
 import type { Account, Bill, Entry } from "@/types";
-import { createSeedData } from "@/domain/seed";
+import { createSeedBook, createSeedData, REPAYMENT_CATEGORY_ID } from "@/domain/seed";
 import {
+    ensureRepaymentCategories,
     getAccountBalance,
     getBillDueInfo,
     getBillRemaining,
@@ -199,6 +200,30 @@ describe("bill lifecycle", () => {
         expect(validateRepaymentToAccount(emptyCredit, data.entries, 100, bank)).toContain(
             "没有待还余额",
         );
+    });
+
+    it("adds a repayment category to a direct repayment during migration", () => {
+        const book = createSeedBook("Test", NOW);
+        book.categories = book.categories.filter(
+            (category) => category.id !== REPAYMENT_CATEGORY_ID,
+        );
+        book.entries.push({
+            id: "entry_direct_repay",
+            kind: "repayment",
+            amount: 1_000,
+            date: NOW,
+            accountId: "acc_bank",
+            liabilityAccountId: "acc_credit",
+            createdAt: NOW,
+        });
+
+        const updated = ensureRepaymentCategories(book);
+        expect(
+            updated.categories.some(
+                (category) => category.id === REPAYMENT_CATEGORY_ID,
+            ),
+        ).toBe(true);
+        expect(updated.entries.at(-1)?.categoryId).toBe(REPAYMENT_CATEGORY_ID);
     });
 
     it("reduces the liability account for a repayment without a bill", () => {

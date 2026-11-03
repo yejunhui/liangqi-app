@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Member } from "@/types";
 import { Modal } from "@/components/modal";
 import { Button } from "@/components/button";
@@ -22,11 +22,18 @@ import { t } from "@/i18n";
 interface MemberModalProps {
     open: boolean;
     member: Member | null;
+    focusPassword?: boolean;
     onCreated?: (id: string, pin?: string) => void;
     onClose: () => void;
 }
 
-export function MemberModal({ open, member, onCreated, onClose }: MemberModalProps) {
+export function MemberModal({
+    open,
+    member,
+    focusPassword = false,
+    onCreated,
+    onClose,
+}: MemberModalProps) {
     const addMember = useLedgerStore((state) => state.addMember);
     const updateMember = useLedgerStore((state) => state.updateMember);
     const remote = useLedgerStore((state) => state.remote);
@@ -37,6 +44,7 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
     const [pin, setPin] = useState("");
     const [removePin, setRemovePin] = useState(false);
     const [error, setError] = useState("");
+    const passwordRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (!open) {
@@ -48,6 +56,16 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
         setRemovePin(false);
         setError("");
     }, [open, member]);
+
+    useEffect(() => {
+        if (!open || !focusPassword) {
+            return;
+        }
+        const timer = window.setTimeout(() => {
+            passwordRef.current?.focus();
+        }, 50);
+        return () => window.clearTimeout(timer);
+    }, [open, focusPassword]);
 
     const editing = member !== null;
     const existingPin = member !== null && hasMemberPin(member);
@@ -224,6 +242,7 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
                         </div>
                     ) : (
                         <input
+                            ref={passwordRef}
                             className="field mt-2 text-xs tracking-widest"
                             type="password"
                             maxLength={32}
@@ -238,6 +257,11 @@ export function MemberModal({ open, member, onCreated, onClose }: MemberModalPro
                         />
                     )}
                 </div>
+                {remote && (
+                    <p className="text-[10px] leading-relaxed text-muted">
+                        {t("密码哈希会随成员信息同步到远程仓库")}
+                    </p>
+                )}
 
                 <div className="flex items-center gap-3 rounded-xl border border-line bg-surface-2/55 p-3">
                     <span

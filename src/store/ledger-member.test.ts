@@ -162,6 +162,7 @@ describe("ledger member defaults", () => {
         expect(repayment?.billId).toBeUndefined();
         expect(repayment?.liabilityAccountId).toBe("acc_credit");
         expect(repayment?.memberId).toBe("member_bob");
+        expect(repayment?.categoryId).toBe("cat_repayment");
     });
 
     it("records member update timestamps for shared-ledger merge", () => {
@@ -174,6 +175,24 @@ describe("ledger member defaults", () => {
             .members.find((item) => item.id === "member_alice");
         expect(member?.updatedAt).toBeGreaterThanOrEqual(NOW);
         expect(member?.fieldUpdatedAt?.name).toBe(member?.updatedAt);
+    });
+
+    it("records password field timestamps so hashes can sync", () => {
+        const result = useLedgerStore.getState().updateMember("member_alice", {
+            pinHash: "new-hash",
+            pinSalt: "new-salt",
+            pinIterations: 160_000,
+        });
+        expect(result.ok).toBe(true);
+        const member = useLedgerStore
+            .getState()
+            .members.find((item) => item.id === "member_alice");
+        expect(member?.pinHash).toBe("new-hash");
+        expect(member?.pinSalt).toBe("new-salt");
+        expect(member?.pinIterations).toBe(160_000);
+        expect(member?.fieldUpdatedAt?.pinHash).toBe(member?.updatedAt);
+        expect(member?.fieldUpdatedAt?.pinSalt).toBe(member?.updatedAt);
+        expect(member?.fieldUpdatedAt?.pinIterations).toBe(member?.updatedAt);
     });
 
     it("does not touch the book when no recurring rule is due", () => {

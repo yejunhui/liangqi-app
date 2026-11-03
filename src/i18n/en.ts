@@ -1456,5 +1456,6 @@ export const EN: Record<string, string> = {
     "多成员账本和共享账本的成员身份决定当前记账成员。": "In multi-member and shared books, the signed-in member is the current recording member.",
     "成员登录": "Member sign-in",
     "成员身份由登录决定；锁定或新会话打开后需要重新登录。": "Member identity is determined by sign-in; you must sign in again after locking or opening a new session.",
-    "密码哈希随成员信息保存在账本中": "Password hashes are stored with member data in the book"
+    "密码哈希随成员信息保存在账本中": "Password hashes are stored with member data in the book",
+    "密码哈希会随成员信息同步到远程仓库": "The password hash syncs to the remote repository with member data"
 };

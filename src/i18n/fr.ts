@@ -1456,5 +1456,6 @@ export const FR: Record<string, string> = {
     "多成员账本和共享账本的成员身份决定当前记账成员。": "Dans les registres multi-membres et partagés, le membre connecté est le membre actuel.",
     "成员登录": "Connexion du membre",
     "成员身份由登录决定；锁定或新会话打开后需要重新登录。": "L’identité du membre est déterminée par la connexion ; reconnectez-vous après verrouillage ou ouverture d’une nouvelle session.",
-    "密码哈希随成员信息保存在账本中": "Les hachages de mots de passe sont stockés avec les données du membre dans le registre"
+    "密码哈希随成员信息保存在账本中": "Les hachages de mots de passe sont stockés avec les données du membre dans le registre",
+    "密码哈希会随成员信息同步到远程仓库": "Le hachage du mot de passe est synchronisé avec le dépôt distant avec les données du membre"
 };

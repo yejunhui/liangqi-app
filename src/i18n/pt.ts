@@ -1456,5 +1456,6 @@ export const PT: Record<string, string> = {
     "多成员账本和共享账本的成员身份决定当前记账成员。": "Em livros com vários membros e partilhados, o membro com sessão iniciada é o membro atual.",
     "成员登录": "Início de sessão do membro",
     "成员身份由登录决定；锁定或新会话打开后需要重新登录。": "A identidade do membro é determinada pelo início de sessão; terá de iniciar sessão novamente após bloquear ou abrir uma nova sessão.",
-    "密码哈希随成员信息保存在账本中": "Os hashes das palavras-passe são guardados com os dados do membro no livro"
+    "密码哈希随成员信息保存在账本中": "Os hashes das palavras-passe são guardados com os dados do membro no livro",
+    "密码哈希会随成员信息同步到远程仓库": "O hash da palavra-passe é sincronizado com o repositório remoto com os dados do membro"
 };

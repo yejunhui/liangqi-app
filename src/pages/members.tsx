@@ -3,7 +3,7 @@
  */
 
 import { useMemo, useState } from "react";
-import { Pencil, Plus, Trash2, Users } from "lucide-react";
+import { KeyRound, Pencil, Plus, Trash2, Users } from "lucide-react";
 import type { Member } from "@/types";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/button";
@@ -23,6 +23,7 @@ export function Members() {
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<Member | null>(null);
+    const [focusPassword, setFocusPassword] = useState(false);
     const [deleting, setDeleting] = useState<Member | null>(null);
 
     const usage = useMemo(() => {
@@ -42,11 +43,13 @@ export function Members() {
 
     function openCreate() {
         setEditing(null);
+        setFocusPassword(false);
         setModalOpen(true);
     }
 
-    function openEdit(member: Member) {
+    function openEdit(member: Member, focusPasswordField = false) {
         setEditing(member);
+        setFocusPassword(focusPasswordField);
         setModalOpen(true);
     }
 
@@ -107,6 +110,14 @@ export function Members() {
                                     <p className="mt-0.5 text-[10px] text-muted">
                                         {count > 0 ? t("{0} 处关联记录", [count]) : t("还没有使用")}
                                     </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => openEdit(member, true)}
+                                        className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-accent hover:underline"
+                                    >
+                                        <KeyRound className="size-3" />
+                                        {t("修改密码")}
+                                    </button>
                                 </div>
                                 <div className="flex shrink-0 items-center gap-1">
                                     <button
@@ -139,9 +150,11 @@ export function Members() {
             <MemberModal
                 open={modalOpen}
                 member={editing}
+                focusPassword={focusPassword}
                 onClose={() => {
                     setModalOpen(false);
                     setEditing(null);
+                    setFocusPassword(false);
                 }}
             />
 

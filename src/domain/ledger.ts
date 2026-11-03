@@ -13,6 +13,10 @@
 import type { Account, Bill, BillStatus, Book, Category, Entry, LedgerData } from "@/types";
 import { formatDate, isInMonth, startOfDay } from "@/utils/date";
 import { formatCents } from "@/domain/money";
+import {
+    createRepaymentCategory,
+    REPAYMENT_CATEGORY_ID,
+} from "@/domain/seed";
 
 import { t } from "@/i18n";
 
@@ -79,11 +83,18 @@ export function ensureRepaymentCategories(book: Book): Book {
     const billsById = new Map(book.bills.map((bill) => [bill.id, bill]));
     const at = Date.now();
     let changed = false;
+    let categories = book.categories;
+    if (!categories.some((category) => category.id === REPAYMENT_CATEGORY_ID)) {
+        categories = [...categories, createRepaymentCategory(at)];
+        changed = true;
+    }
     const entries = book.entries.map((entry) => {
-        if (entry.kind !== "repayment" || !entry.billId || entry.categoryId) {
+        if (entry.kind !== "repayment" || entry.categoryId) {
             return entry;
         }
-        const categoryId = billsById.get(entry.billId)?.categoryId;
+        const categoryId = entry.billId
+            ? billsById.get(entry.billId)?.categoryId
+            : REPAYMENT_CATEGORY_ID;
         if (!categoryId) {
             return entry;
         }
@@ -99,7 +110,7 @@ export function ensureRepaymentCategories(book: Book): Book {
         };
     });
     return changed
-        ? { ...book, entries, updatedAt: Math.max(book.updatedAt, at) }
+        ? { ...book, categories, entries, updatedAt: Math.max(book.updatedAt, at) }
         : book;
 }
 
