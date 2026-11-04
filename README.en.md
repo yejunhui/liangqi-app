@@ -11,7 +11,7 @@
 Liangqi is a **local-first shared-ledger web app** that keeps cash spending and credit purchases separate:
 
 - **Cash spending** is deducted from savings immediately.
-- **Credit purchases** do not touch savings. They increase liabilities and are recognised as expenses when repaid.
+- **Credit purchases** do not touch savings. They count as expenses immediately and increase liabilities; repayment later reduces savings, liabilities, and disposable assets without counting the expense again.
 
 Data lives in the browser by default. Multiple books are supported. Connect a GitHub, Gitee, or WebDAV repository to share one book with multiple members. When a remote is connected, Liangqi reads remote data first and falls back to local data offline.
 
@@ -28,24 +28,24 @@ Liangqi separates the three events:
 | Action | Assets / savings | Liabilities | Expense |
 | --- | ---: | ---: | ---: |
 | Cash purchase | −100 | 0 | +100 |
-| Credit purchase | 0 | +100 | 0 |
-| Repayment | −100 | −100 | +100 |
+| Credit purchase | 0 | +100 | +100 |
+| Repayment | −100 | −100 | 0 |
 | Loan received | +100 | +100 | 0 |
 
 Key rules:
 
-- A credit purchase only increases liabilities. It is **not counted as an expense at purchase time**; the expense is recognised when the bill is repaid.
-- Repayment moves value from assets to liabilities and recognises the expense in the repayment period.
-- Net worth = total assets − total liabilities. A credit purchase lowers net worth immediately because liabilities increase; repayment does not change net worth.
+- A credit purchase counts as an expense when recorded and increases liabilities, but does not touch savings; **disposable assets stay unchanged**.
+- Repayment moves value from assets to liabilities and reduces disposable assets, but **does not count the expense again**.
+- Net worth = total assets − total liabilities. A credit purchase lowers net worth when recorded because liabilities increase; repayment does not change net worth.
 
 ## Features
 
 - **Multiple books**: keep family, travel, and business books in one local library and switch between them.
 - **Asset and liability accounts**: cash, bank cards, credit cards, Huabei, loans, and more, with opening balances. Asset accounts can be marked as liquid or not.
 - **Overview**: total assets, total liabilities, disposable assets, and net worth.
-- **Two spending modes**: deduct from savings now, or create a liability and a bill to repay later.
+- **Two spending modes**: deduct from savings now, or count the expense immediately and create a liability and bill to repay later.
 - **Bills**: name, category, due date, partial repayment, and paid status.
-- **Repayments**: repay from an asset account; liabilities and savings are reduced and the repayment is counted as an expense.
+- **Repayments**: repay from an asset account; liabilities and savings are reduced. The expense was already counted at purchase time, so repayment does not count it again.
 - **Transfers**: move money between asset accounts without affecting income, expenses, or budgets.
 - **Member attribution**: bills and entries can belong to a family member; member labels appear on cards and lists.
 - **Tags and tag groups**: built-in daily tag groups for life context, purpose, and related people; single- or multi-select tags, plus your own tags.

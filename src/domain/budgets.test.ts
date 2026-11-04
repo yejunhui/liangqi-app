@@ -101,7 +101,7 @@ describe("budgets", () => {
         expect(getBudgetSpent(other, data.entries, data.categories, NOW)).toBe(0);
     });
 
-    it("counts repayments but not unpaid credit purchases", () => {
+    it("counts credit purchases at purchase time and ignores repayments", () => {
         const data = fixture();
         const bill: Bill = {
             id: "bill_credit",
@@ -140,7 +140,7 @@ describe("budgets", () => {
         );
 
         expect(getBudgetSpent(budget(), data.entries, data.categories, NOW)).toBe(
-            23_000,
+            25_000,
         );
     });
 

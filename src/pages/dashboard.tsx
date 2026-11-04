@@ -203,7 +203,7 @@ export function Dashboard() {
                     label={t("本月支出")}
                     value={monthTotals.expense}
                     currency={currency}
-                    hint={t("含还款，赊账不计")}
+                    hint={t("含赊账，还款不计")}
                     tone="liability"
                     icon={ReceiptText}
                 />
@@ -301,7 +301,7 @@ export function Dashboard() {
                     <div className="flex items-start justify-between gap-3">
                         <div>
                             <h2 className="text-sm font-bold text-text">{t("本月支出")}</h2>
-                            <p className="mt-0.5 text-[11px] text-muted">{t("赊账只记负债，还款时计入支出")}</p>
+                            <p className="mt-0.5 text-[11px] text-muted">{t("赊账记账时计入支出并增加负债；还款不重复计入支出")}</p>
                         </div>
                         <div className="flex items-center gap-1 rounded-lg border border-line bg-surface-2/70 p-0.5">
                             <button
@@ -343,7 +343,7 @@ export function Dashboard() {
                                 </span>
                             </p>
                         </div>
-                        <div className="rounded-lg bg-surface-2 px-2.5 py-1.5 text-[10px] text-muted">{`${t("还款")} `}{formatCents(monthTotals.repayment, currency)}{t("（计入支出）")}</div>
+                        <div className="rounded-lg bg-surface-2 px-2.5 py-1.5 text-[10px] text-muted">{`${t("还款")} `}{formatCents(monthTotals.repayment, currency)}{` · ${t("不计支出")}`}</div>
                     </div>
 
                     <div className="mt-5 grid gap-6 sm:grid-cols-2">
@@ -476,7 +476,7 @@ export function Dashboard() {
             <div className="mt-4 flex gap-3 rounded-2xl border border-line bg-surface/60 p-4">
                 <Info className="mt-0.5 size-4 shrink-0 text-accent" />
                 <p className="text-[11px] leading-relaxed text-muted">
-                    <strong className="font-semibold text-text">{t("账务规则：")}</strong>{` ${t("赊账消费只增加负债，不动存款，也不计入支出；还款时减少存款和负债，并计入还款当月的支出。")}`}</p>
+                    <strong className="font-semibold text-text">{t("账务规则：")}</strong>{` ${t("赊账记账时计入支出并增加负债；还款只减少资产和负债，不重复计入支出。")}`}</p>
             </div>
         </div>
     );

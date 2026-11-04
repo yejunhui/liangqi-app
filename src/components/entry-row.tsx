@@ -65,7 +65,7 @@ export function EntryRow({
         subtitle = `${asset?.name ?? t("账户")} → ${liability?.name ?? t("负债")}`;
         amountClass = "text-muted";
         badge = {
-            label: t("计入支出"),
+            label: t("不计支出"),
             className: "bg-accent-soft text-accent",
         };
     } else if (entry.kind === "transfer") {
@@ -83,7 +83,7 @@ export function EntryRow({
         subtitle = t("{0} · 赊账", [liability?.name ?? t("负债")]);
         amountClass = "text-liability";
         badge = {
-            label: t("负债"),
+            label: t("支出 · 负债"),
             className: "bg-liability-soft text-liability",
         };
     }

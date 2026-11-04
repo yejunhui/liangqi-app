@@ -638,10 +638,10 @@ export function Settings() {
                     />
                     <ul className="mt-4 space-y-2 text-[11px]">
                         <RuleRow label={t("现金消费")} detail={t("资产 ↓ 100 · 支出 ↑ 100")} />
-                        <RuleRow label={t("赊账消费")} detail={t("负债 ↑ 100 · 暂不计支出")} />
-                        <RuleRow label={t("还款")} detail={t("资产 ↓ 100 · 负债 ↓ 100 · 支出 ↑ 100")} />
+                        <RuleRow label={t("赊账消费")} detail={t("负债 ↑ 100 · 支出 ↑ 100 · 存款不变")} />
+                        <RuleRow label={t("还款")} detail={t("资产 ↓ 100 · 负债 ↓ 100 · 不计支出")} />
                     </ul>
-                    <p className="mt-3 text-[10px] leading-relaxed text-muted">{t("赊账消费只记负债，还款时再按还款金额计入支出；转账不计收支。")}</p>
+                    <p className="mt-3 text-[10px] leading-relaxed text-muted">{t("赊账记账时计入支出并增加负债；还款只减少资产和负债，不重复计入支出。")}</p>
                 </section>
 
                 <section className="card p-5">

@@ -204,7 +204,7 @@ export function buildReportHtml(input: {
         <div class="metric"><p>${t("支出")}</p><strong>${formatCents(expense, input.currency)}</strong></div>
         <div class="metric"><p>${t("收入")}</p><strong>${formatCents(income, input.currency)}</strong></div>
         <div class="metric"><p>${t("结余")}</p><strong>${formatCents(net, input.currency)}</strong></div>
-        <div class="metric"><p>${t("还款（计入支出）")}</p><strong>${formatCents(repayment, input.currency)}</strong></div>
+        <div class="metric"><p>${t("还款")}</p><strong>${formatCents(repayment, input.currency)}</strong></div>
     </div>
     <div class="grid">
         <section>
@@ -213,7 +213,7 @@ export function buildReportHtml(input: {
         </section>
         <section>
             <h2>${t("说明")}</h2>
-            <p class="muted">${t("赊账消费只记负债，还款时计入支出；转账不计入支出。外币按记账时汇率换算成本位币。")}</p>
+            <p class="muted">${t("现金支出和赊账在记账时计入支出；还款只减少资产和负债；转账不计收支。外币按记账时汇率换算成本位币。")}</p>
             <p class="muted">${t("共 {0} 笔流水。", [input.entries.length])}</p>
         </section>
     </div>

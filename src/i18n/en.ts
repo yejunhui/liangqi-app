@@ -1458,5 +1458,21 @@ export const EN: Record<string, string> = {
     "成员身份由登录决定；锁定或新会话打开后需要重新登录。": "Member identity is determined by sign-in; you must sign in again after locking or opening a new session.",
     "密码哈希随成员信息保存在账本中": "Password hashes are stored with member data in the book",
     "密码哈希会随成员信息同步到远程仓库": "The password hash syncs to the remote repository with member data",
-    "一个仓库只保存一本账。打开共享账本会先合并本地和远程数据，全部成功后才会切换；失败不会改动本地。": "Each repository stores one ledger. Opening a shared ledger first merges local and remote data and switches only after everything succeeds; a failure leaves local data unchanged."
+    "一个仓库只保存一本账。打开共享账本会先合并本地和远程数据，全部成功后才会切换；失败不会改动本地。": "Each repository stores one ledger. Opening a shared ledger first merges local and remote data and switches only after everything succeeds; a failure leaves local data unchanged.",
+    "负债 ↑ 100 · 支出 ↑ 100 · 存款不变": "Liabilities ↑ 100 · Expense ↑ 100 · Savings unchanged",
+    "资产 ↓ 100 · 负债 ↓ 100 · 不计支出": "Assets ↓ 100 · Liabilities ↓ 100 · No expense",
+    "赊账记账时计入支出并增加负债；还款只减少资产和负债，不重复计入支出。": "Credit purchases count as expenses and increase liabilities when recorded; repayments only reduce assets and liabilities and are not counted again.",
+    "含赊账，还款不计": "Includes credit purchases; repayments excluded",
+    "赊账记账时计入支出并增加负债；还款不重复计入支出": "Credit purchases count as expenses and add liabilities; repayments do not count again",
+    "不计支出": "Not counted as expense",
+    "账单记账时计入支出并生成待还账单；还款减少可支配资产，不重复计入支出。": "A bill counts as an expense when recorded and creates a payable bill; repayment reduces disposable assets and is not counted again.",
+    "本月已还": "Repaid this month",
+    "还款是资产 → 负债的转移；支出已在账单记账时确认。": "Repayment moves assets to liabilities; the expense was recognised when the bill was recorded.",
+    "统计口径：现金支出和赊账在记账时计入支出；还款只减少资产和负债；转账不计收支": "Accounting basis: cash and credit purchases count as expenses when recorded; repayment only reduces assets and liabilities; transfers are excluded.",
+    "还款已记录，可支配资产已减少": "Repayment recorded; disposable assets reduced",
+    "还款会减少存款和负债，并减少可支配资产；支出已在账单记账时确认。": "Repayment reduces savings, liabilities, and disposable assets; the expense was recognised when the bill was recorded.",
+    "本月（{0}）支出 {1}，收入 {2}，结余 {3}，还款 {4}": "This month ({0}): expenses {1}, income {2}, balance {3}, repayments {4}",
+    "口径：现金支出和赊账在记账时计入支出；还款不计支出；转账不计收支。": "Basis: cash and credit purchases count as expenses when recorded; repayments are not expenses; transfers are excluded.",
+    "现金支出和赊账在记账时计入支出；还款只减少资产和负债；转账不计收支。外币按记账时汇率换算成本位币。": "Cash and credit purchases count as expenses when recorded; repayment only reduces assets and liabilities; transfers are excluded. Foreign currencies are converted at the rate recorded with each entry.",
+    "支出 · 负债": "Expense · Liability"
 };

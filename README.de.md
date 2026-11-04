@@ -11,8 +11,8 @@
 Liangqi ist eine **Local-First-Web-App für gemeinsame Finanzbücher**, die Barausgaben und Kreditkäufe getrennt verwaltet:
 
 - **Barausgaben** werden sofort vom Ersparten abgezogen.
-- **Kreditkäufe** lassen das Ersparte unberührt, erhöhen aber die Verbindlichkeiten. Als Ausgabe zählen sie erst bei der Rückzahlung.
-- Eine **Rückzahlung** verschiebt Geld von Aktiva zu Verbindlichkeiten und wird in diesem Zeitraum als Ausgabe erfasst.
+- **Kreditkäufe** lassen das Ersparte unberührt, zählen bei der Erfassung als Ausgabe und erhöhen die Verbindlichkeiten. Bei der Rückzahlung wird die Ausgabe nicht erneut gezählt; nur Erspartes, Verbindlichkeiten und verfügbare Aktiva sinken.
+- Eine **Rückzahlung** verschiebt Geld von Aktiva zu Verbindlichkeiten; die Ausgabe wurde bereits beim Kauf erfasst.
 
 Daten bleiben standardmäßig im Browser. Du kannst mehrere Bücher führen und ein GitHub-, Gitee- oder WebDAV-Repository verbinden, um ein Buch mit mehreren Personen zu teilen.
 
@@ -23,12 +23,12 @@ Daten bleiben standardmäßig im Browser. Du kannst mehrere Bücher führen und 
 | Vorgang | Aktiva / Erspartes | Verbindlichkeiten | Ausgabe |
 | --- | ---: | ---: | ---: |
 | Barzahlung | −100 | 0 | +100 |
-| Kreditkauf | 0 | +100 | 0 |
-| Rückzahlung | −100 | −100 | +100 |
+| Kreditkauf | 0 | +100 | +100 |
+| Rückzahlung | −100 | −100 | 0 |
 | Kreditaufnahme | +100 | +100 | 0 |
 
-- Ein Kreditkauf erhöht nur die Verbindlichkeiten; **beim Kauf entsteht noch keine Ausgabe**.
-- Bei der Rückzahlung wird der gezahlte Betrag als Ausgabe erfasst.
+- Ein Kreditkauf zählt bei der Erfassung als Ausgabe und erhöht die Verbindlichkeiten; das Ersparte bleibt unberührt, daher **bleiben die verfügbaren Aktiva unverändert**.
+- Bei der Rückzahlung wird die Ausgabe nicht erneut gezählt; nur die verfügbaren Aktiva sinken.
 - Nettovermögen = Aktiva − Verbindlichkeiten. Ein Kreditkauf senkt es durch die höhere Verbindlichkeit; die Rückzahlung verändert es nicht.
 
 ## Funktionen
@@ -36,7 +36,7 @@ Daten bleiben standardmäßig im Browser. Du kannst mehrere Bücher führen und 
 - **Mehrere Bücher**: Familie, Reisen, Geschäft usw. mit schnellem Wechsel.
 - **Aktiv- und Passivkonten**: Bargeld, Bank, Kreditkarte, Huabei, Darlehen und Anfangssalden.
 - **Rechnungen**: Name, Kategorie, Fälligkeit, Teilzahlung und Status.
-- **Rückzahlungen**: von einem Aktivkonto zahlen; Verbindlichkeit und Erspartes sinken gemeinsam.
+- **Rückzahlungen**: von einem Aktivkonto zahlen; Verbindlichkeit und Erspartes sinken. Die Ausgabe wurde bereits beim Kauf erfasst.
 - **Mitglieder**: Rechnungen und Buchungen Familienmitgliedern zuordnen; gemeinsame Bücher mit Anmeldung pro Mitglied.
 - **Tags und zweistufige Kategorien**: Lebenssituation, Zweck, Person; Ober- und Unterkategorien.
 - **Budgets und wiederkehrende Buchungen**: monatlich oder jährlich, nach Kategorie, Tag oder Mitglied.

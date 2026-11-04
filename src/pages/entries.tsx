@@ -556,14 +556,10 @@ export function Entries() {
                                     </div>
                                     <div className="flex items-center gap-2 text-[10px] tabular-nums text-muted">
                                         {expense > 0 && (
-                                            <span>{`${t("支出")} `}{formatCents(expense, currency)}
-                                                {repayment > 0
-                                                    ? t("（含还款 {0}）", [formatCents(
-                                                          repayment,
-                                                          currency,
-                                                      )])
-                                                    : ""}
-                                            </span>
+                                            <span>{`${t("支出")} `}{formatCents(expense, currency)}</span>
+                                        )}
+                                        {repayment > 0 && (
+                                            <span>{`${t("还款")} `}{formatCents(repayment, currency)}</span>
                                         )}
                                         {income > 0 && (
                                             <span className="text-success">{`${t("收入")} `}{formatCents(income, currency)}

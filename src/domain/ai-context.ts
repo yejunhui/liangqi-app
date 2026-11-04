@@ -89,7 +89,7 @@ export function buildLedgerContext(
     lines.push(t("## 收支"));
     lines.push(
         t(
-            "本月（{0}）支出 {1}，收入 {2}，结余 {3}，还款 {4}（计入支出）",
+            "本月（{0}）支出 {1}，收入 {2}，结余 {3}，还款 {4}",
             [formatMonthLabel(month), formatCents(
                 monthTotals.expense,
                 currency,
@@ -100,7 +100,7 @@ export function buildLedgerContext(
         ),
     );
     lines.push(
-        t("口径：现金支出立即计入；赊账消费只记负债，还款时计入支出；转账不计收支。"),
+        t("口径：现金支出和赊账在记账时计入支出；还款不计支出；转账不计收支。"),
     );
     lines.push(
         t("上月（{0}）支出 {1}，收入 {2}", [formatMonthLabel(previous), formatCents(

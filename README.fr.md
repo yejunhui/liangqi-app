@@ -11,7 +11,7 @@
 Liangqi est une **application web de comptabilité partagée local-first** qui sépare les dépenses en espèces des achats à crédit :
 
 - Les **dépenses en espèces** sont déduites immédiatement de l’épargne.
-- Les **achats à crédit** ne touchent pas l’épargne : ils augmentent le passif et sont comptés en dépense au moment du remboursement.
+- Les **achats à crédit** ne touchent pas l’épargne : ils comptent comme dépense à l’enregistrement et augmentent le passif. Au remboursement, la dépense n’est pas recomptée ; seuls l’épargne, le passif et les actifs disponibles diminuent.
 - Le **remboursement** transfère de l’actif vers le passif et enregistre la dépense à cette date.
 
 Les données restent dans le navigateur par défaut. Vous pouvez gérer plusieurs livres et connecter un dépôt GitHub, Gitee ou WebDAV pour partager un livre entre plusieurs membres.
@@ -23,12 +23,12 @@ Les données restent dans le navigateur par défaut. Vous pouvez gérer plusieur
 | Opération | Actifs / épargne | Passifs | Dépense |
 | --- | ---: | ---: | ---: |
 | Achat en espèces | −100 | 0 | +100 |
-| Achat à crédit | 0 | +100 | 0 |
-| Remboursement | −100 | −100 | +100 |
+| Achat à crédit | 0 | +100 | +100 |
+| Remboursement | −100 | −100 | 0 |
 | Prêt reçu | +100 | +100 | 0 |
 
-- Un achat à crédit augmente seulement le passif ; **il n’est pas compté comme dépense à l’achat**.
-- Le remboursement enregistre la dépense à hauteur du montant remboursé.
+- Un achat à crédit compte comme dépense à l’enregistrement et augmente le passif ; il ne touche pas l’épargne, donc **les actifs disponibles ne changent pas**.
+- Le remboursement ne recompte pas la dépense ; il réduit seulement les actifs disponibles.
 - Actif net = actifs − passifs. Un achat à crédit le réduit en augmentant le passif ; le remboursement ne le change pas.
 
 ## Fonctions principales
@@ -36,7 +36,7 @@ Les données restent dans le navigateur par défaut. Vous pouvez gérer plusieur
 - **Plusieurs livres** : famille, voyage, activité, etc.
 - **Comptes d’actif et de passif** : espèces, banque, carte de crédit, Huabei, prêts, avec solde initial.
 - **Factures** : nom, catégorie, échéance, remboursement partiel, statut.
-- **Remboursements** : depuis un compte d’actif, avec réduction simultanée du passif et de l’épargne.
+- **Remboursements** : depuis un compte d’actif, avec réduction du passif et de l’épargne ; la dépense a déjà été comptée à l’achat.
 - **Membres** : rattachement des factures et écritures aux membres de la famille ; connexion par membre dans les livres partagés.
 - **Étiquettes et catégories à deux niveaux** : contexte, usage, personne ; catégories parentes/enfants.
 - **Budgets et écritures récurrentes** : mensuels ou annuels, par catégorie, étiquette ou membre.

@@ -1458,5 +1458,21 @@ export const ES: Record<string, string> = {
     "成员身份由登录决定；锁定或新会话打开后需要重新登录。": "La identidad del miembro se determina al iniciar sesión; deberás iniciar sesión de nuevo tras bloquear o abrir una nueva sesión.",
     "密码哈希随成员信息保存在账本中": "Los hashes de contraseña se guardan con los datos del miembro en el libro",
     "密码哈希会随成员信息同步到远程仓库": "El hash de la contraseña se sincroniza con el repositorio remoto junto con los datos del miembro",
-    "一个仓库只保存一本账。打开共享账本会先合并本地和远程数据，全部成功后才会切换；失败不会改动本地。": "Cada repositorio guarda un libro. Al abrir un libro compartido se combinan primero los datos locales y remotos y solo se cambia cuando todo ha terminado correctamente; si falla, los datos locales no se modifican."
+    "一个仓库只保存一本账。打开共享账本会先合并本地和远程数据，全部成功后才会切换；失败不会改动本地。": "Cada repositorio guarda un libro. Al abrir un libro compartido se combinan primero los datos locales y remotos y solo se cambia cuando todo ha terminado correctamente; si falla, los datos locales no se modifican.",
+    "负债 ↑ 100 · 支出 ↑ 100 · 存款不变": "Pasivos ↑ 100 · Gasto ↑ 100 · Ahorros sin cambios",
+    "资产 ↓ 100 · 负债 ↓ 100 · 不计支出": "Activos ↓ 100 · Pasivos ↓ 100 · Sin gasto",
+    "赊账记账时计入支出并增加负债；还款只减少资产和负债，不重复计入支出。": "Las compras a crédito cuentan como gasto y aumentan el pasivo al registrarse; el pago solo reduce activos y pasivos y no se vuelve a contar.",
+    "含赊账，还款不计": "Incluye compras a crédito; pagos excluidos",
+    "赊账记账时计入支出并增加负债；还款不重复计入支出": "Las compras a crédito cuentan como gasto y aumentan el pasivo; el pago no se vuelve a contar",
+    "不计支出": "No cuenta como gasto",
+    "账单记账时计入支出并生成待还账单；还款减少可支配资产，不重复计入支出。": "La factura cuenta como gasto al registrarse y crea una cuenta pendiente; el pago reduce los activos disponibles y no se vuelve a contar.",
+    "本月已还": "Pagado este mes",
+    "还款是资产 → 负债的转移；支出已在账单记账时确认。": "El pago transfiere activos a pasivos; el gasto ya se reconoció al registrar la factura.",
+    "统计口径：现金支出和赊账在记账时计入支出；还款只减少资产和负债；转账不计收支": "Criterio: los gastos en efectivo y las compras a crédito cuentan al registrarse; el pago solo reduce activos y pasivos; las transferencias no cuentan.",
+    "还款已记录，可支配资产已减少": "Pago registrado; activos disponibles reducidos",
+    "还款会减少存款和负债，并减少可支配资产；支出已在账单记账时确认。": "El pago reduce ahorros, pasivos y activos disponibles; el gasto se reconoció al registrar la factura.",
+    "本月（{0}）支出 {1}，收入 {2}，结余 {3}，还款 {4}": "Este mes ({0}): gastos {1}, ingresos {2}, saldo {3}, pagos {4}",
+    "口径：现金支出和赊账在记账时计入支出；还款不计支出；转账不计收支。": "Criterio: gastos en efectivo y compras a crédito cuentan al registrarse; los pagos no son gasto; las transferencias no cuentan.",
+    "现金支出和赊账在记账时计入支出；还款只减少资产和负债；转账不计收支。外币按记账时汇率换算成本位币。": "Los gastos en efectivo y las compras a crédito cuentan al registrarse; el pago solo reduce activos y pasivos; las transferencias no cuentan. Las divisas se convierten al tipo de cambio registrado.",
+    "支出 · 负债": "Gasto · Pasivo"
 };

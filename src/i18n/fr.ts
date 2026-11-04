@@ -1458,5 +1458,21 @@ export const FR: Record<string, string> = {
     "成员身份由登录决定；锁定或新会话打开后需要重新登录。": "L’identité du membre est déterminée par la connexion ; reconnectez-vous après verrouillage ou ouverture d’une nouvelle session.",
     "密码哈希随成员信息保存在账本中": "Les hachages de mots de passe sont stockés avec les données du membre dans le registre",
     "密码哈希会随成员信息同步到远程仓库": "Le hachage du mot de passe est synchronisé avec le dépôt distant avec les données du membre",
-    "一个仓库只保存一本账。打开共享账本会先合并本地和远程数据，全部成功后才会切换；失败不会改动本地。": "Chaque dépôt contient un seul registre. L’ouverture d’un registre partagé fusionne d’abord les données locales et distantes et ne bascule qu’après réussite complète ; en cas d’échec, les données locales restent inchangées."
+    "一个仓库只保存一本账。打开共享账本会先合并本地和远程数据，全部成功后才会切换；失败不会改动本地。": "Chaque dépôt contient un seul registre. L’ouverture d’un registre partagé fusionne d’abord les données locales et distantes et ne bascule qu’après réussite complète ; en cas d’échec, les données locales restent inchangées.",
+    "负债 ↑ 100 · 支出 ↑ 100 · 存款不变": "Passifs ↑ 100 · Dépense ↑ 100 · Épargne inchangée",
+    "资产 ↓ 100 · 负债 ↓ 100 · 不计支出": "Actifs ↓ 100 · Passifs ↓ 100 · Sans dépense",
+    "赊账记账时计入支出并增加负债；还款只减少资产和负债，不重复计入支出。": "Les achats à crédit comptent comme dépense et augmentent les passifs lors de l’enregistrement ; le remboursement ne réduit que les actifs et les passifs et n’est pas recompté.",
+    "含赊账，还款不计": "Achats à crédit inclus ; remboursements exclus",
+    "赊账记账时计入支出并增加负债；还款不重复计入支出": "Les achats à crédit comptent comme dépense et augmentent les passifs ; le remboursement n’est pas recompté",
+    "不计支出": "Non compté comme dépense",
+    "账单记账时计入支出并生成待还账单；还款减少可支配资产，不重复计入支出。": "La facture compte comme dépense lors de l’enregistrement et crée une facture à payer ; le remboursement réduit les actifs disponibles et n’est pas recompté.",
+    "本月已还": "Remboursé ce mois",
+    "还款是资产 → 负债的转移；支出已在账单记账时确认。": "Le remboursement transfère des actifs vers les passifs ; la dépense a déjà été comptabilisée lors de l’enregistrement de la facture.",
+    "统计口径：现金支出和赊账在记账时计入支出；还款只减少资产和负债；转账不计收支": "Méthode : les dépenses en espèces et les achats à crédit comptent à l’enregistrement ; le remboursement ne réduit que les actifs et les passifs ; les virements sont exclus.",
+    "还款已记录，可支配资产已减少": "Remboursement enregistré ; actifs disponibles réduits",
+    "还款会减少存款和负债，并减少可支配资产；支出已在账单记账时确认。": "Le remboursement réduit l’épargne, les passifs et les actifs disponibles ; la dépense a été comptabilisée lors de l’enregistrement de la facture.",
+    "本月（{0}）支出 {1}，收入 {2}，结余 {3}，还款 {4}": "Ce mois ({0}) : dépenses {1}, revenus {2}, solde {3}, remboursements {4}",
+    "口径：现金支出和赊账在记账时计入支出；还款不计支出；转账不计收支。": "Méthode : dépenses en espèces et achats à crédit comptent à l’enregistrement ; les remboursements ne sont pas des dépenses ; les virements sont exclus.",
+    "现金支出和赊账在记账时计入支出；还款只减少资产和负债；转账不计收支。外币按记账时汇率换算成本位币。": "Les dépenses en espèces et les achats à crédit comptent à l’enregistrement ; le remboursement ne réduit que les actifs et les passifs ; les virements sont exclus. Les devises sont converties au taux enregistré.",
+    "支出 · 负债": "Dépense · Passif"
 };

@@ -137,7 +137,10 @@ export function EntryDetailModal({ entry, onClose }: EntryDetailModalProps) {
                                 <Money value={entry.amount} currency={currency} sign={sign} />
                             </p>
                             {entry.kind === "repayment" && (
-                                <span className="mt-2 inline-flex chip bg-accent-soft text-accent">{t("计入支出")}</span>
+                                <span className="mt-2 inline-flex chip bg-accent-soft text-accent">{t("不计支出")}</span>
+                            )}
+                            {entry.kind === "expense" && entry.billId && (
+                                <span className="mt-2 inline-flex chip bg-liability-soft text-liability">{t("支出 · 负债")}</span>
                             )}
                         </div>
 

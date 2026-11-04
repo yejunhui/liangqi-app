@@ -100,7 +100,7 @@ export function Bills() {
         <div>
             <PageHeader
                 title={t("账单")}
-                description={t("赊账消费会生成待还账单；还款后自动更新进度，并按还款金额计入支出。")}
+                description={t("账单记账时计入支出并生成待还账单；还款减少可支配资产，不重复计入支出。")}
                 action={
                     <Button
                         onClick={() =>
@@ -147,7 +147,7 @@ export function Bills() {
 
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
                         <div className="rounded-xl border border-line bg-surface-2/55 p-3">
-                            <p className="text-[10px] text-muted">{t("本月已还（计入支出）")}</p>
+                            <p className="text-[10px] text-muted">{t("本月已还")}</p>
                             <p className="mt-1 text-base font-bold tabular-nums text-text">
                                 {formatCents(monthRepayment, currency)}
                             </p>
@@ -161,7 +161,7 @@ export function Bills() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2 border-t border-line bg-accent-soft/35 px-5 py-2.5 text-[10px] text-muted sm:px-6">
-                    <ShieldCheck className="size-3.5 text-accent" />{` ${t("还款是“存款 → 负债”的转移，并在还款时计入支出。")}`}</div>
+                    <ShieldCheck className="size-3.5 text-accent" />{` ${t("还款是资产 → 负债的转移；支出已在账单记账时确认。")}`}</div>
             </section>
 
             <div className="mt-5 flex items-center justify-between gap-3">

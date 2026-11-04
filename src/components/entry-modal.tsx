@@ -509,7 +509,7 @@ export function EntryModal() {
                 return;
             }
             createdEntryId = result.entryId;
-            toast(t("还款已记录，计入支出"), "success");
+            toast(t("还款已记录，可支配资产已减少"), "success");
         }
 
         if (createdEntryId && files.length > 0) {
@@ -899,7 +899,7 @@ export function EntryModal() {
                         </div>
                         <div className="rounded-xl border border-line bg-surface-2/60 p-3.5">
                             <div className="flex items-center gap-2 text-[11px] font-semibold text-text">
-                                <Info className="size-3.5 text-accent" />{` ${t("还款会减少存款和负债，并计入支出")}`}</div>
+                                <Info className="size-3.5 text-accent" />{` ${t("还款会减少存款和负债，并减少可支配资产；支出已在账单记账时确认。")}`}</div>
                             <div className="mt-2 space-y-1 text-[11px] text-muted">
                                 <div className="flex justify-between gap-3">
                                     <span className="min-w-0 truncate">{selectedAsset?.name ?? t("存款")}</span>

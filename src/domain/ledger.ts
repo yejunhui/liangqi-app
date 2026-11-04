@@ -5,19 +5,14 @@
  *
  * Core model:
  * - Cash expense: asset ↓, expense ↑
- * - Credit expense: liability ↑ (asset unchanged, expense recognized on repayment)
- * - Repayment: asset ↓, liability ↓, expense ↑
+ * - Credit expense: liability ↑, expense ↑ immediately (asset unchanged)
+ * - Repayment: asset ↓, liability ↓, no additional expense
  * - Income: asset ↑, income ↑
  */
 
 import type { Account, Bill, BillStatus, Book, Category, Entry, LedgerData } from "@/types";
 import { formatDate, isInMonth, startOfDay } from "@/utils/date";
 import { formatCents } from "@/domain/money";
-import {
-    createRepaymentCategory,
-    REPAYMENT_CATEGORY_ID,
-} from "@/domain/seed";
-
 import { t } from "@/i18n";
 
 export function getAccountBalance(account: Account, entries: Entry[]): number {
@@ -63,38 +58,29 @@ export function getAssetAccounts(accounts: Account[]): Account[] {
 }
 
 /**
- * Expense recognition is cash/debt-payment based:
- * - cash expense is recognised immediately;
- * - credit purchase only adds a liability and is recognised when repaid;
- * - repayment is recognised as the expense for the period it is paid.
+ * Expenses are recognised when the purchase is recorded:
+ * - cash and credit purchases both create an expense immediately;
+ * - repayment only moves value from assets to liabilities and is not an
+ *   additional expense;
+ * - transfers are not expenses.
  */
 export function isRecognizedExpense(entry: Entry): boolean {
-    return (
-        entry.kind === "repayment" ||
-        (entry.kind === "expense" && !entry.liabilityAccountId)
-    );
+    return entry.kind === "expense";
 }
 
 /**
  * Older repayments were created before repayment categories were copied from
- * their bills. Fill them in once so category/tag/member analysis stays useful.
+ * their bills. Fill them in once so the repayment entry keeps its bill context.
  */
 export function ensureRepaymentCategories(book: Book): Book {
     const billsById = new Map(book.bills.map((bill) => [bill.id, bill]));
     const at = Date.now();
     let changed = false;
-    let categories = book.categories;
-    if (!categories.some((category) => category.id === REPAYMENT_CATEGORY_ID)) {
-        categories = [...categories, createRepaymentCategory(at)];
-        changed = true;
-    }
     const entries = book.entries.map((entry) => {
-        if (entry.kind !== "repayment" || entry.categoryId) {
+        if (entry.kind !== "repayment" || !entry.billId || entry.categoryId) {
             return entry;
         }
-        const categoryId = entry.billId
-            ? billsById.get(entry.billId)?.categoryId
-            : REPAYMENT_CATEGORY_ID;
+        const categoryId = billsById.get(entry.billId)?.categoryId;
         if (!categoryId) {
             return entry;
         }
@@ -110,7 +96,7 @@ export function ensureRepaymentCategories(book: Book): Book {
         };
     });
     return changed
-        ? { ...book, categories, entries, updatedAt: Math.max(book.updatedAt, at) }
+        ? { ...book, entries, updatedAt: Math.max(book.updatedAt, at) }
         : book;
 }
 
@@ -235,7 +221,6 @@ export function getMonthTotals(entries: Entry[], monthTimestamp: number): MonthT
             totals.income += entry.amount;
         } else if (entry.kind === "repayment") {
             totals.repayment += entry.amount;
-            totals.expense += entry.amount;
         } else if (isRecognizedExpense(entry)) {
             totals.expense += entry.amount;
         }

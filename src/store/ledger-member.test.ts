@@ -162,7 +162,6 @@ describe("ledger member defaults", () => {
         expect(repayment?.billId).toBeUndefined();
         expect(repayment?.liabilityAccountId).toBe("acc_credit");
         expect(repayment?.memberId).toBe("member_bob");
-        expect(repayment?.categoryId).toBe("cat_repayment");
     });
 
     it("records member update timestamps for shared-ledger merge", () => {

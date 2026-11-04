@@ -27,7 +27,7 @@ import type {
     ThemeMode,
     Tombstone,
 } from "@/types";
-import { createSeedData, REPAYMENT_CATEGORY_ID } from "@/domain/seed";
+import { createSeedData } from "@/domain/seed";
 import { createDefaultTagGroups, createDefaultTags, seedDefaultTags } from "@/domain/tags";
 import {
     getBillRepaid,
@@ -541,7 +541,7 @@ const createActions = (
             accountId: input.accountId,
             liabilityAccountId: liability.id,
             billId: bill?.id,
-            categoryId: bill?.categoryId ?? REPAYMENT_CATEGORY_ID,
+            categoryId: bill?.categoryId,
             memberId,
             tagIds: tagResult.tagIds,
             note: cleanNote(input.note),

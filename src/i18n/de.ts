@@ -1458,5 +1458,21 @@ export const DE: Record<string, string> = {
     "成员身份由登录决定；锁定或新会话打开后需要重新登录。": "Die Mitgliedsidentität wird durch die Anmeldung bestimmt; nach Sperren oder einer neuen Sitzung ist eine erneute Anmeldung erforderlich.",
     "密码哈希随成员信息保存在账本中": "Passwort-Hashes werden mit den Mitgliedsdaten im Konto gespeichert",
     "密码哈希会随成员信息同步到远程仓库": "Der Passwort-Hash wird mit den Mitgliedsdaten in das Remote-Repository synchronisiert",
-    "一个仓库只保存一本账。打开共享账本会先合并本地和远程数据，全部成功后才会切换；失败不会改动本地。": "Jedes Repository speichert ein Buch. Beim Öffnen eines gemeinsamen Buchs werden zuerst lokale und Remote-Daten zusammengeführt; erst nach vollständigem Erfolg wird gewechselt. Bei einem Fehler bleiben die lokalen Daten unverändert."
+    "一个仓库只保存一本账。打开共享账本会先合并本地和远程数据，全部成功后才会切换；失败不会改动本地。": "Jedes Repository speichert ein Buch. Beim Öffnen eines gemeinsamen Buchs werden zuerst lokale und Remote-Daten zusammengeführt; erst nach vollständigem Erfolg wird gewechselt. Bei einem Fehler bleiben die lokalen Daten unverändert.",
+    "负债 ↑ 100 · 支出 ↑ 100 · 存款不变": "Verbindlichkeiten ↑ 100 · Ausgabe ↑ 100 · Erspartes unverändert",
+    "资产 ↓ 100 · 负债 ↓ 100 · 不计支出": "Aktiva ↓ 100 · Verbindlichkeiten ↓ 100 · Keine Ausgabe",
+    "赊账记账时计入支出并增加负债；还款只减少资产和负债，不重复计入支出。": "Kreditkäufe zählen bei der Erfassung als Ausgabe und erhöhen die Verbindlichkeiten; Rückzahlungen reduzieren nur Aktiva und Verbindlichkeiten und werden nicht erneut gezählt.",
+    "含赊账，还款不计": "Kreditkäufe enthalten; Rückzahlungen ausgeschlossen",
+    "赊账记账时计入支出并增加负债；还款不重复计入支出": "Kreditkäufe zählen als Ausgabe und erhöhen die Verbindlichkeiten; Rückzahlungen werden nicht erneut gezählt",
+    "不计支出": "Nicht als Ausgabe gezählt",
+    "账单记账时计入支出并生成待还账单；还款减少可支配资产，不重复计入支出。": "Eine Rechnung zählt bei der Erfassung als Ausgabe und erzeugt eine offene Rechnung; die Rückzahlung reduziert verfügbare Aktiva und wird nicht erneut gezählt.",
+    "本月已还": "Diesen Monat zurückgezahlt",
+    "还款是资产 → 负债的转移；支出已在账单记账时确认。": "Die Rückzahlung verschiebt Aktiva zu Verbindlichkeiten; die Ausgabe wurde bereits bei der Rechnungserfassung erfasst.",
+    "统计口径：现金支出和赊账在记账时计入支出；还款只减少资产和负债；转账不计收支": "Grundlage: Barausgaben und Kreditkäufe zählen bei der Erfassung; Rückzahlungen reduzieren nur Aktiva und Verbindlichkeiten; Übertragungen zählen nicht.",
+    "还款已记录，可支配资产已减少": "Rückzahlung erfasst; verfügbare Aktiva reduziert",
+    "还款会减少存款和负债，并减少可支配资产；支出已在账单记账时确认。": "Die Rückzahlung reduziert Erspartes, Verbindlichkeiten und verfügbare Aktiva; die Ausgabe wurde bei der Rechnungserfassung erfasst.",
+    "本月（{0}）支出 {1}，收入 {2}，结余 {3}，还款 {4}": "Dieser Monat ({0}): Ausgaben {1}, Einnahmen {2}, Saldo {3}, Rückzahlungen {4}",
+    "口径：现金支出和赊账在记账时计入支出；还款不计支出；转账不计收支。": "Grundlage: Barausgaben und Kreditkäufe zählen bei der Erfassung; Rückzahlungen sind keine Ausgaben; Übertragungen zählen nicht.",
+    "现金支出和赊账在记账时计入支出；还款只减少资产和负债；转账不计收支。外币按记账时汇率换算成本位币。": "Barausgaben und Kreditkäufe zählen bei der Erfassung; Rückzahlungen reduzieren nur Aktiva und Verbindlichkeiten; Übertragungen zählen nicht. Fremdwährungen werden zum erfassten Kurs umgerechnet.",
+    "支出 · 负债": "Ausgabe · Verbindlichkeit"
 };

@@ -636,7 +636,7 @@ export function Analytics() {
                     label={t("还款")}
                     value={totals.repayment}
                     currency={currency}
-                    hint={t("已计入支出")}
+                    hint={t("不计支出")}
                     tone="muted"
                 />
             </div>
@@ -864,7 +864,7 @@ export function Analytics() {
             </section>
 
             <p className="mt-5 flex items-center justify-center gap-1 text-[10px] text-muted">
-                <ChartNoAxesColumn className="size-3" />{` ${t("统计口径：现金支出立即计入，赊账只记负债，还款时计入支出；转账不计收支")}`}</p>
+                <ChartNoAxesColumn className="size-3" />{` ${t("统计口径：现金支出和赊账在记账时计入支出；还款只减少资产和负债；转账不计收支")}`}</p>
 
             <Modal
                 open={saveOpen}

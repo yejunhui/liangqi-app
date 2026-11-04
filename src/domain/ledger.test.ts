@@ -4,9 +4,8 @@
 
 import { describe, expect, it } from "vitest";
 import type { Account, Bill, Entry } from "@/types";
-import { createSeedBook, createSeedData, REPAYMENT_CATEGORY_ID } from "@/domain/seed";
+import { createSeedData } from "@/domain/seed";
 import {
-    ensureRepaymentCategories,
     getAccountBalance,
     getBillDueInfo,
     getBillRemaining,
@@ -115,6 +114,49 @@ describe("account balances", () => {
         expect(getAccountBalance(credit, data.entries)).toBe(15_000);
     });
 
+    it("reduces disposable assets only on repayment, not on credit purchase", () => {
+        const data = buildFixture();
+        const before = getTotals(data);
+        const beforeMonth = getMonthTotals(data.entries, NOW);
+
+        data.entries.push({
+            id: "entry_repay_disposable",
+            kind: "repayment",
+            amount: 5_000,
+            date: NOW,
+            accountId: "acc_bank",
+            liabilityAccountId: "acc_credit",
+            billId: "bill_1",
+            createdAt: NOW,
+        });
+
+        const after = getTotals(data);
+        const afterMonth = getMonthTotals(data.entries, NOW);
+        expect(after.disposable).toBe(before.disposable - 5_000);
+        expect(after.netWorth).toBe(before.netWorth);
+        expect(afterMonth.expense).toBe(beforeMonth.expense);
+        expect(afterMonth.repayment).toBe(5_000);
+    });
+
+    it("recognizes a credit purchase in its purchase month, not the repayment month", () => {
+        const data = buildFixture();
+        const nextMonth = new Date(2026, 10, 15, 12).getTime();
+        data.entries.push({
+            id: "entry_repay_next_month",
+            kind: "repayment",
+            amount: 5_000,
+            date: nextMonth,
+            accountId: "acc_bank",
+            liabilityAccountId: "acc_credit",
+            billId: "bill_1",
+            createdAt: nextMonth,
+        });
+
+        expect(getMonthTotals(data.entries, NOW).expense).toBe(30_000);
+        expect(getMonthTotals(data.entries, nextMonth).expense).toBe(0);
+        expect(getMonthTotals(data.entries, nextMonth).repayment).toBe(5_000);
+    });
+
     it("moves money between asset accounts without changing totals", () => {
         const data = buildFixture();
         const transfer: Entry = {
@@ -136,7 +178,7 @@ describe("account balances", () => {
             getTotals({ accounts: data.accounts, entries: data.entries.slice(0, -1) }).netWorth,
         );
         const month = getMonthTotals(data.entries, NOW);
-        expect(month.expense).toBe(10_000);
+        expect(month.expense).toBe(30_000);
         expect(month.income).toBe(50_000);
         expect(month.repayment).toBe(0);
     });
@@ -202,30 +244,6 @@ describe("bill lifecycle", () => {
         );
     });
 
-    it("adds a repayment category to a direct repayment during migration", () => {
-        const book = createSeedBook("Test", NOW);
-        book.categories = book.categories.filter(
-            (category) => category.id !== REPAYMENT_CATEGORY_ID,
-        );
-        book.entries.push({
-            id: "entry_direct_repay",
-            kind: "repayment",
-            amount: 1_000,
-            date: NOW,
-            accountId: "acc_bank",
-            liabilityAccountId: "acc_credit",
-            createdAt: NOW,
-        });
-
-        const updated = ensureRepaymentCategories(book);
-        expect(
-            updated.categories.some(
-                (category) => category.id === REPAYMENT_CATEGORY_ID,
-            ),
-        ).toBe(true);
-        expect(updated.entries.at(-1)?.categoryId).toBe(REPAYMENT_CATEGORY_ID);
-    });
-
     it("reduces the liability account for a repayment without a bill", () => {
         const data = buildFixture();
         const credit = data.accounts.find((account) => account.id === "acc_credit")!;
@@ -245,7 +263,7 @@ describe("bill lifecycle", () => {
         expect(getBillRemaining(data.bills[0], data.entries)).toBe(20_000);
     });
 
-    it("recognizes a repayment as expense while the credit purchase stays liability-only", () => {
+    it("does not double-count a repayment as expense", () => {
         const data = buildFixture();
         const before = getMonthTotals(data.entries, NOW);
 
@@ -261,29 +279,17 @@ describe("bill lifecycle", () => {
         });
 
         const after = getMonthTotals(data.entries, NOW);
-        expect(after.expense).toBe(before.expense + 20_000);
+        expect(after.expense).toBe(before.expense);
         expect(after.income).toBe(before.income);
         expect(after.repayment).toBe(20_000);
     });
 
-    it("puts a repayment into the bill category for category analysis", () => {
+    it("counts a credit purchase once in its bill category", () => {
         const data = buildFixture();
-        data.entries.push({
-            id: "entry_repay_category",
-            kind: "repayment",
-            amount: 5_000,
-            date: NOW,
-            accountId: "acc_bank",
-            liabilityAccountId: "acc_credit",
-            billId: "bill_1",
-            categoryId: "cat_food",
-            createdAt: NOW,
-        });
-
         const breakdown = getCategoryBreakdown(data.entries, data.categories, NOW);
         expect(breakdown).toHaveLength(1);
         expect(breakdown[0].name).toBe("餐饮");
-        expect(breakdown[0].amount).toBe(15_000);
+        expect(breakdown[0].amount).toBe(30_000);
     });
 });
 
@@ -470,15 +476,8 @@ describe("accounting invariants", () => {
         });
         const beforeRepayment = getTotals(data);
         const month = getMonthTotals(data.entries, NOW);
-        const creditPurchases = data.entries
-            .filter(
-                (entry) =>
-                    entry.kind === "expense" && Boolean(entry.liabilityAccountId),
-            )
-            .reduce((sum, entry) => sum + entry.amount, 0);
-
         expect(beforeRepayment.netWorth - initial.netWorth).toBe(
-            month.income - month.expense - creditPurchases,
+            month.income - month.expense,
         );
 
         data.entries.push({
@@ -514,14 +513,14 @@ describe("summaries", () => {
     it("computes month totals and category shares", () => {
         const data = buildFixture();
         const totals = getMonthTotals(data.entries, NOW);
-        expect(totals.expense).toBe(10_000);
+        expect(totals.expense).toBe(30_000);
         expect(totals.income).toBe(50_000);
-        expect(totals.net).toBe(40_000);
+        expect(totals.net).toBe(20_000);
 
         const breakdown = getCategoryBreakdown(data.entries, data.categories, NOW);
         expect(breakdown).toHaveLength(1);
         expect(breakdown[0].name).toBe("餐饮");
-        expect(breakdown[0].amount).toBe(10_000);
+        expect(breakdown[0].amount).toBe(30_000);
         expect(breakdown[0].share).toBe(1);
     });
 

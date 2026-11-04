@@ -11,8 +11,8 @@
 Liangqi é um **aplicativo web de contabilidade compartilhada local-first** que separa gastos em dinheiro de compras no crédito:
 
 - **Gastos em dinheiro** são descontados da poupança imediatamente.
-- **Compras no crédito** não mexem na poupança: aumentam o passivo e são reconhecidas como despesa no pagamento.
-- O **pagamento da dívida** move dinheiro de ativos para passivos e registra a despesa nesse momento.
+- **Compras no crédito** não mexem na poupança: contam como despesa no registo e aumentam o passivo. No pagamento, a despesa não é contada novamente; apenas poupança, passivo e ativos disponíveis diminuem.
+- O **pagamento da dívida** move ativos para passivos; a despesa já foi reconhecida na compra.
 
 Os dados ficam no navegador por padrão. Você pode ter vários livros e conectar um repositório GitHub, Gitee ou WebDAV para compartilhar um livro entre várias pessoas.
 
@@ -23,12 +23,12 @@ Os dados ficam no navegador por padrão. Você pode ter vários livros e conecta
 | Ação | Ativos / poupança | Passivos | Despesa |
 | --- | ---: | ---: | ---: |
 | Compra em dinheiro | −100 | 0 | +100 |
-| Compra no crédito | 0 | +100 | 0 |
-| Pagamento da dívida | −100 | −100 | +100 |
+| Compra no crédito | 0 | +100 | +100 |
+| Pagamento da dívida | −100 | −100 | 0 |
 | Empréstimo recebido | +100 | +100 | 0 |
 
-- Uma compra no crédito só aumenta o passivo; **não conta como despesa na compra**.
-- No pagamento, o valor pago é reconhecido como despesa.
+- Uma compra no crédito conta como despesa no registo e aumenta o passivo; não mexe na poupança, por isso **os ativos disponíveis não mudam**.
+- O pagamento não conta a despesa novamente; apenas reduz os ativos disponíveis.
 - Patrimônio líquido = ativos − passivos. A compra no crédito reduz o patrimônio ao aumentar o passivo; o pagamento não altera.
 
 ## Principais recursos
@@ -36,7 +36,7 @@ Os dados ficam no navegador por padrão. Você pode ter vários livros e conecta
 - **Vários livros**: família, viagem, negócio etc., com troca rápida.
 - **Contas de ativo e passivo**: dinheiro, banco, cartão de crédito, Huabei, empréstimos e saldo inicial.
 - **Faturas**: nome, categoria, vencimento, pagamento parcial e status.
-- **Pagamentos**: pague a partir de uma conta de ativo e reduza passivo e poupança juntos.
+- **Pagamentos**: pague a partir de uma conta de ativo e reduza passivo e poupança; a despesa já foi contada na compra.
 - **Membros**: vincule faturas e lançamentos aos membros da família; livros compartilhados com login por membro.
 - **Tags e categorias de dois níveis**: contexto, finalidade e pessoa; categorias pai/filho.
 - **Orçamentos e lançamentos recorrentes**: mensais ou anuais, por categoria, tag ou membro.

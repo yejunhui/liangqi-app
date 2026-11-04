@@ -11,7 +11,7 @@
 Liangqi es una **aplicación web de contabilidad compartida local-first** que separa los gastos en efectivo de las compras a crédito:
 
 - Los **gastos en efectivo** se descuentan del ahorro de inmediato.
-- Las **compras a crédito** no tocan el ahorro: aumentan el pasivo y se reconocen como gasto al pagar la deuda.
+- Las **compras a crédito** no tocan el ahorro: cuentan como gasto al registrarse y aumentan el pasivo. Al pagar, el gasto no se vuelve a contar; solo se reducen ahorro, pasivo y activos disponibles.
 - El **pago de una deuda** mueve dinero de activos a pasivos y registra el gasto en ese momento.
 
 Los datos se guardan en el navegador de forma predeterminada. Puedes tener varios libros y conectar un repositorio de GitHub, Gitee o WebDAV para compartir un libro entre varias personas.
@@ -23,20 +23,20 @@ Los datos se guardan en el navegador de forma predeterminada. Puedes tener vario
 | Acción | Activos / ahorro | Pasivos | Gasto |
 | --- | ---: | ---: | ---: |
 | Compra en efectivo | −100 | 0 | +100 |
-| Compra a crédito | 0 | +100 | 0 |
+| Compra a crédito | 0 | +100 | +100 |
 | Pago de deuda | −100 | −100 | +100 |
 | Préstamo recibido | +100 | +100 | 0 |
 
-- Una compra a crédito solo aumenta el pasivo; **no cuenta como gasto en el momento de la compra**.
-- Al pagar la deuda, el importe pagado se reconoce como gasto.
-- Patrimonio neto = activos totales − pasivos totales. Una compra a crédito lo reduce al aumentar el pasivo; el pago no lo cambia.
+- Una compra a crédito cuenta como gasto al registrarse y aumenta el pasivo; no toca el ahorro, así que **los activos disponibles no cambian**.
+- El pago no vuelve a contar el gasto; solo reduce los activos disponibles.
+- Patrimonio neto = activos − pasivos. La compra a crédito lo reduce al aumentar el pasivo; el pago no lo cambia.
 
 ## Funciones principales
 
 - **Varios libros**: familia, viajes, negocio, etc., con cambio rápido.
 - **Cuentas de activo y pasivo**: efectivo, banco, tarjeta de crédito, Huabei, préstamos y saldos iniciales.
 - **Facturas**: nombre, categoría, vencimiento, pago parcial y estado.
-- **Pagos**: paga desde una cuenta de activo y reduce pasivo y ahorro a la vez.
+- **Pagos**: paga desde una cuenta de activo y reduce pasivo y ahorro; el gasto ya se contó en la compra.
 - **Miembros**: asigna facturas y movimientos a miembros de la familia; en libros compartidos cada persona inicia sesión.
 - **Etiquetas y categorías de dos niveles**: etiquetas de contexto, uso y persona; categorías padre/hijo.
 - **Presupuestos y movimientos recurrentes**: mensuales o anuales, por categoría, etiqueta o miembro.
