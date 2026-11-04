@@ -5,7 +5,7 @@
 > 给 AI 编码助手、代码审查工具和自动化代理的项目说明。  
 > 修改代码前先读本文件，再读 [README.md](README.md) 和 [docs/deployment.md](docs/deployment.md)。
 
-**最后更新：** 2026-11-02  
+**最后更新：** 2026-11-04  
 **当前版本：** 0.10.1  
 **许可证：** AGPL-3.0-or-later
 
@@ -56,10 +56,10 @@ pnpm build:workbook
 pnpm preview
 ```
 
-当前基线（2026-11-02）：
+当前基线（2026-11-04）：
 
-- 26 个测试文件
-- 139 个测试通过
+- 29 个测试文件
+- 153 个测试通过
 - `tsc -b` 通过
 - `oxlint` 通过（可能存在既有 warning）
 - `pnpm build:workbook` 通过
