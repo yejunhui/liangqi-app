@@ -31,7 +31,6 @@ import {
     getCategoryBreakdown,
     getMonthTotals,
     getOpenBills,
-    getOutstandingTotal,
     getOverdueBills,
     getRecentDailyExpenses,
     getTotals,
@@ -78,7 +77,6 @@ export function Dashboard() {
         [entries, categories, month],
     );
     const openBills = useMemo(() => getOpenBills(bills, entries), [bills, entries]);
-    const outstanding = useMemo(() => getOutstandingTotal(bills, entries), [bills, entries]);
     const overdueBills = useMemo(() => getOverdueBills(bills, entries, now), [bills, entries, now]);
     const overdueTotal = useMemo(
         () => overdueBills.reduce((sum, bill) => sum + getBillRemaining(bill, entries), 0),
@@ -211,15 +209,15 @@ export function Dashboard() {
                     label={t("本月收入")}
                     value={monthTotals.income}
                     currency={currency}
-                    hint={t("结余 {0}", [formatCents(monthTotals.net, currency)])}
+                    hint={`${t("可支配")} ${formatCents(totals.disposable, currency)}`}
                     tone="success"
                     icon={TrendingUp}
                 />
                 <StatCard
-                    label={t("待还账单")}
-                    value={outstanding}
+                    label={t("待还")}
+                    value={totals.liabilities}
                     currency={currency}
-                    hint={openBills.length > 0 ? t("{0} 笔未结清", [openBills.length]) : t("没有待还账单")}
+                    hint={t("总负债")}
                     tone="liability"
                     icon={CreditCard}
                 />
@@ -332,14 +330,10 @@ export function Dashboard() {
                             <p className="text-3xl font-bold tracking-tight tabular-nums text-text">
                                 {formatCents(monthTotals.expense, currency)}
                             </p>
-                            <p className="mt-1 text-[11px] text-muted">{`${t("收入")} `}{formatCents(monthTotals.income, currency)}{` ${t("· 结余")}`}{" "}
-                                <span
-                                    className={cn(
-                                        "font-semibold",
-                                        monthTotals.net >= 0 ? "text-success" : "text-danger",
-                                    )}
-                                >
-                                    {formatCents(monthTotals.net, currency)}
+                            <p className="mt-1 text-[11px] text-muted">
+                                {`${t("收入")} ${formatCents(monthTotals.income, currency)} · ${t("可支配")} `}
+                                <span className="font-semibold text-text">
+                                    {formatCents(totals.disposable, currency)}
                                 </span>
                             </p>
                         </div>

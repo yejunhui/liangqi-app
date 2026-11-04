@@ -1474,5 +1474,6 @@ export const EN: Record<string, string> = {
     "本月（{0}）支出 {1}，收入 {2}，结余 {3}，还款 {4}": "This month ({0}): expenses {1}, income {2}, balance {3}, repayments {4}",
     "口径：现金支出和赊账在记账时计入支出；还款不计支出；转账不计收支。": "Basis: cash and credit purchases count as expenses when recorded; repayments are not expenses; transfers are excluded.",
     "现金支出和赊账在记账时计入支出；还款只减少资产和负债；转账不计收支。外币按记账时汇率换算成本位币。": "Cash and credit purchases count as expenses when recorded; repayment only reduces assets and liabilities; transfers are excluded. Foreign currencies are converted at the rate recorded with each entry.",
-    "支出 · 负债": "Expense · Liability"
+    "支出 · 负债": "Expense · Liability",
+    "还款会自动冲抵该负债账户下最早的未结清账单。": "Repayment is applied automatically to the oldest open bill for this liability account."
 };

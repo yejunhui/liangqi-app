@@ -33,6 +33,7 @@ import {
     getBillRepaid,
     getBillRemaining,
     getLinkedExpense,
+    getOpenBills,
     validateRepayment,
     validateRepaymentToAccount,
 } from "@/domain/ledger";
@@ -533,25 +534,107 @@ const createActions = (
             return fail(t("请先选择当前记账成员"));
         }
 
-        const entry: Entry = {
-            id: newId("entry"),
-            kind: "repayment",
-            amount: input.amount,
+        const createdAt = Date.now();
+        const common = {
+            kind: "repayment" as const,
             date: input.date,
             accountId: input.accountId,
             liabilityAccountId: liability.id,
-            billId: bill?.id,
-            categoryId: bill?.categoryId,
             memberId,
             tagIds: tagResult.tagIds,
             note: cleanNote(input.note),
             location: input.location,
-            originalAmount: input.originalAmount,
-            ...actorFields(actor, Date.now()),
-            createdAt: Date.now(),
+            ...actorFields(actor, createdAt),
+            createdAt,
         };
-        set({ entries: [...state.entries, entry] });
-        return { ok: true, entryId: entry.id };
+
+        if (bill) {
+            const entry: Entry = {
+                ...common,
+                id: newId("entry"),
+                amount: input.amount,
+                billId: bill.id,
+                categoryId: bill.categoryId,
+                originalAmount: input.originalAmount,
+            };
+            set({ entries: [...state.entries, entry] });
+            return { ok: true, entryId: entry.id };
+        }
+
+        // A direct account-to-account repayment still needs to update the
+        // liability account's bills. Allocate it to open bills oldest-first,
+        // then keep any remainder as an unlinked repayment.
+        const openBills = getOpenBills(state.bills, state.entries)
+            .filter(
+                (candidate) => candidate.liabilityAccountId === liability.id,
+            )
+            .sort((a, b) => {
+                if (a.dueDate && b.dueDate) {
+                    return a.dueDate - b.dueDate;
+                }
+                if (a.dueDate) {
+                    return -1;
+                }
+                if (b.dueDate) {
+                    return 1;
+                }
+                return a.purchasedAt - b.purchasedAt;
+            });
+        let remaining = input.amount;
+        let originalRemaining = input.originalAmount?.amount;
+        const entries: Entry[] = [];
+        for (const candidate of openBills) {
+            if (remaining <= 0) {
+                break;
+            }
+            const candidateRemaining = getBillRemaining(candidate, state.entries);
+            if (candidateRemaining <= 0) {
+                continue;
+            }
+            const amount = Math.min(remaining, candidateRemaining);
+            const isLast = amount === remaining;
+            const originalAmount =
+                input.originalAmount && originalRemaining !== undefined
+                    ? {
+                          ...input.originalAmount,
+                          amount: isLast
+                              ? originalRemaining
+                              : Math.round(
+                                    (input.originalAmount.amount * amount) /
+                                        input.amount,
+                                ),
+                      }
+                    : undefined;
+            if (originalAmount && originalRemaining !== undefined) {
+                originalRemaining -= originalAmount.amount;
+            }
+            entries.push({
+                ...common,
+                id: newId("entry"),
+                amount,
+                billId: candidate.id,
+                categoryId: candidate.categoryId,
+                originalAmount,
+            });
+            remaining -= amount;
+        }
+        if (remaining > 0) {
+            entries.push({
+                ...common,
+                id: newId("entry"),
+                amount: remaining,
+                originalAmount:
+                    input.originalAmount && originalRemaining !== undefined
+                        ? {
+                              ...input.originalAmount,
+                              amount: originalRemaining,
+                          }
+                        : undefined,
+            });
+        }
+
+        set({ entries: [...state.entries, ...entries] });
+        return { ok: true, entryId: entries[0].id };
     },
 
     addTransfer(input) {

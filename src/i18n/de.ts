@@ -1474,5 +1474,6 @@ export const DE: Record<string, string> = {
     "本月（{0}）支出 {1}，收入 {2}，结余 {3}，还款 {4}": "Dieser Monat ({0}): Ausgaben {1}, Einnahmen {2}, Saldo {3}, Rückzahlungen {4}",
     "口径：现金支出和赊账在记账时计入支出；还款不计支出；转账不计收支。": "Grundlage: Barausgaben und Kreditkäufe zählen bei der Erfassung; Rückzahlungen sind keine Ausgaben; Übertragungen zählen nicht.",
     "现金支出和赊账在记账时计入支出；还款只减少资产和负债；转账不计收支。外币按记账时汇率换算成本位币。": "Barausgaben und Kreditkäufe zählen bei der Erfassung; Rückzahlungen reduzieren nur Aktiva und Verbindlichkeiten; Übertragungen zählen nicht. Fremdwährungen werden zum erfassten Kurs umgerechnet.",
-    "支出 · 负债": "Ausgabe · Verbindlichkeit"
+    "支出 · 负债": "Ausgabe · Verbindlichkeit",
+    "还款会自动冲抵该负债账户下最早的未结清账单。": "Die Rückzahlung wird automatisch auf die älteste offene Rechnung dieses Passivkontos angewendet."
 };

@@ -5,6 +5,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Book } from "@/types";
 import { createSeedBook } from "@/domain/seed";
+import { getBillRemaining } from "@/domain/ledger";
 import { useLibraryStore } from "@/store/library";
 import { useLedgerStore } from "@/store/ledger";
 import { useMemberSessionStore } from "@/store/member-session";
@@ -159,9 +160,57 @@ describe("ledger member defaults", () => {
             .getState()
             .entries.find((item) => item.id === repay.entryId);
         expect(repayment?.kind).toBe("repayment");
-        expect(repayment?.billId).toBeUndefined();
+        expect(repayment?.billId).toBe(purchase.billId);
         expect(repayment?.liabilityAccountId).toBe("acc_credit");
         expect(repayment?.memberId).toBe("member_bob");
+        const bill = useLedgerStore
+            .getState()
+            .bills.find((item) => item.id === purchase.billId);
+        expect(bill).toBeDefined();
+        expect(getBillRemaining(bill!, useLedgerStore.getState().entries)).toBe(
+            6_000,
+        );
+    });
+
+    it("allocates a direct repayment across open bills for the liability account", () => {
+        const state = useLedgerStore.getState();
+        const first = state.addExpense({
+            amount: 10_000,
+            date: NOW - 1_000,
+            categoryId: "cat_food",
+            source: { type: "liability", accountId: "acc_credit" },
+        });
+        const second = state.addExpense({
+            amount: 5_000,
+            date: NOW,
+            categoryId: "cat_food",
+            source: { type: "liability", accountId: "acc_credit" },
+        });
+        expect(first.ok && second.ok).toBe(true);
+        if (!first.ok || !second.ok) {
+            return;
+        }
+
+        const repay = state.addRepayment({
+            amount: 12_000,
+            date: NOW,
+            accountId: "acc_bank",
+            liabilityAccountId: "acc_credit",
+        });
+        expect(repay.ok).toBe(true);
+        if (!repay.ok) {
+            return;
+        }
+
+        const current = useLedgerStore.getState();
+        const repayments = current.entries.filter(
+            (entry) => entry.kind === "repayment",
+        );
+        expect(repayments).toHaveLength(2);
+        const firstBill = current.bills.find((bill) => bill.id === first.billId);
+        const secondBill = current.bills.find((bill) => bill.id === second.billId);
+        expect(getBillRemaining(firstBill!, current.entries)).toBe(0);
+        expect(getBillRemaining(secondBill!, current.entries)).toBe(3_000);
     });
 
     it("records member update timestamps for shared-ledger merge", () => {

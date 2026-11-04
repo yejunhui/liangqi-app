@@ -16,7 +16,7 @@ import {
     getBillStatus,
     getMonthTotals,
     getOpenBills,
-    getOutstandingTotal,
+    getTotals,
     getOverdueBills,
 } from "@/domain/ledger";
 import { formatCents } from "@/domain/money";
@@ -55,7 +55,10 @@ export function Bills() {
                 .sort((a, b) => b.purchasedAt - a.purchasedAt),
         [bills, entries],
     );
-    const outstanding = useMemo(() => getOutstandingTotal(bills, entries), [bills, entries]);
+    const liabilityTotal = useMemo(
+        () => getTotals({ accounts, entries }).liabilities,
+        [accounts, entries],
+    );
     const overdue = useMemo(() => getOverdueBills(bills, entries, now), [bills, entries, now]);
     const monthRepayment = useMemo(
         () => getMonthTotals(entries, now).repayment,
@@ -116,7 +119,7 @@ export function Bills() {
                     <div>
                         <p className="text-[11px] font-medium text-muted">{t("待还总额")}</p>
                         <p className="mt-1 text-3xl font-bold tracking-tight tabular-nums text-liability">
-                            {formatCents(outstanding, currency)}
+                            {formatCents(liabilityTotal, currency)}
                         </p>
                         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
                             <span>{openBills.length}{` ${t("笔未结清")}`}</span>
@@ -242,7 +245,7 @@ export function Bills() {
                 onConfirm={handleDelete}
             />
 
-            <p className="mt-5 text-center text-[10px] text-muted">{`${t("待还金额合计")} `}{formatCents(outstanding, currency)}{` ${t("· 数据只保存在本机浏览器")}`}</p>
+            <p className="mt-5 text-center text-[10px] text-muted">{`${t("待还金额合计")} `}{formatCents(liabilityTotal, currency)}{` ${t("· 数据只保存在本机浏览器")}`}</p>
         </div>
     );
 }

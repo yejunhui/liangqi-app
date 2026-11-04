@@ -45,7 +45,7 @@ Key rules:
 - **Overview**: total assets, total liabilities, disposable assets, and net worth.
 - **Two spending modes**: deduct from savings now, or count the expense immediately and create a liability and bill to repay later.
 - **Bills**: name, category, due date, partial repayment, and paid status.
-- **Repayments**: repay from an asset account; liabilities and savings are reduced. The expense was already counted at purchase time, so repayment does not count it again.
+- **Repayments**: repay from an asset account; liabilities and savings are reduced. The expense was already counted at purchase time, so repayment does not count it again. A direct repayment is applied automatically to the oldest open bill for that liability account.
 - **Transfers**: move money between asset accounts without affecting income, expenses, or budgets.
 - **Member attribution**: bills and entries can belong to a family member; member labels appear on cards and lists.
 - **Tags and tag groups**: built-in daily tag groups for life context, purpose, and related people; single- or multi-select tags, plus your own tags.

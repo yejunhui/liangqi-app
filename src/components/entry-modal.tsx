@@ -938,6 +938,11 @@ export function EntryModal() {
                                     <p className="mt-2 text-[10px] leading-relaxed text-danger">{t("还款后该账户余额会变成负数，请确认余额。")}</p>
                                 )}
                         </div>
+                        {!billId && selectedLiability && (
+                            <p className="text-[10px] leading-relaxed text-muted">
+                                {t("还款会自动冲抵该负债账户下最早的未结清账单。")}
+                            </p>
+                        )}
                     </div>
                 )}
 

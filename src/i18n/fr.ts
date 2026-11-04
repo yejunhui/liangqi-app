@@ -1474,5 +1474,6 @@ export const FR: Record<string, string> = {
     "本月（{0}）支出 {1}，收入 {2}，结余 {3}，还款 {4}": "Ce mois ({0}) : dépenses {1}, revenus {2}, solde {3}, remboursements {4}",
     "口径：现金支出和赊账在记账时计入支出；还款不计支出；转账不计收支。": "Méthode : dépenses en espèces et achats à crédit comptent à l’enregistrement ; les remboursements ne sont pas des dépenses ; les virements sont exclus.",
     "现金支出和赊账在记账时计入支出；还款只减少资产和负债；转账不计收支。外币按记账时汇率换算成本位币。": "Les dépenses en espèces et les achats à crédit comptent à l’enregistrement ; le remboursement ne réduit que les actifs et les passifs ; les virements sont exclus. Les devises sont converties au taux enregistré.",
-    "支出 · 负债": "Dépense · Passif"
+    "支出 · 负债": "Dépense · Passif",
+    "还款会自动冲抵该负债账户下最早的未结清账单。": "Le remboursement est appliqué automatiquement à la facture impayée la plus ancienne de ce compte de passif."
 };

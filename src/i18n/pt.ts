@@ -1474,5 +1474,6 @@ export const PT: Record<string, string> = {
     "本月（{0}）支出 {1}，收入 {2}，结余 {3}，还款 {4}": "Este mês ({0}): despesas {1}, receitas {2}, saldo {3}, pagamentos {4}",
     "口径：现金支出和赊账在记账时计入支出；还款不计支出；转账不计收支。": "Critério: despesas em dinheiro e compras a crédito contam no registo; pagamentos não são despesa; transferências não contam.",
     "现金支出和赊账在记账时计入支出；还款只减少资产和负债；转账不计收支。外币按记账时汇率换算成本位币。": "Despesas em dinheiro e compras a crédito contam no registo; o pagamento só reduz ativos e passivos; transferências não contam. Moedas estrangeiras são convertidas à taxa registada.",
-    "支出 · 负债": "Despesa · Passivo"
+    "支出 · 负债": "Despesa · Passivo",
+    "还款会自动冲抵该负债账户下最早的未结清账单。": "O pagamento é aplicado automaticamente à fatura pendente mais antiga desta conta de passivo."
 };
