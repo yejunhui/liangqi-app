@@ -24,7 +24,6 @@ const CATEGORY_COLORS = {
     otherIncome: "#94a3b8",
 } as const;
 
-
 export function createSeedData(now = Date.now()): LedgerData {
     const accounts: Account[] = [
         {
